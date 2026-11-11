@@ -6,16 +6,28 @@
 //   TR satirlari VARSAYILAN KAPALI: hat/kuyruk.mjs TR_KUYRUK=acik ve durum/onay.json "TR" onayi olmadan hic satir yazmaz.
 // Hukuk (peak-durum/outreach/bodyarcade-creators/legal.md): AU, NZ, IE kosulsuz (kimlik + opt-out + susturma); GB YALNIZ sirket (Ltd/LLP/plc kaniti sitede);
 // Almanya, Avusturya, Ispanya ve taranmamis ulkeler hic alinmaz.
+// 11 Kas 2026 SG (Spam Control Act 2007, sso.agc.gov.sg/Act/SCA2007): onceden izin yok; m.6 toplu esik (24 saatte 100, 30 gunde 1.000, yilda 10.000'den fazla)
+//   asilmadikca ek sart yok.  Esigin altinda kalma sinirini peak-outreach uygular (config.json legal_caps.SG: 24 saatte 90, 30 gunde 900, 366 gunde 9.000).
+//   SG ancak hat/plan.json ulkeler.SG.aktif=true iken taranir.  Teklif fiyati US$ (mail sablonu); para alani isletmenin kendi fiyatlarinin isaretidir.
+// BEKLE_ULKE: onceden izin gerekmiyor ama mailde posta adresi (ya da adres + telefon) zorunlu; ev adresi kuralimizla celisir.  Ev olmayan bir is adresi olunca acilir.
+//   HK (11 Kas 2026): UEMO Cap. 593 m.8 + UEMR Cap. 593A m.5-6: her ticari e-postada ad, is yeri adresi (posta kutusu olmaz), telefon ve e-posta, Cince ve Ingilizce.
+// YASAK_ULKE: B2B'de de onceden izin gerekir (ULKE-MATRISI 4. bolum).  Iki listedeki hicbir ulke ULKELER'e girmez (lead/test/lead.test.mjs).
 export const ULKELER = {
-  GB: { ad: 'Birleşik Krallık', dil: 'en', para: '£', sirketSart: true, serbestPostaYok: true },
-  IE: { ad: 'İrlanda', dil: 'en', para: '€', sirketSart: false, serbestPostaYok: true },
-  AU: { ad: 'Avustralya', dil: 'en', para: '$', sirketSart: false, serbestPostaYok: false },
-  NZ: { ad: 'Yeni Zelanda', dil: 'en', para: '$', sirketSart: false, serbestPostaYok: false },
-  TR: { ad: 'Türkiye', dil: 'tr', para: '₺', sirketSart: false, serbestPostaYok: false, yalnizSektor: ['restoran'], kuyrukAnahtari: 'TR_KUYRUK' },
+  GB: { ad: 'Birleşik Krallık', dil: 'en', para: '£', saatDilimi: 'Europe/London', sirketSart: true, serbestPostaYok: true },
+  IE: { ad: 'İrlanda', dil: 'en', para: '€', saatDilimi: 'Europe/Dublin', sirketSart: false, serbestPostaYok: true },
+  AU: { ad: 'Avustralya', dil: 'en', para: '$', saatDilimi: 'Australia/Sydney', sirketSart: false, serbestPostaYok: false },
+  NZ: { ad: 'Yeni Zelanda', dil: 'en', para: '$', saatDilimi: 'Pacific/Auckland', sirketSart: false, serbestPostaYok: false },
+  TR: { ad: 'Türkiye', dil: 'tr', para: '₺', saatDilimi: 'Europe/Istanbul', sirketSart: false, serbestPostaYok: false, yalnizSektor: ['restoran'], kuyrukAnahtari: 'TR_KUYRUK' },
+  SG: { ad: 'Singapur', dil: 'en', para: 'S$', teklifPara: 'USD', saatDilimi: 'Asia/Singapore', sirketSart: false, serbestPostaYok: false },
 };
+// plan.json ulkeler.<kod>.aktif=true olmadan taranmayan ulkeler (temel dort ulke her zaman acik)
+export const TEMEL_ULKE = new Set(['AU', 'NZ', 'IE', 'GB']);
 // TR il kodlari (OSM ISO3166-2): yerel deneme ve bolge sirasi icin.  Antalya ve Istanbul once (Doruk 11 Kas).
 export const TR_ILLER = { 'TR-07': 'Antalya', 'TR-34': 'İstanbul', 'TR-35': 'İzmir', 'TR-48': 'Muğla', 'TR-06': 'Ankara', 'TR-26': 'Eskişehir', 'TR-16': 'Bursa', 'TR-01': 'Adana', 'TR-33': 'Mersin', 'TR-27': 'Gaziantep', 'TR-42': 'Konya', 'TR-09': 'Aydın', 'TR-61': 'Trabzon', 'TR-17': 'Çanakkale', 'TR-41': 'Kocaeli' };
-export const YASAK_ULKE = new Set(['US', 'CA', 'DE', 'AT', 'ES', 'IT', 'GR', 'MT', 'BE', 'CZ', 'CH', 'LT']);
+export const YASAK_ULKE = new Set(['DE', 'AT', 'ES', 'IT', 'GR', 'MT', 'BE', 'CZ', 'LT', 'DK', 'PL', 'SK', 'RO', 'KR', 'VN', 'ZA', 'SA', 'AE']);
+// ABD (CAN-SPAM), Kanada (CASL), Japonya: posta adresi; Isvicre: UWG "toplu reklam" belirsiz; Hong Kong: adres + telefon + iki dil (ULKE-MATRISI 3. ve 8. bolum)
+export const BEKLE_ULKE = new Set(['US', 'CA', 'JP', 'CH', 'HK']);
+export const kapaliUlke = (u) => YASAK_ULKE.has(String(u || '').toUpperCase()) || BEKLE_ULKE.has(String(u || '').toUpperCase());
 
 const v = (t, k) => String(t[k] || '').toLowerCase();
 

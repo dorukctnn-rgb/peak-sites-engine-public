@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { kapiBitti } from '../uyarla/lib/surum.mjs';
 import { uretimPuani } from '../lead/puan.mjs';
+import { ULKELER, TEMEL_ULKE, kapaliUlke } from '../lead/sektorler.mjs';
 
 const jsonOku = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const jsonYaz = (f, o) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, 1)); };
@@ -18,8 +19,15 @@ const zamanli = (p, ms, ad) => { let t; return Promise.race([p, new Promise((_, 
 export function planOku(dosya) {
   const p = jsonOku(dosya, null); if (!p) throw new Error(`plan okunamadi: ${dosya}`);
   const aktif = (s) => p.sektorler && p.sektorler[s] && p.sektorler[s].aktif;
-  // TR (11 Kas 2026): yalniz plan.ulkeler.TR.aktif=true ve yalnizSektor (restoran) icin; mail satiri ayrica TR_KUYRUK + onay.json "TR" ister (hat/kuyruk.mjs)
-  const ulkeOk = (u, s) => ['AU', 'NZ', 'IE', 'GB'].includes(u) || (u === 'TR' && p.ulkeler && p.ulkeler.TR && p.ulkeler.TR.aktif === true && (p.ulkeler.TR.sektorler || ['restoran']).includes(s));
+  // Temel dort ulke (AU NZ IE GB) her zaman.  Diger ulkeler (TR 11 Kas, SG 11 Kas) yalniz plan.ulkeler.<kod>.aktif=true ve listelenen sektorler icin;
+  // ULKELER'de olmayan ya da YASAK/BEKLE listesindeki ulke (HK, US, CA ...) plan ne derse desin girmez.  TR mail satiri ayrica TR_KUYRUK + onay.json "TR" ister (hat/kuyruk.mjs).
+  const ulkeOk = (u, s) => {
+    const U = ULKELER[u]; if (!U || kapaliUlke(u)) return false;
+    if (U.yalnizSektor && !U.yalnizSektor.includes(s)) return false;
+    if (TEMEL_ULKE.has(u)) return true;
+    const P = p.ulkeler && p.ulkeler[u];
+    return !!P && P.aktif === true && (P.sektorler || U.yalnizSektor || []).includes(s);
+  };
   return { ...p, sira: (p.sira || []).filter(([u, s]) => aktif(s) && ulkeOk(u, s)) };
 }
 

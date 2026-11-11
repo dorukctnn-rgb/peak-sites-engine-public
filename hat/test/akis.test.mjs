@@ -19,9 +19,16 @@ const PLAN = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace
 
 test('plan: yalniz aktif sektorler ve hedef ulkeler', () => {
   const p = planOku(PLAN);
-  assert.ok(p.sira.length >= 4); for (const [u, s] of p.sira) { assert.ok(['AU', 'NZ', 'IE', 'GB'].includes(u)); assert.ok(['konaklama', 'guzellik'].includes(s)); }
-  // aktif her sektorun bes parcasi da var: sayfa profili, lead tanimi, mail sablonu
-  for (const s of new Set(p.sira.map(([, x]) => x))) { assert.ok(profil({ sektor: s }), `profil: ${s}`); assert.ok(SEKTORLER[s], `lead tanimi: ${s}`); assert.ok(SABLON[s], `mail sablonu: ${s}`); }
+  assert.ok(p.sira.length >= 4); for (const [u, s] of p.sira) { assert.ok(['AU', 'NZ', 'IE', 'GB', 'SG', 'TR'].includes(u)); assert.ok(['konaklama', 'guzellik', 'restoran'].includes(s)); }
+  // TR (11 Kas deneme turu) yalniz restoran ailesiyle
+  assert.ok(p.sira.some(([u, s]) => u === 'TR' && s === 'restoran')); assert.ok(!p.sira.some(([u, s]) => u === 'TR' && s !== 'restoran'));
+  // aktif her sektorun parcalari: lead tanimi; konaklama ve guzellik icin sayfa profili + mail sablonu.  Restoran ailesi kendi uretecinden (uyarla/uret.mjs, v5/kategori)
+  // sayfa yapar; motorda mail sablonu yok, satir yalniz RESTORAN_KUYRUK=acik + son goz onayiyla yazilir (hat/kuyruk.mjs).
+  for (const s of new Set(p.sira.map(([, x]) => x))) {
+    assert.ok(SEKTORLER[s], `lead tanimi: ${s}`);
+    if (s === 'restoran') { assert.ok(fs.existsSync(path.join(path.dirname(PLAN), '..', 'uyarla', 'uret.mjs')), 'restoran ureteci'); continue; }
+    assert.ok(profil({ sektor: s }), `profil: ${s}`); assert.ok(SABLON[s], `mail sablonu: ${s}`);
+  }
   const d = tmp(); const f = path.join(d, 'p.json');
   fs.writeFileSync(f, JSON.stringify({ sektorler: { a: { aktif: true }, b: { aktif: false } }, sira: [['TR', 'a'], ['US', 'a'], ['IE', 'a'], ['IE', 'b']] }));
   assert.deepEqual(planOku(f).sira, [['IE', 'a']]);

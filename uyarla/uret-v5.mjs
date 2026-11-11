@@ -253,7 +253,7 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
     if (p && p.tableOk) { hoursIn = p; notes.push(`saatler sitenin kendi satırlarından (${e.saat.kaynak || 'elle'})`); } else warn.push('elle saat satirlari cozulmedi');
   }
   const sd = saatDenetle(hoursIn); const hrs = sd.hours;
-  const h12 = ['AU', 'NZ', 'US', 'CA'].includes(region); const tz = tzOf(lead.city, region);
+  const h12 = ['AU', 'NZ', 'US', 'CA', 'SG'].includes(region); const tz = tzOf(lead.city, region);
   let known = 0; if (hrs) for (let d = 0; d < 7; d++) if (hrs.week[d] || (hrs.byDay && hrs.byDay[d] === 'closed')) known++;
   const hoursOk = !!hrs && known >= 5; const statusOk = !!hrs && known === 7 && !!tz;
   const hoursSummary = hoursOk ? saatOzetV5(hrs, lang, h12) : [];

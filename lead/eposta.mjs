@@ -23,7 +23,7 @@ export function adresler(html) {
   return [...set].map((e) => e.trim().toLowerCase().replace(/^[.]+|[.]+$/g, '')).filter((e) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(e) && !DOSYA.test(e) && !KOTU_ADRES.test(e) && e.length <= 80);
 }
 
-const kok = (host) => { const p = String(host).toLowerCase().replace(/^www\./, '').split('.'); const n = /\.(co|com|org|net|ac|gov)\.(uk|au|nz)$|\.(com|net|org)\.(au)$/.test(`.${p.slice(-2).join('.')}`) || ['co.uk', 'org.uk', 'com.au', 'net.au', 'org.au', 'co.nz', 'org.nz', 'net.nz', 'com.tr', 'net.tr', 'org.tr', 'gen.tr', 'web.tr', 'biz.tr', 'info.tr', 'tel.tr', 'name.tr'].includes(p.slice(-2).join('.')) ? 3 : 2; return p.slice(-n).join('.'); };
+const kok = (host) => { const p = String(host).toLowerCase().replace(/^www\./, '').split('.'); const n = /\.(co|com|org|net|ac|gov)\.(uk|au|nz)$|\.(com|net|org)\.(au)$/.test(`.${p.slice(-2).join('.')}`) || ['co.uk', 'org.uk', 'com.au', 'net.au', 'org.au', 'co.nz', 'org.nz', 'net.nz', 'com.sg', 'net.sg', 'org.sg', 'edu.sg', 'per.sg', 'com.tr', 'net.tr', 'org.tr', 'gen.tr', 'web.tr', 'biz.tr', 'info.tr', 'tel.tr', 'name.tr'].includes(p.slice(-2).join('.')) ? 3 : 2; return p.slice(-n).join('.'); };
 export const alanKoku = kok;
 
 // sayfa metinlerinden en iyi adres: kendi alan adindaki > rol adresi (info/stay/bookings/hello/enquiries/reservations) > diger

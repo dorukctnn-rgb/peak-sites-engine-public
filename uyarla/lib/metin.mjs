@@ -55,7 +55,7 @@ export function saatOzet(tablo, lang) {
   return rows.map((x) => ({ days: x.from === x.to ? x.from.label : `${x.from.short}–${x.to.short}`, daysLong: x.from === x.to ? x.from.label : `${x.from.label}–${x.to.label}`, t: x.t }));
 }
 
-const CUR = { AU: '$', NZ: '$', CA: '$', US: '$', IE: '€', GB: '£', TR: '₺' };
+const CUR = { AU: '$', NZ: '$', CA: '$', US: '$', SG: '$', IE: '€', GB: '£', TR: '₺' };
 export function fmtPrice(p, region) {
   const s = String(p || '').replace(/\s+/g, ' ').trim();
   if (!s) return '';
@@ -65,7 +65,7 @@ export function fmtPrice(p, region) {
   return region === 'TR' ? `${s} ₺` : `${c}${s}`;
 }
 
-const CC = { AU: '61', NZ: '64', IE: '353', GB: '44', TR: '90', US: '1', CA: '1' };
+const CC = { AU: '61', NZ: '64', IE: '353', GB: '44', TR: '90', US: '1', CA: '1', SG: '65' };
 export function telHref(phone, region) {
   let d = String(phone || '').trim(); if (!d) return null;
   const plus = d.startsWith('+') || d.startsWith('00');
@@ -75,6 +75,7 @@ export function telHref(phone, region) {
   const cc = CC[region] || '';
   if (!cc) return d.length >= 7 ? d : null;
   if (cc === '1') return d.length === 11 && d.startsWith('1') ? `+${d}` : `+1${d}`;
+  if (cc === '65') return d.length === 10 && d.startsWith('65') ? `+${d}` : `+65${d}`; // Singapur: 8 hane, alan kodu ve bastaki 0 yok
   return `+${cc}${d.replace(/^0+/, '')}`;
 }
 export function telText(phone) { return String(phone || '').replace(/\s+/g, ' ').trim(); }
@@ -82,8 +83,8 @@ export function telText(phone) { return String(phone || '').replace(/\s+/g, ' ')
 export const mapsUrl = (address, name, city) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([address || name, address ? '' : city].filter(Boolean).join(' '))}`;
 
 // saat dilimi: sehir, sonra bolge
-const TZ_CITY = { 'new york': 'America/New_York', miami: 'America/New_York', 'los angeles': 'America/Los_Angeles', chicago: 'America/Chicago', austin: 'America/Chicago', vancouver: 'America/Vancouver', calgary: 'America/Edmonton', toronto: 'America/Toronto', melbourne: 'Australia/Melbourne', sydney: 'Australia/Sydney', brisbane: 'Australia/Brisbane', dublin: 'Europe/Dublin', galway: 'Europe/Dublin', cork: 'Europe/Dublin', auckland: 'Pacific/Auckland', christchurch: 'Pacific/Auckland', wellington: 'Pacific/Auckland', londra: 'Europe/London', london: 'Europe/London', manchester: 'Europe/London' };
-const TZ_REGION = { TR: 'Europe/Istanbul', IE: 'Europe/Dublin', GB: 'Europe/London', NZ: 'Pacific/Auckland' };
+const TZ_CITY = { 'new york': 'America/New_York', miami: 'America/New_York', 'los angeles': 'America/Los_Angeles', chicago: 'America/Chicago', austin: 'America/Chicago', vancouver: 'America/Vancouver', calgary: 'America/Edmonton', toronto: 'America/Toronto', melbourne: 'Australia/Melbourne', sydney: 'Australia/Sydney', brisbane: 'Australia/Brisbane', dublin: 'Europe/Dublin', galway: 'Europe/Dublin', cork: 'Europe/Dublin', auckland: 'Pacific/Auckland', christchurch: 'Pacific/Auckland', wellington: 'Pacific/Auckland', singapore: 'Asia/Singapore', londra: 'Europe/London', london: 'Europe/London', manchester: 'Europe/London' };
+const TZ_REGION = { TR: 'Europe/Istanbul', IE: 'Europe/Dublin', GB: 'Europe/London', NZ: 'Pacific/Auckland', SG: 'Asia/Singapore' };
 export const tzOf = (city, region) => TZ_CITY[String(city || '').toLowerCase()] || TZ_REGION[region] || null;
 const EN_CITY = { londra: 'London', 'i̇stanbul': 'Istanbul', 'İstanbul': 'Istanbul', 'muğla': 'Muğla' };
 export const cityLabel = (city, lang) => (lang === 'en' ? EN_CITY[city] || EN_CITY[String(city || '').toLowerCase()] || city : city);
