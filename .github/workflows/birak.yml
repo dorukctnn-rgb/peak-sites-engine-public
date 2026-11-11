@@ -1,0 +1,104 @@
+name: birak
+
+# Bekletilen websites-demo satirlarini ISINMA TAKVIMIYLE serbest birakir ve OTOMATIK DURDURUR (hat/birak.mjs).  Gunde bir kez, Pazar-Persembe 22:40 UTC (gonderici Pazartesi-Cuma calisir; bir sonraki UTC gununun kotasi).
+#   - yalniz koordinatorun onayladigi sektorler (durum/onay.json, ozel veri deposu); gunluk toplam 20 -> 40 -> 65; sekme orani > %3 ya da sikayet -> acik satirlar yeniden bekletilir, durum/DURDU.json yazilir, ozel veri deposunda issue acilir.
+#   - Herkese acik depoda issue acilmaz (durak nedeni isletme verisi icerebilir): issue OZEL veri deposuna acilir.
+# Gonderimin kendisi peak-outreach'in bulut gondericisidir (send.yml + Cloudflare cron).  Laptoptan gonderim YOK.
+on:
+  schedule:
+    - cron: '40 22 * * 0-4'
+  workflow_dispatch:
+    inputs:
+      yaz:
+        description: 'true = kuyruga yaz; false = kuru calisma'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: peak-veri
+  cancel-in-progress: false
+
+jobs:
+  birak:
+    if: ${{ vars.HAT_AKTIF == 'true' && github.repository_owner == 'dorukctnn-rgb' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: uretim
+    env:
+      VERI_DEPO: ${{ vars.HAT_VERI_DEPO }}
+      OLAY: ${{ github.event_name }}
+      YAZ_GIRDI: ${{ inputs.yaz }}
+    steps:
+      - name: veri deposu korumasi (herkese acik depoya veri yazilmaz)
+        env:
+          HAT_PAT: ${{ secrets.HAT_PAT }}
+          GH_TOKEN: ${{ secrets.HAT_PAT }}
+          BU_DEPO: ${{ github.repository }}
+        run: |
+          set -e
+          [ -n "$VERI_DEPO" ] || { echo "HAT_VERI_DEPO tanimli degil: durdu"; exit 1; }
+          [ -n "$HAT_PAT" ] || { echo "HAT_PAT yok: durdu"; exit 1; }
+          [ "$VERI_DEPO" != "$BU_DEPO" ] || { echo "veri deposu bu (herkese acik) depo olamaz: durdu"; exit 1; }
+          [ "$(gh api "repos/${VERI_DEPO}" --jq .private)" = "true" ] || { echo "veri deposu OZEL degil: durdu"; exit 1; }
+          echo "tamam"
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: durum dali (ozel veri deposu)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: veri
+          path: calisma/veri-depo
+
+      - name: peak-outreach
+        env:
+          HAT_PAT: ${{ secrets.HAT_PAT }}
+        run: |
+          git clone -q "https://x-access-token:${HAT_PAT}@github.com/dorukctnn-rgb/peak-outreach.git" calisma/po
+          (cd calisma/po && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
+
+      - name: birak
+        id: birak
+        run: |
+          set +e
+          YAZ=""; if [ "$OLAY" = "schedule" ] || [ "$YAZ_GIRDI" = "true" ]; then YAZ="--yaz"; fi
+          bash hat/sessiz.sh birak node hat/birak.mjs --po calisma/po --depo calisma/veri-depo $YAZ --canli-kontrol
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: kuyruga yaz
+        if: env.OLAY == 'schedule' || env.YAZ_GIRDI == 'true'
+        run: |
+          cd calisma/po
+          git config user.name 'peak-hat[bot]'; git config user.email 'hat@peakappsstudio.com'
+          git add -A
+          git diff --cached --quiet || git commit -q -m "websites-demo: hat serbest birakma / durdurma"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:main && break; git pull --rebase -q origin main || { git rebase --abort || true; exit 1; }; sleep $((i*3)); done
+
+      - name: durum dalini yaz (ozel veri deposu)
+        run: |
+          cd calisma/veri-depo
+          mkdir -p durum/log
+          for f in ../log/*.txt; do [ -f "$f" ] && cp "$f" "durum/log/${GITHUB_RUN_ID}-$(basename "$f")"; done
+          git config user.name 'peak-hat[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet || git commit -q -m "birak: ${GITHUB_RUN_ID}"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:veri && break; git pull --rebase -q origin veri || { git rebase --abort || true; break; }; sleep $((i*3)); done
+
+      - name: durak varsa issue ac (OZEL veri deposunda)
+        if: steps.birak.outputs.kod == '20'
+        env:
+          GH_TOKEN: ${{ secrets.HAT_PAT }}
+        run: |
+          gh issue create -R "$VERI_DEPO" --title "Hat otomatik durdu (websites-demo)" --body "$(node -e "const b=JSON.parse(require('fs').readFileSync('calisma/veri-depo/durum/birak.json','utf8'));console.log('Neden: '+b.durak+'\n\nYeniden bekletilen satir: '+b.yenidenBekletilen+'\n\nDevam icin: veri dalinda durum/DURDU.json silinir. Kendiliginden devam etmez.')")"

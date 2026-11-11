@@ -1,0 +1,408 @@
+name: uygula
+
+# Inceleme kararlarini uygular (herkese acik depo).  Kararlar OZEL veri deposundaki `karar/icerik-<ts>` (icerik turu: konaklama/guzellik kararlari ve restoran
+# icerik kararlari) ya da `karar/songoz-<ts>` (son goz turu: restoran son kararlari) dalindadir.  Veri deposundaki `karar-tetik` is akisi dala push olunca bunu
+# `workflow_dispatch` ile baslatir (dal adi girdi olarak gelir).  KOD her zaman bu deponun `main`indendir; karar dali yalniz VERI tasir (karar/<parti>/<slug>.json).
+#   restoran: icerik karari -> uret + siki kapi -> son-bakis paketi inceleme kutusuna (SON GOZ KUTUSU: inceleme/songoz-kutu.mjs ile toplu bakilir);
+#             son goz 'yayinla' (yalniz karar/songoz-* dalindan) -> yayin paketi (+ RESTORAN_KUYRUK=acik ise BEKLETILMIS kuyruk satiri).  Onaysiz restoran sayfasi pakete ve kuyruga GIRMEZ.
+# MATRIS: kararlar en cok 4 PARCAYA bolunur (hat/parca.mjs), parcalar ayni anda kosar; her parca ciktisini SIFRELI artifact olarak yukler (openssl AES-256, parola SAYFA_TUZU):
+#   herkese acik depoda artifact'lar indirilebilir, isletme verisi sifresiz yuklenmez.  plan -> uret (matris, max-parallel 4) -> topla.  HAT_PARALEL paralelligi dusurebilir.
+#   1. kararlar -> elle kaydi (kalici: veri dalinda durum/elle-hat.json) -> `hazir` olanlar yeniden uretilir + kapi + mail onizleme gorseli
+#   2. teslim paketi ozel veri deposunun `yayin-paketi` dalina yazilir
+#   3. sayfalar peakappsstudios'a PR (denetim temiz ve sektor onayliysa birlesir), kuyruk satirlari peak-outreach'e BEKLETILMIS yazilir (HAT_PAT).  Hicbir satir burada gonderime ACILMAZ.
+# Actions gunlugu herkese aciktir: adimlar `hat/sessiz.sh` ile calisir, gunluge yalniz sayilar basilir.  Sirlar `uretim` ortaminda (yalniz main).
+on:
+  workflow_dispatch:
+    inputs:
+      dal:
+        description: 'ozel veri deposundaki karar dali (karar/icerik-YYYYMMDDHHMM ya da karar/songoz-YYYYMMDDHHMM)'
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: peak-veri
+  cancel-in-progress: false
+
+env:
+  DAL: ${{ inputs.dal }}
+  VERI_DEPO: ${{ vars.HAT_VERI_DEPO }}
+
+jobs:
+  plan:
+    if: ${{ vars.HAT_AKTIF == 'true' && github.repository_owner == 'dorukctnn-rgb' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: uretim
+    outputs:
+      calis: ${{ steps.butce.outputs.calis }}
+      adet: ${{ steps.parca.outputs.adet }}
+      n: ${{ steps.parca.outputs.n }}
+      parca: ${{ steps.parca.outputs.parca }}
+    steps:
+      - name: dal adi ve veri deposu korumasi
+        env:
+          HAT_PAT: ${{ secrets.HAT_PAT }}
+          GH_TOKEN: ${{ secrets.HAT_PAT }}
+          BU_DEPO: ${{ github.repository }}
+        run: |
+          set -e
+          [[ "$DAL" =~ ^karar/(icerik|songoz)-[0-9]{12}$ ]] || { echo "dal adi uygun degil: durdu"; exit 1; }
+          [ -n "$VERI_DEPO" ] || { echo "HAT_VERI_DEPO tanimli degil: durdu"; exit 1; }
+          [ -n "$HAT_PAT" ] || { echo "HAT_PAT yok: durdu"; exit 1; }
+          [ "$VERI_DEPO" != "$BU_DEPO" ] || { echo "veri deposu bu (herkese acik) depo olamaz: durdu"; exit 1; }
+          [ "$(gh api "repos/${VERI_DEPO}" --jq .private)" = "true" ] || { echo "veri deposu OZEL degil: durdu"; exit 1; }
+          echo "tamam"
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: butce
+        id: butce
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HAT_DAKIKA_AYLIK: ${{ vars.HAT_DAKIKA_AYLIK }}
+          HAT_DAKIKA_GUNLUK: ${{ vars.HAT_DAKIKA_GUNLUK }}
+          HAT_DAKIKA_SINIRSIZ: ${{ vars.HAT_DAKIKA_SINIRSIZ }}
+        run: node hat/butce.mjs --tur 45
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.butce.outputs.calis == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: bagimliliklar
+        if: steps.butce.outputs.calis == 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: ozel varliklar (ozel veri deposu, main/motor)
+        if: steps.butce.outputs.calis == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: main
+          path: calisma/ozel
+          sparse-checkout: motor
+          persist-credentials: false
+
+      - name: ozel varliklari yerlestir
+        if: steps.butce.outputs.calis == 'true'
+        run: node hat/ozel-getir.mjs --kaynak calisma/ozel
+
+      - name: karar dali (yalniz VERI; ozel veri deposu)
+        if: steps.butce.outputs.calis == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: ${{ inputs.dal }}
+          path: calisma/karar-dal
+          persist-credentials: false
+
+      - name: testler (hat bozuksa uygulamaz; tuzsuz)
+        if: steps.butce.outputs.calis == 'true'
+        run: bash hat/sessiz.sh testler npm test
+
+      - name: parcalar (en cok 4 isletme ayni anda)
+        id: parca
+        if: steps.butce.outputs.calis == 'true'
+        env:
+          HAT_PARALEL: ${{ vars.HAT_PARALEL }}
+        run: node hat/parca.mjs plan --karar calisma/karar-dal
+
+      - name: durum dali (yalniz hata gunlugu icin)
+        if: failure() && steps.butce.outputs.calis == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: veri
+          path: calisma/veri-depo
+
+      - name: hata gunlugunu sakla (ozel veri deposu)
+        if: failure() && steps.butce.outputs.calis == 'true'
+        run: |
+          [ -d calisma/veri-depo/.git ] || exit 0
+          cd calisma/veri-depo && mkdir -p durum/log
+          for f in ../log/*.txt; do [ -f "$f" ] && cp "$f" "durum/log/${GITHUB_RUN_ID}-plan-$(basename "$f")"; done
+          git config user.name 'peak-hat[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A; git diff --cached --quiet || git commit -q -m "uygula plan gunlugu: ${GITHUB_RUN_ID}"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:veri && break; git pull --rebase -q origin veri || { git rebase --abort || true; break; }; sleep $((i*3)); done
+
+  uret:
+    needs: plan
+    if: ${{ needs.plan.outputs.calis == 'true' && needs.plan.outputs.adet != '0' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: uretim
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        parca: ${{ fromJSON(needs.plan.outputs.parca || '[0]') }}
+    env:
+      PARCA: ${{ matrix.parca }}
+      PARCA_N: ${{ needs.plan.outputs.n }}
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw
+      UYARLA_VERI: ${{ github.workspace }}/calisma/veri-depo/veri
+      UYARLA_DEMO: ${{ github.workspace }}/calisma/demo
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: bagimliliklar
+        run: npm ci --no-audit --no-fund
+
+      - name: tarayici onbellegi
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .pw
+          key: pw-chromium-1.56.1
+
+      - name: chromium
+        run: npx playwright-core install --with-deps chromium
+
+      - name: ozel varliklar (ozel veri deposu, main/motor)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: main
+          path: calisma/ozel
+          sparse-checkout: motor
+          persist-credentials: false
+
+      - name: ozel varliklari yerlestir
+        run: node hat/ozel-getir.mjs --kaynak calisma/ozel
+
+      - name: karar dali (yalniz VERI)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: ${{ inputs.dal }}
+          path: calisma/karar-dal
+          persist-credentials: false
+
+      - name: durum dali (ozel veri deposu)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: veri
+          path: calisma/veri-depo
+
+      - name: inceleme kutusu dali (ozel veri deposu)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: inceleme-kutusu
+          path: calisma/kutu
+          persist-credentials: false
+
+      - name: kararlari uygula (bu parca ve yalniz bu parca) ve paketle
+        env:
+          SAYFA_TUZU: ${{ secrets.SAYFA_TUZU }}
+        run: |
+          set -e
+          mkdir -p uyarla/data/elle calisma/son calisma/onizleme calisma/demo
+          [ -f calisma/veri-depo/durum/elle-hat.json ] && cp calisma/veri-depo/durum/elle-hat.json uyarla/data/elle/hat.json || true
+          P="${PARCA}/${PARCA_N}"
+          bash hat/sessiz.sh "uygula-p${PARCA}" node hat/uygula.mjs --karar calisma/karar-dal --parca "$P" --son calisma/son/liste.json --elle-delta calisma/son/elle.json --oniz calisma/onizleme --kutu calisma/kutu --dal "$DAL"
+          bash hat/sessiz.sh "paketle-p${PARCA}" node hat/topla.mjs paketle --parca "$P" --karar calisma/karar-dal --son calisma/son/liste.json --elle calisma/son/elle.json --veri calisma/veri-depo/veri --demo calisma/demo --oniz calisma/onizleme --hedef "calisma/cikti/parca-${PARCA}"
+          mkdir -p "calisma/cikti/parca-${PARCA}/log" && cp calisma/log/*.txt "calisma/cikti/parca-${PARCA}/log/" 2>/dev/null || true
+
+      # Herkese acik depoda artifact'lar indirilebilir: isletme verisi (cikarici.json, iletisim bilgileri) sifrelenmeden yuklenmez.  Parola SAYFA_TUZU; yoksa is durur.
+      - name: parca ciktisini sifrele
+        env:
+          PAKET_PAROLA: ${{ secrets.SAYFA_TUZU }}
+        run: |
+          [ -n "$PAKET_PAROLA" ] || { echo "SAYFA_TUZU sirri yok: parca ciktisi sifrelenemez, yuklenmez"; exit 1; }
+          mkdir -p calisma/sifreli
+          tar -czf - -C calisma/cikti "parca-${PARCA}" | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:PAKET_PAROLA -out "calisma/sifreli/parca-${PARCA}.tgz.enc"
+
+      - name: parca ciktisini yukle (sifreli)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: parca-${{ matrix.parca }}
+          path: calisma/sifreli/parca-${{ matrix.parca }}.tgz.enc
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: hata gunlugunu sakla (ozel veri deposu)
+        if: failure()
+        run: |
+          [ -d calisma/veri-depo/.git ] || exit 0
+          cd calisma/veri-depo && git stash -q -u 2>/dev/null || true
+          mkdir -p durum/log
+          for f in ../log/*.txt; do [ -f "$f" ] && cp "$f" "durum/log/${GITHUB_RUN_ID}-p${PARCA}-$(basename "$f")"; done
+          git config user.name 'peak-hat[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add durum/log; git diff --cached --quiet || git commit -q -m "uygula parca ${PARCA} gunlugu: ${GITHUB_RUN_ID}"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:veri && break; git pull --rebase -q origin veri || { git rebase --abort || true; break; }; sleep $((i*3)); done
+
+  topla:
+    needs: [plan, uret]
+    if: ${{ !cancelled() && needs.plan.outputs.calis == 'true' && needs.plan.outputs.adet != '0' && needs.uret.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: uretim
+    env:
+      PARCA_N: ${{ needs.plan.outputs.n }}
+      UYARLA_VERI: ${{ github.workspace }}/calisma/veri-depo/veri
+      UYARLA_DEMO: ${{ github.workspace }}/calisma/demo
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: bagimliliklar
+        run: npm ci --no-audit --no-fund
+
+      - name: ozel varliklar (ozel veri deposu, main/motor)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: main
+          path: calisma/ozel
+          sparse-checkout: motor
+          persist-credentials: false
+
+      - name: ozel varliklari yerlestir
+        run: node hat/ozel-getir.mjs --kaynak calisma/ozel
+
+      - name: karar dali (yalniz VERI)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: ${{ inputs.dal }}
+          path: calisma/karar-dal
+          persist-credentials: false
+
+      - name: durum dali (ozel veri deposu)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: veri
+          path: calisma/veri-depo
+
+      - name: inceleme kutusu dali (ozel veri deposu)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: inceleme-kutusu
+          path: calisma/kutu
+
+      - name: parca ciktilari (sifreli)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: parca-*
+          path: calisma/sifreli
+
+      - name: parca ciktilarini coz
+        env:
+          PAKET_PAROLA: ${{ secrets.SAYFA_TUZU }}
+        run: |
+          [ -n "$PAKET_PAROLA" ] || { echo "SAYFA_TUZU sirri yok: parcalar cozulemez"; exit 1; }
+          mkdir -p calisma/parcalar calisma/log
+          for f in calisma/sifreli/*/parca-*.tgz.enc; do
+            [ -f "$f" ] || continue
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:PAKET_PAROLA -in "$f" | tar -xzf - -C calisma/parcalar || echo "UYARI: bir parca cozulemedi"
+          done
+          for d in calisma/parcalar/parca-*/log; do [ -d "$d" ] && cp "$d"/*.txt calisma/log/ 2>/dev/null; rm -rf "$d"; done
+          ls calisma/parcalar
+
+      - name: parcalari birlestir (veri, sayfalar, onizlemeler, elle kaydi, son liste)
+        run: |
+          set -e
+          mkdir -p uyarla/data/elle calisma/son calisma/onizleme calisma/demo
+          [ -f calisma/veri-depo/durum/elle-hat.json ] && cp calisma/veri-depo/durum/elle-hat.json uyarla/data/elle/hat.json || true
+          bash hat/sessiz.sh birlestir node hat/topla.mjs birlestir --girdi calisma/parcalar --veri calisma/veri-depo/veri --demo calisma/demo --oniz calisma/onizleme --elle uyarla/data/elle/hat.json --son calisma/son/liste.json --beklenen "$PARCA_N"
+          cp uyarla/data/elle/hat.json calisma/veri-depo/durum/elle-hat.json
+          mkdir -p calisma/veri-depo/durum/son calisma/veri-depo/durum/karar
+          cp calisma/son/liste.json "calisma/veri-depo/durum/son/${GITHUB_RUN_ID}.json"
+          cp -r calisma/karar-dal/karar/. calisma/veri-depo/durum/karar/ 2>/dev/null || true
+
+      - name: teslim paketi (yayin-paketi dali; ozel veri deposu)
+        env:
+          VERI_TOKEN: ${{ secrets.HAT_PAT }}
+        run: |
+          set -e
+          # paket BIRIKIR: onceki turlarin hazir sayfalari ve liste.json korunur (tek commit, gecmis birikmez)
+          rm -rf calisma/paket
+          git clone -q --depth 1 --branch yayin-paketi "https://x-access-token:${VERI_TOKEN}@github.com/${VERI_DEPO}.git" calisma/paket 2>/dev/null || mkdir -p calisma/paket
+          bash hat/sessiz.sh yayinla node hat/yayinla.mjs --son calisma/son/liste.json --depo calisma/paket
+          mkdir -p calisma/paket/onizleme && cp calisma/onizleme/*.jpg calisma/paket/onizleme/ 2>/dev/null || true
+          bash hat/sessiz.sh liste node hat/liste-birlestir.mjs calisma/paket/liste.json calisma/son/liste.json
+          cd calisma/paket && rm -rf .git && git init -q -b yayin-paketi && git config user.name 'peak-hat[bot]' && git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A && git commit -q -m "yayin paketi ${GITHUB_RUN_ID}" && git push -q -f "https://x-access-token:${VERI_TOKEN}@github.com/${VERI_DEPO}.git" yayin-paketi
+
+      - name: "teslim, peakappsstudios PR + peak-outreach bekletilmis satirlar"
+        env:
+          HAT_PAT: ${{ secrets.HAT_PAT }}
+          GH_TOKEN: ${{ secrets.HAT_PAT }}
+        run: |
+          set -e
+          git config --global user.name 'peak-hat[bot]'; git config --global user.email 'hat@peakappsstudio.com'
+          git clone -q "https://x-access-token:${HAT_PAT}@github.com/dorukctnn-rgb/peakappsstudios.git" calisma/site
+          git clone -q "https://x-access-token:${HAT_PAT}@github.com/dorukctnn-rgb/peak-outreach.git" calisma/po
+          bash hat/sessiz.sh teslim node hat/teslim.mjs --son calisma/son/liste.json --site calisma/site --onay calisma/veri-depo/durum/onay.json --birlestir
+          (cd calisma/po && npm ci --omit=dev --ignore-scripts --no-audit --no-fund --silent)
+          bash hat/sessiz.sh kuyruk node hat/kuyruk.mjs --son calisma/son/liste.json --leads calisma/veri-depo/lead --po calisma/po --onay calisma/veri-depo/durum/onay.json --yaz
+          cd calisma/po
+          git add -A
+          git diff --cached --quiet || git commit -q -m "websites-demo: hat satirlari (bekletilmis)"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:main && break; git pull --rebase -q origin main || { git rebase --abort || true; exit 1; }; sleep $((i*3)); done
+
+      - name: karar verilen isletmeleri kutudan cikar (restoranda son-bakis paketi geri girer, SON GOZ KUTUSU)
+        env:
+          UYARLA_VERI: ${{ github.workspace }}/calisma/veri-depo/veri
+        run: |
+          set -e
+          bash hat/sessiz.sh kutu-cikar node hat/kutu.mjs cikar --kutu calisma/kutu --slugs "$(cat calisma/son/kararli.txt)"
+          if [ -s calisma/son/son-bakis.txt ]; then bash hat/sessiz.sh kutu-ekle node hat/kutu.mjs ekle --kutu calisma/kutu --parti "u${GITHUB_RUN_ID}" --tur son-bakis --slugs "$(cat calisma/son/son-bakis.txt)"; fi
+          cd calisma/kutu
+          git config user.name 'peak-hat[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -q --orphan yeni && git add -A && git commit -q -m "inceleme kutusu: ${GITHUB_RUN_ID} (kararlar uygulandi)"
+          git push -q -f origin yeni:inceleme-kutusu
+
+      - name: durum dalini yaz (ozel veri deposu)
+        if: always()
+        run: |
+          [ -d calisma/veri-depo/.git ] || exit 0
+          cd calisma/veri-depo
+          mkdir -p durum/log
+          for f in ../log/*.txt; do [ -f "$f" ] && cp "$f" "durum/log/${GITHUB_RUN_ID}-$(basename "$f")"; done
+          ls -1t durum/log | tail -n +61 | while read -r eski; do rm -f "durum/log/$eski"; done
+          grep -qx 'veri/\*/paket/' .gitignore 2>/dev/null || printf 'veri/*/paket/\nveri/*/son/\n' >> .gitignore
+          git config user.name 'peak-hat[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet || git commit -q -m "uygula: ${GITHUB_RUN_ID}"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:veri && break; git pull --rebase -q origin veri || { git rebase --abort || true; break; }; sleep $((i*3)); done
+
+      - name: ozet (yalniz sayilar)
+        if: always()
+        run: |
+          [ -f calisma/son/liste.json ] || exit 0
+          { echo "### uygula"; echo; echo '```'; node -e "const s=JSON.parse(require('fs').readFileSync('calisma/son/liste.json','utf8'));const by={};for(const x of s)by[x.durum]=(by[x.durum]||0)+1;console.log(JSON.stringify({parca:Number(process.env.PARCA_N),sonuc:by}))" ; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,174 @@
+name: hat
+
+# Peak Apps Studio web hizmeti hatti, BULUT TURU (herkese acik depo): lead topla (OpenStreetMap) -> tara (kotu site + yayimlanmis is e-postasi) -> uret + kapi (betik) -> inceleme kutusu.
+# KOD bu depoda.  VERI (lead, tarama, isletme verisi, durum) ve OZEL VARLIKLAR (sablonlar, mail metinleri, yonergeler, sozluk) ozel `HAT_VERI_DEPO` deposunda; HAT_PAT ile cekilir.
+# Actions gunlugu herkese aciktir: isletme adi, adres, e-posta gunluge yazilmaz.  Adimlar `bash hat/sessiz.sh` ile calisir: tum cikti ozel veri deposuna (durum/log/), gunluge yalniz sayilar.
+# Sirlar (SAYFA_TUZU, HAT_PAT) `uretim` ortaminda; ortam yalniz `main` dalina acik.  pull_request tetigi yok: fork PR'lari bu isi calistiramaz, sir goremez.
+# SAATLIK tur (her saatin 17. dakikasi; GitHub :00 yogunlugundan kacmak icin).  Tur basina en cok HAT_TUR_ADAY (varsayilan 20) aday; ulkeler donerek siralanir
+# (IE GB AU NZ ve plan acikken TR; hat/dongu.mjs siraDondur, adayDengele).  HAT_ULKELER (virgullu, bos = hepsi) yalniz kisar.
+# Dakika: HAT_DAKIKA_SINIRSIZ=true aylik siniri kaldirir (herkese acik depoda dakika sinirsiz); gunluk ust sinir HAT_DAKIKA_GUNLUK (degisken yoksa 600 dk/gun).
+# Hat yalniz HAT_AKTIF=true iken calisir (kapali iken is atlanir).
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      sure:
+        description: 'dongu suresi (dakika); bos birakilirsa butce karar verir'
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: peak-veri
+  cancel-in-progress: false
+
+jobs:
+  tur:
+    if: ${{ vars.HAT_AKTIF == 'true' && github.repository_owner == 'dorukctnn-rgb' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: uretim
+    env:
+      VERI_DEPO: ${{ vars.HAT_VERI_DEPO }}
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw
+    steps:
+      - name: veri deposu korumasi (herkese acik depoya veri yazilmaz)
+        env:
+          HAT_PAT: ${{ secrets.HAT_PAT }}
+          GH_TOKEN: ${{ secrets.HAT_PAT }}
+          BU_DEPO: ${{ github.repository }}
+        run: |
+          set -e
+          [ -n "$VERI_DEPO" ] || { echo "HAT_VERI_DEPO tanimli degil: durdu"; exit 1; }
+          [ -n "$HAT_PAT" ] || { echo "HAT_PAT yok: durdu"; exit 1; }
+          [ "$VERI_DEPO" != "$BU_DEPO" ] || { echo "veri deposu bu (herkese acik) depo olamaz: durdu"; exit 1; }
+          [ "$(gh api "repos/${VERI_DEPO}" --jq .private)" = "true" ] || { echo "veri deposu OZEL degil: durdu"; exit 1; }
+          echo "veri deposu ozel: tamam"
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: butce
+        id: butce
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HAT_DAKIKA_AYLIK: ${{ vars.HAT_DAKIKA_AYLIK }}
+          HAT_DAKIKA_GUNLUK: ${{ vars.HAT_DAKIKA_GUNLUK }}
+          HAT_DAKIKA_SINIRSIZ: ${{ vars.HAT_DAKIKA_SINIRSIZ }}
+        run: node hat/butce.mjs
+
+      - name: sure
+        id: sure
+        env:
+          GIRDI_SURE: ${{ inputs.sure }}
+          BUTCE_SURE: ${{ steps.butce.outputs.sure }}
+        run: |
+          S="$GIRDI_SURE"; [ -z "$S" ] && S="$BUTCE_SURE"
+          case "$S" in ''|*[!0-9]*) S=40;; esac
+          echo "sure=$S" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.butce.outputs.calis == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: bagimliliklar
+        if: steps.butce.outputs.calis == 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: tarayici onbellegi
+        if: steps.butce.outputs.calis == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .pw
+          key: pw-chromium-1.56.1
+
+      - name: chromium
+        if: steps.butce.outputs.calis == 'true'
+        run: npx playwright-core install --with-deps chromium
+
+      - name: ozel varliklar (ozel veri deposu, main/motor)
+        if: steps.butce.outputs.calis == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: main
+          path: calisma/ozel
+          sparse-checkout: motor
+          persist-credentials: false
+
+      - name: ozel varliklari yerlestir
+        if: steps.butce.outputs.calis == 'true'
+        run: node hat/ozel-getir.mjs --kaynak calisma/ozel
+
+      - name: durum dali (ozel veri deposu)
+        if: steps.butce.outputs.calis == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: veri
+          path: calisma/veri-depo
+
+      - name: inceleme kutusu dali (ozel veri deposu)
+        if: steps.butce.outputs.calis == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.HAT_VERI_DEPO }}
+          token: ${{ secrets.HAT_PAT }}
+          ref: inceleme-kutusu
+          path: calisma/kutu
+
+      - name: testler (hat bozuksa uretmez; tuzsuz)
+        if: steps.butce.outputs.calis == 'true'
+        run: bash hat/sessiz.sh testler npm test
+
+      - name: dongu
+        if: steps.butce.outputs.calis == 'true'
+        env:
+          UYARLA_VERI: ${{ github.workspace }}/calisma/veri-depo/veri
+          UYARLA_DEMO: ${{ github.workspace }}/calisma/demo
+          SURE: ${{ steps.sure.outputs.sure }}
+          SAYFA_TUZU: ${{ secrets.SAYFA_TUZU }}
+          HAT_TUR_ADAY: ${{ vars.HAT_TUR_ADAY }}
+          HAT_ULKELER: ${{ vars.HAT_ULKELER }}
+        run: bash hat/sessiz.sh dongu node hat/dongu.mjs --depo calisma/veri-depo --kutu calisma/kutu --sure "$SURE" --parti "c${GITHUB_RUN_ID}"
+
+      - name: durum dalini yaz (ozel veri deposu)
+        if: always() && steps.butce.outputs.calis == 'true'
+        run: |
+          [ -d calisma/veri-depo/.git ] || { echo "durum dali yok"; exit 0; }
+          cd calisma/veri-depo
+          # gunluk dosyalari (tum cikti) ozel depoda saklanir, son 60 tanesi
+          mkdir -p durum/log
+          for f in ../log/*.txt; do [ -f "$f" ] && cp "$f" "durum/log/${GITHUB_RUN_ID}-$(basename "$f")"; done
+          ls -1t durum/log | tail -n +61 | while read -r eski; do rm -f "durum/log/$eski"; done
+          # restoran inceleme paketleri (paket/, son/) veri dalina girmez: yalniz inceleme kutusunda durur (gecmis birikmez)
+          grep -qx 'veri/\*/paket/' .gitignore 2>/dev/null || printf 'veri/*/paket/\nveri/*/son/\n' >> .gitignore
+          git config user.name 'peak-hat[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet || git commit -q -m "hat: tur ${GITHUB_RUN_ID}"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:veri && break; git pull --rebase -q origin veri || { git rebase --abort || true; break; }; sleep $((i*3)); done
+
+      - name: inceleme kutusunu yaz (tek commit, ozel veri deposu)
+        if: always() && steps.butce.outputs.calis == 'true'
+        run: |
+          [ -d calisma/kutu/.git ] || { echo "kutu dali yok"; exit 0; }
+          cd calisma/kutu
+          git config user.name 'peak-hat[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -q --orphan yeni
+          git add -A
+          git commit -q -m "inceleme kutusu: ${GITHUB_RUN_ID}"
+          git push -q -f origin yeni:inceleme-kutusu
+
+      - name: ozet (yalniz sayilar)
+        if: always() && steps.butce.outputs.calis == 'true'
+        run: |
+          [ -f calisma/veri-depo/durum/dongu.json ] || exit 0
+          { echo "### hat turu"; echo; echo '```'; node -e "const d=JSON.parse(require('fs').readFileSync('calisma/veri-depo/durum/dongu.json','utf8'));const s=d.sonSonuc||{};console.log(JSON.stringify({tur:d.turlar,dakika:d.dakika,osm:s.osm,tarandi:s.tarandi,aday:s.adaySayisi,uretim:s.uretim,turAday:s.turAday,ulkeler:s.ulkeler,kutuya:s.kutuya,hata:(s.hata||[]).length},null,1))"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

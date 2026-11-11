@@ -1,0 +1,89 @@
+{
+  "_not": "Bulut hattinin plani.  sira: [ulke, sektor] ciftleri onceliktir (her turda en cok osmSorguHerTur yeni lead listesi cekilir, havuz hedefin altindaysa siradaki listeden taranir).  Bir sektor ancak aktif=true ve sayfa sablonu (restoran icin uyarla/uret.mjs, digerleri icin uyarla/sektor/<sektor>.mjs) varsa calisir.  Ulkeler: AU, NZ, IE, GB; TR (11 Kas 2026, yalniz restoran ailesi) ancak ulkeler.TR.aktif=true iken taranir. US, CA yok.  Aktif olmak GONDERIM demek degildir: her sektorun satirlari koordinator 5 sayfayi gozle onaylayana kadar bekletilir (durum/onay.json).",
+  "sektorler": {
+    "konaklama": {
+      "aktif": true,
+      "ad": "kucuk konaklama (pansiyon, B&B, apart, tatil evi)"
+    },
+    "guzellik": {
+      "aktif": true,
+      "ad": "kuafor, guzellik salonu, berber"
+    },
+    "restoran": {
+      "aktif": false,
+      "ad": "restoran ve bar (v5), burgerci, burrito/taco, pizzaci (kategori sablonlari)",
+      "not": "Kapali: Son goz turu (inceleme/ROUTINE-SONGOZ.md) bulutta kurulunca ve koordinator deneme turunu onaylayinca aktif=true. Turda en cok limitler.restoranHerTur isletme hazirlanir (son goz kotasi). Mail satiri RESTORAN_KUYRUK=acik olmadan yazilmaz."
+    }
+  },
+  "sira": [
+    [
+      "IE",
+      "konaklama"
+    ],
+    [
+      "IE",
+      "guzellik"
+    ],
+    [
+      "NZ",
+      "konaklama"
+    ],
+    [
+      "NZ",
+      "guzellik"
+    ],
+    [
+      "AU",
+      "konaklama"
+    ],
+    [
+      "AU",
+      "guzellik"
+    ],
+    [
+      "GB",
+      "konaklama"
+    ],
+    [
+      "GB",
+      "guzellik"
+    ],
+    [
+      "IE",
+      "restoran"
+    ],
+    [
+      "NZ",
+      "restoran"
+    ],
+    [
+      "AU",
+      "restoran"
+    ],
+    [
+      "GB",
+      "restoran"
+    ],
+    [
+      "TR",
+      "restoran"
+    ]
+  ],
+  "limitler": {
+    "osmSorguHerTur": 1,
+    "havuzHedef": 40,
+    "uretimHerTur": 20,
+    "tarayiciEs": 6,
+    "leadYenilemeGun": 120,
+    "restoranHerTur": 6
+  },
+  "ulkeler": {
+    "TR": {
+      "aktif": false,
+      "sektorler": [
+        "restoran"
+      ],
+      "not": "Doruk 11 Kas: Turkiye restoranlari da hedef. KAPALI: koordinator ilk TR sayfalarini gozle onaylayinca aktif=true. Mail satiri ayrica TR_KUYRUK=acik ve durum/onay.json TR onayi ister (hat/kuyruk.mjs trKuyrukAcik). Il sirasi lead/sektorler.mjs TR_ILLER (Antalya, Istanbul once)."
+    }
+  }
+}

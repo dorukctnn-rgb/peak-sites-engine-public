@@ -1,0 +1,313 @@
+{
+ "olculdu": "2026-11-11",
+ "harfler": "ğĞşŞıİçÇöÖüÜ",
+ "kaynak": "uyarla/lib/font-glif.mjs (WOFF2 cmap)",
+ "sonuc": [
+  {
+   "aile": "albert-sans",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "albert-sans",
+   "agirlik": "600",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "archivo-black",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "barlow-semi-condensed",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "barlow-semi-condensed",
+   "agirlik": "600",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "bricolage-grotesque",
+   "agirlik": "300",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "bricolage-grotesque",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "bricolage-grotesque",
+   "agirlik": "600",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "cormorant-garamond",
+   "agirlik": "300",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "cormorant-garamond",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "cormorant-garamond",
+   "agirlik": "400i",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "cormorant-garamond",
+   "agirlik": "600",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "cormorant-garamond",
+   "agirlik": "600i",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "figtree",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "figtree",
+   "agirlik": "600",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "figtree",
+   "agirlik": "700",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "figtree",
+   "agirlik": "800",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "jost",
+   "agirlik": "300",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "jost",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "jost",
+   "agirlik": "500",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "jost",
+   "agirlik": "600",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "jost",
+   "agirlik": "700",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "luckiest-guy",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "modak",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "mouse-memoirs",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "noto-serif-display",
+   "agirlik": "300",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "noto-serif-display",
+   "agirlik": "300i",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "noto-serif-display",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "poppins",
+   "agirlik": "300",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "poppins",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "poppins",
+   "agirlik": "600",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "poppins",
+   "agirlik": "700",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "poppins",
+   "agirlik": "800",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  },
+  {
+   "aile": "sacramento",
+   "agirlik": "400",
+   "eksik": "",
+   "altKume": {
+    "latin": "ıçÇöÖüÜ",
+    "latin-ext": "ğĞşŞİ"
+   }
+  }
+ ]
+}

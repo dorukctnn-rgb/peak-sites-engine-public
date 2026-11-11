@@ -1,0 +1,2404 @@
+{
+ "playfair-display": {
+  "family": "Playfair Display",
+  "cls": "serif-didone",
+  "mood": "zarif",
+  "w": 0.54,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "bodoni-moda": {
+  "family": "Bodoni Moda",
+  "cls": "serif-didone",
+  "mood": "zarif",
+  "w": 0.55,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "noto-serif-display": {
+  "family": "Noto Serif Display",
+  "cls": "serif-didone",
+  "mood": "zarif",
+  "w": 0.5,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "dm-serif-display": {
+  "family": "DM Serif Display",
+  "cls": "serif-didone",
+  "mood": "guclu",
+  "w": 0.5,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "abril-fatface": {
+  "family": "Abril Fatface",
+  "cls": "serif-didone",
+  "mood": "guclu",
+  "w": 0.55,
+  "xh": "m",
+  "role": "d",
+  "category": "display",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "gloock": {
+  "family": "Gloock",
+  "cls": "serif-didone",
+  "mood": "guclu",
+  "w": 0.52,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "cormorant-garamond": {
+  "family": "Cormorant Garamond",
+  "cls": "serif-old",
+  "mood": "zarif",
+  "w": 0.42,
+  "xh": "l",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "cormorant": {
+  "family": "Cormorant",
+  "cls": "serif-old",
+  "mood": "zarif",
+  "w": 0.42,
+  "xh": "l",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "eb-garamond": {
+  "family": "EB Garamond",
+  "cls": "serif-old",
+  "mood": "klasik",
+  "w": 0.46,
+  "xh": "l",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "libre-caslon-text": {
+  "family": "Libre Caslon Text",
+  "cls": "serif-old",
+  "mood": "klasik",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "crimson-pro": {
+  "family": "Crimson Pro",
+  "cls": "serif-old",
+  "mood": "klasik",
+  "w": 0.44,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "spectral": {
+  "family": "Spectral",
+  "cls": "serif-trans",
+  "mood": "sade",
+  "w": 0.48,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "libre-baskerville": {
+  "family": "Libre Baskerville",
+  "cls": "serif-trans",
+  "mood": "klasik",
+  "w": 0.56,
+  "xh": "h",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "lora": {
+  "family": "Lora",
+  "cls": "serif-trans",
+  "mood": "sicak",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "tinos": {
+  "family": "Tinos",
+  "cls": "serif-trans",
+  "mood": "klasik",
+  "w": 0.46,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "gelasio": {
+  "family": "Gelasio",
+  "cls": "serif-trans",
+  "mood": "klasik",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "merriweather": {
+  "family": "Merriweather",
+  "cls": "serif-trans",
+  "mood": "saglam",
+  "w": 0.58,
+  "xh": "h",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "fraunces": {
+  "family": "Fraunces",
+  "cls": "serif-soft",
+  "mood": "sicak",
+  "w": 0.52,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "young-serif": {
+  "family": "Young Serif",
+  "cls": "serif-soft",
+  "mood": "guclu",
+  "w": 0.54,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "instrument-serif": {
+  "family": "Instrument Serif",
+  "cls": "serif-didone",
+  "mood": "zarif",
+  "w": 0.4,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "cinzel": {
+  "family": "Cinzel",
+  "cls": "caps",
+  "mood": "zarif",
+  "w": 0.68,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "marcellus": {
+  "family": "Marcellus",
+  "cls": "caps",
+  "mood": "zarif",
+  "w": 0.56,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "arvo": {
+  "family": "Arvo",
+  "cls": "slab",
+  "mood": "saglam",
+  "w": 0.56,
+  "xh": "h",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin"
+  ],
+  "turkce": false,
+  "variable": false
+ },
+ "zilla-slab": {
+  "family": "Zilla Slab",
+  "cls": "slab",
+  "mood": "sicak",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "roboto-slab": {
+  "family": "Roboto Slab",
+  "cls": "slab",
+  "mood": "saglam",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "serif",
+  "license": "Apache-2.0",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "bitter": {
+  "family": "Bitter",
+  "cls": "slab",
+  "mood": "sicak",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "rokkitt": {
+  "family": "Rokkitt",
+  "cls": "slab",
+  "mood": "saglam",
+  "w": 0.42,
+  "xh": "m",
+  "role": "d",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "jost": {
+  "family": "Jost",
+  "cls": "geo",
+  "mood": "modern",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "montserrat": {
+  "family": "Montserrat",
+  "cls": "geo",
+  "mood": "modern",
+  "w": 0.6,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "poppins": {
+  "family": "Poppins",
+  "cls": "geo",
+  "mood": "dost",
+  "w": 0.58,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "outfit": {
+  "family": "Outfit",
+  "cls": "geo",
+  "mood": "modern",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "urbanist": {
+  "family": "Urbanist",
+  "cls": "geo",
+  "mood": "modern",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "lexend": {
+  "family": "Lexend",
+  "cls": "geo",
+  "mood": "dost",
+  "w": 0.58,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "figtree": {
+  "family": "Figtree",
+  "cls": "geo",
+  "mood": "dost",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "plus-jakarta-sans": {
+  "family": "Plus Jakarta Sans",
+  "cls": "geo",
+  "mood": "modern",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "dm-sans": {
+  "family": "DM Sans",
+  "cls": "geo",
+  "mood": "sade",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "red-hat-display": {
+  "family": "Red Hat Display",
+  "cls": "geo",
+  "mood": "modern",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "league-spartan": {
+  "family": "League Spartan",
+  "cls": "geo",
+  "mood": "guclu",
+  "w": 0.54,
+  "xh": "h",
+  "role": "d",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "josefin-sans": {
+  "family": "Josefin Sans",
+  "cls": "geo",
+  "mood": "zarif",
+  "w": 0.46,
+  "xh": "l",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "questrial": {
+  "family": "Questrial",
+  "cls": "geo",
+  "mood": "sade",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "sora": {
+  "family": "Sora",
+  "cls": "wide",
+  "mood": "modern",
+  "w": 0.62,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "raleway": {
+  "family": "Raleway",
+  "cls": "geo",
+  "mood": "zarif",
+  "w": 0.54,
+  "xh": "m",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "manrope": {
+  "family": "Manrope",
+  "cls": "geo",
+  "mood": "sade",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "nunito-sans": {
+  "family": "Nunito Sans",
+  "cls": "hum",
+  "mood": "dost",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "lato": {
+  "family": "Lato",
+  "cls": "hum",
+  "mood": "sade",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   300,
+   400,
+   700,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "open-sans": {
+  "family": "Open Sans",
+  "cls": "hum",
+  "mood": "sade",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "source-sans-3": {
+  "family": "Source Sans 3",
+  "cls": "hum",
+  "mood": "sade",
+  "w": 0.48,
+  "xh": "m",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "cabin": {
+  "family": "Cabin",
+  "cls": "hum",
+  "mood": "sicak",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "mulish": {
+  "family": "Mulish",
+  "cls": "hum",
+  "mood": "sade",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "karla": {
+  "family": "Karla",
+  "cls": "hum",
+  "mood": "sade",
+  "w": 0.5,
+  "xh": "m",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "inter": {
+  "family": "Inter",
+  "cls": "neo",
+  "mood": "sade",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "albert-sans": {
+  "family": "Albert Sans",
+  "cls": "neo",
+  "mood": "sade",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "public-sans": {
+  "family": "Public Sans",
+  "cls": "neo",
+  "mood": "sade",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "ibm-plex-sans": {
+  "family": "IBM Plex Sans",
+  "cls": "neo",
+  "mood": "sade",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "work-sans": {
+  "family": "Work Sans",
+  "cls": "neo",
+  "mood": "sade",
+  "w": 0.56,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "archivo": {
+  "family": "Archivo",
+  "cls": "neo",
+  "mood": "saglam",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "onest": {
+  "family": "Onest",
+  "cls": "neo",
+  "mood": "sade",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "space-grotesk": {
+  "family": "Space Grotesk",
+  "cls": "neo",
+  "mood": "teknik",
+  "w": 0.56,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "bricolage-grotesque": {
+  "family": "Bricolage Grotesque",
+  "cls": "neo",
+  "mood": "guclu",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "overpass": {
+  "family": "Overpass",
+  "cls": "neo",
+  "mood": "sade",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "rubik": {
+  "family": "Rubik",
+  "cls": "round",
+  "mood": "dost",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "syne": {
+  "family": "Syne",
+  "cls": "wide",
+  "mood": "guclu",
+  "w": 0.6,
+  "xh": "m",
+  "role": "d",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "nunito": {
+  "family": "Nunito",
+  "cls": "round",
+  "mood": "dost",
+  "w": 0.52,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "quicksand": {
+  "family": "Quicksand",
+  "cls": "round",
+  "mood": "dost",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "archivo-narrow": {
+  "family": "Archivo Narrow",
+  "cls": "cond",
+  "mood": "sade",
+  "w": 0.42,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "big-shoulders-display": {
+  "family": "Big Shoulders Display",
+  "cls": "cond",
+  "mood": "saglam",
+  "w": 0.38,
+  "xh": "h",
+  "role": "d",
+  "category": "display",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "pacifico": {
+  "family": "Pacifico",
+  "cls": "script",
+  "mood": "dost",
+  "w": 0.5,
+  "xh": "h",
+  "role": "d",
+  "category": "handwriting",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "dancing-script": {
+  "family": "Dancing Script",
+  "cls": "script",
+  "mood": "dost",
+  "w": 0.42,
+  "xh": "m",
+  "role": "d",
+  "category": "handwriting",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "satisfy": {
+  "family": "Satisfy",
+  "cls": "script",
+  "mood": "sicak",
+  "w": 0.42,
+  "xh": "m",
+  "role": "d",
+  "category": "handwriting",
+  "license": "Apache-2.0",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin"
+  ],
+  "turkce": false,
+  "variable": false
+ },
+ "great-vibes": {
+  "family": "Great Vibes",
+  "cls": "script",
+  "mood": "zarif",
+  "w": 0.36,
+  "xh": "l",
+  "role": "d",
+  "category": "handwriting",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "kaushan-script": {
+  "family": "Kaushan Script",
+  "cls": "script",
+  "mood": "dost",
+  "w": 0.44,
+  "xh": "m",
+  "role": "d",
+  "category": "handwriting",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "yellowtail": {
+  "family": "Yellowtail",
+  "cls": "script",
+  "mood": "klasik",
+  "w": 0.4,
+  "xh": "m",
+  "role": "d",
+  "category": "handwriting",
+  "license": "Apache-2.0",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "lobster": {
+  "family": "Lobster",
+  "cls": "script",
+  "mood": "dost",
+  "w": 0.48,
+  "xh": "m",
+  "role": "d",
+  "category": "display",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "sacramento": {
+  "family": "Sacramento",
+  "cls": "script",
+  "mood": "zarif",
+  "w": 0.3,
+  "xh": "l",
+  "role": "d",
+  "category": "handwriting",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "caveat": {
+  "family": "Caveat",
+  "cls": "script",
+  "mood": "dost",
+  "w": 0.36,
+  "xh": "m",
+  "role": "d",
+  "category": "handwriting",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "dm-mono": {
+  "family": "DM Mono",
+  "cls": "mono",
+  "mood": "teknik",
+  "w": 0.6,
+  "xh": "m",
+  "role": "dt",
+  "category": "monospace",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "space-mono": {
+  "family": "Space Mono",
+  "cls": "mono",
+  "mood": "teknik",
+  "w": 0.6,
+  "xh": "m",
+  "role": "dt",
+  "category": "monospace",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "ibm-plex-mono": {
+  "family": "IBM Plex Mono",
+  "cls": "mono",
+  "mood": "teknik",
+  "w": 0.6,
+  "xh": "m",
+  "role": "dt",
+  "category": "monospace",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "jetbrains-mono": {
+  "family": "JetBrains Mono",
+  "cls": "mono",
+  "mood": "teknik",
+  "w": 0.6,
+  "xh": "m",
+  "role": "dt",
+  "category": "monospace",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "barlow": {
+  "family": "Barlow",
+  "cls": "neo",
+  "mood": "saglam",
+  "w": 0.48,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "barlow-condensed": {
+  "family": "Barlow Condensed",
+  "cls": "cond",
+  "mood": "saglam",
+  "w": 0.36,
+  "xh": "h",
+  "role": "d",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "oswald": {
+  "family": "Oswald",
+  "cls": "cond",
+  "mood": "saglam",
+  "w": 0.4,
+  "xh": "h",
+  "role": "d",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "bebas-neue": {
+  "family": "Bebas Neue",
+  "cls": "cond",
+  "mood": "guclu",
+  "w": 0.36,
+  "xh": "h",
+  "role": "d",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "anton": {
+  "family": "Anton",
+  "cls": "cond",
+  "mood": "guclu",
+  "w": 0.38,
+  "xh": "h",
+  "role": "d",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": false
+ },
+ "league-gothic": {
+  "family": "League Gothic",
+  "cls": "cond",
+  "mood": "saglam",
+  "w": 0.32,
+  "xh": "h",
+  "role": "d",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "antonio": {
+  "family": "Antonio",
+  "cls": "cond",
+  "mood": "saglam",
+  "w": 0.38,
+  "xh": "h",
+  "role": "d",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "playfair": {
+  "family": "Playfair",
+  "cls": "serif-didone",
+  "mood": "zarif",
+  "w": 0.54,
+  "xh": "m",
+  "role": "dt",
+  "category": "serif",
+  "license": "OFL-1.1",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ },
+ "arimo": {
+  "family": "Arimo",
+  "cls": "neo",
+  "mood": "sade",
+  "w": 0.54,
+  "xh": "h",
+  "role": "dt",
+  "category": "sans-serif",
+  "license": "OFL-1.1",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "styles": [
+   "italic",
+   "normal"
+  ],
+  "subsets": [
+   "latin",
+   "latin-ext"
+  ],
+  "turkce": true,
+  "variable": true
+ }
+}

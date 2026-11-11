@@ -1,0 +1,30 @@
+node_modules/
+calisma/
+*.log
+uyarla/data/font-onbellek/
+uyarla/data/font-bulunan.json
+calisma-osm.log
+uyarla/data/elle/
+# herkese acik depo: veri, kuyruk ve sir ASLA buraya girmez
+veri/
+durum/
+karar/
+web/
+onizleme/
+BEKLEYEN.json
+*.jsonl
+.env
+.env.*
+*.pem
+*.key
+secrets/
+# ozel varliklar: ozel veri deposundan calisma aninda gelir (node hat/ozel-getir.mjs); bu depoya girmez
+mail/
+uyarla/sablon/
+uyarla/sablon-*/
+uyarla/data/v5-elle.json
+uyarla/data/kategori-elle.json
+inceleme/ROUTINE*.md
+inceleme/ornek/
+hat/ozel-sozluk.json
+**/test/ozel-*.test.mjs

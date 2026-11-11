@@ -1,0 +1,36 @@
+{
+ "eposta_alanlari": [
+  "peakappsstudio.com",
+  "example.com",
+  "example.net",
+  "example.org",
+  "x.example",
+  "gmail.com",
+  "hotmail.com",
+  "hotmail.co.uk",
+  "outlook.com",
+  "yahoo.com",
+  "x.ie",
+  "y.ie",
+  "z.ie",
+  "b.ie",
+  "d.ie",
+  "h4.ie",
+  "bad.ie",
+  "y.com",
+  "users.noreply.github.com",
+  "noreply.github.com",
+  "anchor-house.test",
+  "rose-cottage.test",
+  "lodge-house.test",
+  "oldsite.test",
+  "ornekmeyhane.test",
+  "ornek.test",
+  "x.test",
+  "test",
+  "ornekmeyhane.com.tr"
+ ],
+ "eposta_tam": [
+  "info@peakappsstudio.com"
+ ]
+}

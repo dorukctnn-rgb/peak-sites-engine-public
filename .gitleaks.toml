@@ -1,0 +1,9 @@
+title = "peak-sites-engine-public"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "actions/cache anahtari (sir degil, tarayici surum etiketi)"
+regexTarget = "match"
+regexes = ['''key: pw-chromium-[0-9.]+''']

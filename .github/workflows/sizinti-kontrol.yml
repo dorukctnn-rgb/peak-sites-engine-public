@@ -1,0 +1,34 @@
+name: sizinti-kontrol
+
+# Herkese acik depoya gizli bilgi, isletme/kisi verisi ya da ozel varlik (sablon, mail metni, yonerge, sozluk) girmesin diye her push ve PR'da calisir.
+# Ortam sirlarini KULLANMAZ; yalniz okur.  Yasak terim listesi depo sirrindan gelir (SIZINTI_TERIMLER; deger gunluge basilmaz, fork PR'larinda bos olur).
+# Tam test paketi ozel varliklar gerektirdiginden hat ve uygula is akislarinda kosar; burada yalniz ozel varlik istemeyen testler kosar.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sizinti-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tara:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: sizinti taramasi (sir kalibi, kisisel veri, yasak yol, ozel varlik, yasak terim)
+        env:
+          SIZINTI_YASAK_TERIMLER: ${{ secrets.SIZINTI_TERIMLER }}
+        run: node hat/sizinti-kontrol.mjs
+      - name: testler (ozel varlik gerektirmeyenler)
+        run: node --test hat/test/sizinti.test.mjs hat/test/etiket.test.mjs hat/test/sessiz.test.mjs

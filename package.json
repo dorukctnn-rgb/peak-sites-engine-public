@@ -1,0 +1,19 @@
+{
+  "name": "peak-sites-engine-public",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Peak Apps Studio page generator and quality gates (source-available, all rights reserved)",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "pretest": "node hat/ozel-getir.mjs --kontrol",
+    "test": "node --test uyarla/test/*.test.mjs lead/test/*.test.mjs sektor/test/*.test.mjs hat/test/*.test.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.56.1",
+    "sharp": "0.35.4"
+  }
+}
