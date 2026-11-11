@@ -185,7 +185,7 @@ const fiyatSayi = (p) => { const m = /(\d{2,4})(?:[.,](\d{2}))?/.exec(String(p |
 export const temizOdalar = (K) => ((K && K.odalar) || []).filter((o) => o && o.n && !GENEL.test(o.n) && !ODA_DEGIL.test(o.n));
 export function model(R, { lang = 'en', region }) {
   const K = R.konaklama || {}; const E = ETIKET.en;
-  const para = { GB: '£', IE: '€', AU: '$', NZ: '$' }[region] || '';
+  const para = { GB: '£', IE: '€', AU: '$', NZ: '$', SG: 'S$' }[region] || '';
   const fix = (p) => (p ? (/[£€$]/.test(p) ? p.replace(/^(?:AU|NZ|A)/, '') : `${para}${p}`) : '');
   const odalar = temizOdalar(K).map((o) => ({ ...o, p: fix(o.p), oz: (o.oz || []).map((z) => (z.k === 'sleeps' ? E.sleeps(z.v) : z.k === 'ensuite' ? E.ensuite : z.k === 'view' ? E.viewOf(z.v) : z.v)).slice(0, 3) }));
   const gece = odalar.filter((o) => o.p && (o.per === 'night' || o.per === 'room' || !o.per)).map((o) => fiyatSayi(o.p)).filter((x) => x && x >= 20 && x <= 2000);

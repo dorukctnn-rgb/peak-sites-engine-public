@@ -1,5 +1,5 @@
 {
-  "_not": "Bulut hattinin plani.  sira: [ulke, sektor] ciftleri onceliktir (her turda en cok osmSorguHerTur yeni lead listesi cekilir, havuz hedefin altindaysa siradaki listeden taranir).  Bir sektor ancak aktif=true ve sayfa sablonu (restoran icin uyarla/uret.mjs, digerleri icin uyarla/sektor/<sektor>.mjs) varsa calisir.  Ulkeler: AU, NZ, IE, GB; TR (11 Kas 2026, yalniz restoran ailesi) ancak ulkeler.TR.aktif=true iken taranir. US, CA yok.  Aktif olmak GONDERIM demek degildir: her sektorun satirlari koordinator 5 sayfayi gozle onaylayana kadar bekletilir (durum/onay.json).",
+  "_not": "Bulut hattinin plani.  sira: [ulke, sektor] ciftleri onceliktir (her turda en cok osmSorguHerTur yeni lead listesi cekilir, havuz hedefin altindaysa siradaki listeden taranir).  Bir sektor ancak aktif=true ve sayfa sablonu (restoran icin uyarla/uret.mjs, digerleri icin uyarla/sektor/<sektor>.mjs) varsa calisir.  Ulkeler: AU, NZ, IE, GB her zaman; TR (11 Kas 2026, yalniz restoran ailesi) ve SG (11 Kas 2026) ancak ulkeler.<kod>.aktif=true iken taranir (hat/dongu.mjs planOku). HK, US, CA, JP, CH bekler (lead/sektorler.mjs BEKLE_ULKE), YASAK_ULKE hic alinmaz.  Aktif olmak GONDERIM demek degildir: her sektorun satirlari koordinator 5 sayfayi gozle onaylayana kadar bekletilir (durum/onay.json).",
   "sektorler": {
     "konaklama": {
       "aktif": true,
@@ -49,6 +49,14 @@
       "guzellik"
     ],
     [
+      "SG",
+      "konaklama"
+    ],
+    [
+      "SG",
+      "guzellik"
+    ],
+    [
       "IE",
       "restoran"
     ],
@@ -62,6 +70,10 @@
     ],
     [
       "GB",
+      "restoran"
+    ],
+    [
+      "SG",
       "restoran"
     ],
     [
@@ -84,6 +96,27 @@
         "restoran"
       ],
       "not": "Doruk 11 Kas: Turkiye restoranlari da hedef. KAPALI: koordinator ilk TR sayfalarini gozle onaylayinca aktif=true. Mail satiri ayrica TR_KUYRUK=acik ve durum/onay.json TR onayi ister (hat/kuyruk.mjs trKuyrukAcik). Il sirasi lead/sektorler.mjs TR_ILLER (Antalya, Istanbul once)."
+    },
+    "SG": {
+      "aktif": true,
+      "dil": "en",
+      "saatDilimi": "Asia/Singapore",
+      "para": "USD",
+      "sektorler": [
+        "konaklama",
+        "guzellik",
+        "restoran"
+      ],
+      "not": "11 Kas 2026: Spam Control Act 2007 (sso.agc.gov.sg/Act/SCA2007). Onceden izin yok; posta adresi sarti yok. Toplu esik m.6: 24 saatte 100, 30 gunde 1.000, yilda 10.000 benzer mailden fazlasi; asilirsa konuya <ADV> gerekir. Esigin altinda kalma siniri peak-outreach config.json legal_caps.SG (24 saatte 90, 30 gunde 900, 366 gunde 9.000). Gonderim penceresi yerel is gunu 10:00-11:30 (campaign_windows websites-demo.SG). para = teklif para birimi (mail fiyati US$). restoran yine sektorler.restoran.aktif ve RESTORAN_KUYRUK ister."
+    },
+    "HK": {
+      "aktif": false,
+      "dil": "en",
+      "saatDilimi": "Asia/Hong_Kong",
+      "para": "USD",
+      "sektorler": [],
+      "bekle": "posta-adresi",
+      "not": "11 Kas 2026: ACILMADI. UEMO Cap. 593 m.8 + UEMR Cap. 593A m.5-6: her ticari e-postada gonderenin adi, is yeri adresi (posta kutusu olmaz), telefon ve e-posta, Cince ve Ingilizce. Posta adresi yok kuralimizla celisir. lead/sektorler.mjs BEKLE_ULKE; aktif=true yapmak tek basina acmaz (ULKELER de HK yok)."
     }
   }
 }

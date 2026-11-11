@@ -44,7 +44,7 @@ function elleYukle() {
   return o;
 }
 
-const TF12 = new Set(['AU', 'NZ', 'US', 'CA']);
+const TF12 = new Set(['AU', 'NZ', 'US', 'CA', 'SG']);
 // 12 saatlik yazim: 9 am, 7:30 pm; kapanis gece yarisiysa "midnight"
 const to12 = (txt) => txt.replace(/(\d{1,2}):(\d{2})/g, (m, h, mi) => { let H = Number(h) % 24; const ap = H >= 12 ? 'pm' : 'am'; H = H % 12 || 12; return mi === '00' ? `${H} ${ap}` : `${H}:${mi} ${ap}`; }).replace(/([–-]\s?)12 am/g, '$1midnight').replace(/\b12 pm\b/g, 'noon').replace(/(\d|m|n)–(\d|midnight|noon)/g, '$1 – $2');
 const toMin = (s) => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || '').trim()); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };

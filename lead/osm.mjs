@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SEKTORLER, ULKELER, SEKTOR_ZINCIR, TR_ZINCIR } from './sektorler.mjs';
+import { SEKTORLER, ULKELER, SEKTOR_ZINCIR, TR_ZINCIR, kapaliUlke } from './sektorler.mjs';
 
 const UA = 'PeakAppsStudio-leads/1.0 (+https://peakappsstudio.com/web/; info@peakappsstudio.com)';
 const URLS = ['https://overpass.kumi.systems/api/interpreter', 'https://overpass-api.de/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
@@ -77,7 +77,7 @@ export async function overpass(q, { tries = 4, log = () => {} } = {}) {
 }
 
 export async function bul(ulke, sektor, { alan, max = Infinity, log = () => {} } = {}) {
-  if (!ULKELER[ulke]) throw new Error(`ulke hedefte degil: ${ulke}`);
+  if (!ULKELER[ulke] || kapaliUlke(ulke)) throw new Error(`ulke hedefte degil: ${ulke}`);
   const j = await overpass(sorgu(ulke, sektor, { alan }), { log });
   const seen = new Set(); const out = [];
   for (const el of j.elements || []) {

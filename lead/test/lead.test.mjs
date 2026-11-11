@@ -5,11 +5,11 @@ import { sorgu, leadOf, elenme } from '../osm.mjs';
 import { htmlPuan, tarayiciPuan, topla, ESIK } from '../puan.mjs';
 import { adresler, cfCoz, enIyi, sirketKaniti, RET_NOTU, epostaBul, SERBEST, alanKoku } from '../eposta.mjs';
 import { taraBir } from '../tara.mjs';
-import { ULKELER, YASAK_ULKE, SEKTORLER } from '../sektorler.mjs';
+import { ULKELER, YASAK_ULKE, BEKLE_ULKE, kapaliUlke, SEKTORLER } from '../sektorler.mjs';
 
-test('hedef ulkeler: AU, GB, IE, NZ + TR (Doruk 11 Kas, yalniz restoran, kuyruk anahtarli); US, CA yok', () => {
-  assert.deepEqual(Object.keys(ULKELER).sort(), ['AU', 'GB', 'IE', 'NZ', 'TR']);
-  for (const k of ['US', 'CA']) { assert.ok(YASAK_ULKE.has(k)); assert.equal(ULKELER[k], undefined); }
+test('hedef ulkeler: AU, GB, IE, NZ + TR (Doruk 11 Kas, yalniz restoran, kuyruk anahtarli) + SG (11 Kas); US, CA bekler', () => {
+  assert.deepEqual(Object.keys(ULKELER).sort(), ['AU', 'GB', 'IE', 'NZ', 'SG', 'TR']);
+  for (const k of ['US', 'CA']) { assert.ok(BEKLE_ULKE.has(k)); assert.ok(kapaliUlke(k)); assert.equal(ULKELER[k], undefined); }
   assert.ok(!YASAK_ULKE.has('TR'));
   assert.deepEqual(ULKELER.TR.yalnizSektor, ['restoran']);
   assert.equal(ULKELER.TR.kuyrukAnahtari, 'TR_KUYRUK');

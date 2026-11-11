@@ -1,13 +1,13 @@
 // HAT 5. ADIM: KUYRUK SATIRLARI (peak-outreach, kampanya websites-demo).  Her satir BEKLETILIR (_held): hicbir satir bu adimda gonderime acilmaz.
 // Serbest birakma hat/birak.mjs'in isidir (sektor onayi + isinma takvimi + otomatik durdurma).
 //   node hat/kuyruk.mjs --son calisma/son/liste.json --leads <dir: *.tarandi.jsonl> --po <peak-outreach klonu> [--yaz]
-// Kontroller: yalniz yurt disi hedef ulkeler (GB IE AU NZ); GB'de sirket kaniti; GB/IE'de serbest posta yok; susturma (suppress.txt), cevap verenler (data/replied.txt),
+// Kontroller: yalniz hedef ulkeler (lead/sektorler.mjs ULKELER: GB IE AU NZ SG, kapali TR; YASAK/BEKLE listesi hic); GB'de sirket kaniti; GB/IE'de serbest posta yok; susturma (suppress.txt), cevap verenler (data/replied.txt),
 // daha once yazilan adres ya da alan adi (sent.jsonl, kuyruk), bu partide tekrar; mail metni kendi lint'imiz + peak-outreach'in KENDI lint'i (lintDemoText) + validateRow.
 // E-posta adresleri yalniz dosyaya yazilir; ekrana yalniz satir kimligi ve sayilar basilir.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ULKELER } from '../lead/sektorler.mjs';
+import { ULKELER, kapaliUlke } from '../lead/sektorler.mjs';
 import { SERBEST, alanKoku } from '../lead/eposta.mjs';
 import { mailYaz, mailDenetle, mailAdi } from '../mail/sablon.mjs';
 
@@ -57,7 +57,7 @@ export function satirlarKur({ son, leadsById, po, simdi = new Date(), onaylanan 
     if ((x.sektor || '') === 'restoran' && (x.sonGoz !== true || process.env.RESTORAN_KUYRUK !== 'acik')) { atla.restoran = (atla.restoran || 0) + 1; continue; }
     const l = leadsById.get(x.id || x.leadId) || [...leadsById.values()].find((v) => v.slug === x.slug);
     if (!l) { sk('lead-yok'); continue; }
-    if (!ULKELER[l.ulke]) { sk(`ulke:${l.ulke}`); continue; }
+    if (!ULKELER[l.ulke] || kapaliUlke(l.ulke)) { sk(`ulke:${l.ulke}`); continue; }
     // Turkiye (11 Kas 2026): VARSAYILAN KAPALI.  Satir yalniz TR_KUYRUK=acik VE koordinator durum/onay.json'da "TR" onayini verdiyse yazilir
     // (ilk TR sayfalari gozle onaylanmadan hicbir TR satiri kuyruga girmez).  TR maili Turkce sablondan (mail/restoran-tr.mjs) kurulur.
     if (!trKuyrukAcik(l.ulke, onaylanan)) { sk(`${l.ulke}-kapali`); continue; }

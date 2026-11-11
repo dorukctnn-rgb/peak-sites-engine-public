@@ -19,7 +19,7 @@ const PLAN = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace
 
 test('plan: yalniz aktif sektorler ve hedef ulkeler', () => {
   const p = planOku(PLAN);
-  assert.ok(p.sira.length >= 4); for (const [u, s] of p.sira) { assert.ok(['AU', 'NZ', 'IE', 'GB'].includes(u)); assert.ok(['konaklama', 'guzellik'].includes(s)); }
+  assert.ok(p.sira.length >= 4); for (const [u, s] of p.sira) { assert.ok(['AU', 'NZ', 'IE', 'GB', 'SG'].includes(u)); assert.ok(['konaklama', 'guzellik'].includes(s)); }
   // aktif her sektorun bes parcasi da var: sayfa profili, lead tanimi, mail sablonu
   for (const s of new Set(p.sira.map(([, x]) => x))) { assert.ok(profil({ sektor: s }), `profil: ${s}`); assert.ok(SEKTORLER[s], `lead tanimi: ${s}`); assert.ok(SABLON[s], `mail sablonu: ${s}`); }
   const d = tmp(); const f = path.join(d, 'p.json');
