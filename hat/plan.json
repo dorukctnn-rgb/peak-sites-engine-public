@@ -10,9 +10,9 @@
       "ad": "kuafor, guzellik salonu, berber"
     },
     "restoran": {
-      "aktif": false,
+      "aktif": true,
       "ad": "restoran ve bar (v5), burgerci, burrito/taco, pizzaci (kategori sablonlari)",
-      "not": "Kapali: Son goz turu (inceleme/ROUTINE-SONGOZ.md) bulutta kurulunca ve koordinator deneme turunu onaylayinca aktif=true. Turda en cok limitler.restoranHerTur isletme hazirlanir (son goz kotasi). Mail satiri RESTORAN_KUYRUK=acik olmadan yazilmaz."
+      "not": "11 Kas: deneme turu icin acik; mail satirlari RESTORAN_KUYRUK=acik ve koordinatorun ilk 5 sayfa onayina kadar yazilmaz. Turda en cok limitler.restoranHerTur isletme hazirlanir."
     }
   },
   "sira": [
@@ -91,11 +91,11 @@
   },
   "ulkeler": {
     "TR": {
-      "aktif": false,
+      "aktif": true,
       "sektorler": [
         "restoran"
       ],
-      "not": "Doruk 11 Kas: Turkiye restoranlari da hedef. KAPALI: koordinator ilk TR sayfalarini gozle onaylayinca aktif=true. Mail satiri ayrica TR_KUYRUK=acik ve durum/onay.json TR onayi ister (hat/kuyruk.mjs trKuyrukAcik). Il sirasi lead/sektorler.mjs TR_ILLER (Antalya, Istanbul once)."
+      "not": "11 Kas: deneme turu icin acik, yalniz restoran ailesi; mail satirlari TR_KUYRUK=acik ve durum/onay.json TR onayina kadar yazilmaz (hat/kuyruk.mjs trKuyrukAcik). Il sirasi lead/sektorler.mjs TR_ILLER."
     },
     "SG": {
       "aktif": true,
