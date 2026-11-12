@@ -76,3 +76,9 @@ test('lede: cop meta aciklamalari (hidden article, WordPress, CTA) elenir, gerce
   const r = ledeOf('Riverbar offers spectacular views, delectable food and an extensive array of drinks. Book now online.');
   assert.match(r.lede, /^Riverbar offers spectacular views/); assert.doesNotMatch(r.lede + r.about, /Book now/);
 });
+test('marka: dugme yazisi tarayici varsayilani baglanti mavisi olculduyse isletmenin rengi sayilmaz (turkuaz dugme)', () => {
+  const R = { colours: { hints: {}, computed: { body: { bg: '#ffffff', color: '#000000' }, btn: { ownBg: '#1ec9aa', color: '#0000ee' } }, used: { bg: [{ hex: '#ffffff', w: 1 }], text: [], buttons: [{ hex: '#1ec9aa', w: 1 }] } } };
+  const pal = markaPaleti(R, renkPaleti(R));
+  assert.notEqual(pal.t.accentInk.toLowerCase(), '#0000ee');
+  assert.ok(contrast(pal.t.accentInk, pal.t.accent) >= 4.5);
+});

@@ -26,7 +26,10 @@ export function markaPaleti(R, pal) {
   pal.source.accent2 = a2 ? { hex: a2.hex, via: 'logo' } : null;
   // ---- dugme yazisi ----
   // tarayicinin varsayilan baglanti renkleri (#0000ee, #551a8b) isletmenin marka rengi degildir (11 Kas TR denemesi: turkuaz dugmede mavi yazi seciliyordu)
-  const siteBtn = hex6(C.btn && C.btn.ownBg); const siteInk = hex6(C.btn && C.btn.color);
+  const siteBtn = hex6(C.btn && C.btn.ownBg); const ham = hex6(C.btn && C.btn.color);
+  // dugmenin icindeki yazi tarayici varsayilani baglanti mavisi olculduyse (#0000ee; kontrasti yetse bile) isletmenin rengi sayilmaz: cikarici dugme icindeki baglantinin varsayilan rengini
+  // olcmus olur.  Palet kendi okunur yazi rengini secer, marka tonu da koyulastirilmaz.
+  const siteInk = ham && !TARAYICI_LINK.has(ham.toLowerCase()) ? ham : null;
   const fromBtn = siteBtn && pal.source.accent && pal.source.accent.hex === siteBtn;
   if (fromBtn && siteInk) {
     const theirs = contrast(siteInk, siteBtn);
