@@ -4,15 +4,16 @@
 //   burrito, taco, Meksika  -> burrito (referans burritomadre.rs)
 //   pizza                   -> pizza   (referans sebastiano.polyarix.space)
 //   konaklama, guzellik ve diger sektor profilleri -> 'eski' (uyarla/uret.mjs + sektor/<ad>.mjs; DEGISMEZ)
-//   pastane, firin, tatlici -> KANCA (12 Kas 2026, yeme-icme odagi): tespit calisir (shop=bakery|pastry|confectionery, cuisine, ad, metin) ama "pastane" sablonu
-//                              birlesene kadar sablon v5 doner; sonuc 'kategori: pastane' ipucunu tasir.  Sablon birlesince YALNIZ KATEGORILER'e 'pastane' eklenir, baska kod gerekmez.
+//   pastane, firin, tatlici -> pastane (12 Kas 2026): imleci isletmenin kendi urunlerinin izledigi kategori sablonu (sablon-pastane, ozel depoda).  Tespit kanca
+//                              kurallariyla (shop=bakery|pastry|confectionery, cuisine, ad, metin) ve HER ZAMAN eski uc kategoriden sonra.
+//   Yeni bir kanca kategorisi (sablonu henuz yok) KANCA_KATEGORILER'e eklenir: tespit edilir, sablon v5'e duser ve 'kategori' ipucunu tasir.
 // Kanit sirasi: OSM cuisine etiketi > isletmenin adi > sitenin kendi metni (en cok gecen tur sozcugu).  Model yok.
 //   Mevcut uc kategori (burger, burrito, pizza) HER ZAMAN kanca kategorilerinden once denenir: kanca eski kararlari degistirmez.
 import { SEKTOR } from './sektor/index.mjs';
 
-export const KATEGORILER = ['burger', 'burrito', 'pizza'];
-// sablonu henuz olmayan kategoriler: tespit edilir, sablonSec v5'e dusurur ("pastane" sablonu ayri PR'da gelir)
-export const KANCA_KATEGORILER = ['pastane'];
+export const KATEGORILER = ['burger', 'burrito', 'pizza', 'pastane'];
+// sablonu henuz olmayan kategoriler: tespit edilir, sablonSec v5'e dusurur (pastane 12 Kas'ta sablonuyla KATEGORILER'e gecti)
+export const KANCA_KATEGORILER = [];
 export const SABLONLAR = ['v5', ...KATEGORILER];
 // HAT ONCELIGI (12 Kas 2026, Doruk: "pizzacı ve hamburgercilere çok ağırlık ver, o şablonlar çok iyi!"): pizza ve burger once, sonra burrito/taco, sonra digerleri
 export const ONCELIK = { pizza: 0, burger: 0, burrito: 1 };
@@ -31,7 +32,7 @@ const AD = [
 ];
 const METIN = { burger: /\bburgers?\b/gi, burrito: /\b(burritos?|tacos?|quesadillas?|nachos)\b/gi, pizza: /\b(pizzas?|pizzeria|margherita|wood[- ]fired)\b/gi };
 
-// KANCA kategorileri (pastane, firin, tatli): sablon yok, yalniz tespit.  Kanit: cuisine > OSM dukkan etiketi (lead.tur) > ad > metin
+// pastane, firin, tatli tespiti (eski uc kategoriden SONRA).  Kanit: cuisine > OSM dukkan etiketi (lead.tur) > ad > metin
 const KANCA_CUISINE = [['pastane', /^(bakery|bakeries|patisserie|pastry|pastries|cake|cakes|cake_shop|confectionery|dessert|desserts|donut|donuts|doughnut|doughnuts|baklava|pastane|sweets)$/]];
 const KANCA_TUR = [['pastane', /^(bakery|pastry shop|confectionery)$/]]; // lead/sektorler.mjs restoran.tur: shop=bakery | pastry | confectionery
 const KANCA_AD = [['pastane', /(?<!\p{L})(?:pastane\p{L}*|p[âa]tisserie|bakery|bakehouse|boulangerie|cakery|cake ?shop|cupcakes?|tatl[ıi]c[ıi]\p{L}*|baklava\p{L}*)(?!\p{L})/iu]];
@@ -49,7 +50,7 @@ export function kategoriOf({ cuisine = '', ad = '', metin = '', tur = '' } = {})
     // metinden karar yalniz acik ustunlukle: en az 6 kez ve ikincinin iki katindan fazla (bir pizzacinin menusundeki tek burger onu burgerci yapmaz)
     if (n >= 6 && n > ikinci * 2) return { kategori: k, neden: `sitenin metninde ${n} kez (${Object.entries(say).map(([a, b]) => `${a} ${b}`).join(', ')})` };
   }
-  // kanca kategorileri (pastane): mevcut uc kategori tutmadiysa
+  // pastane: mevcut uc kategori tutmadiysa
   for (const t of toks) for (const [k, re] of KANCA_CUISINE) if (re.test(t)) return { kategori: k, neden: `OSM cuisine=${t}` };
   const turS = String(tur || '').toLowerCase().trim();
   for (const [k, re] of KANCA_TUR) if (re.test(turS)) return { kategori: k, neden: `OSM dukkan turu=${turS}` };

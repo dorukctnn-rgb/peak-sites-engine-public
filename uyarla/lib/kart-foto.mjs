@@ -7,7 +7,7 @@
 // Ag yok, model yok.
 //   kartFotoBul(photos, ad, { isletme, haric, kullanilan }) -> { id, alan, metin } | null
 //   kartFotoPlan(slider, photos, { isletme, haric })        -> [{ ad, id|null, kaynak, oto, bastirildi, aday, kirp, odak, alt }]
-//   kartKirp({ width, height }, { kirp, odak }, ph)          -> { left, top, width, height }  (ORAN en/boy, buyutme yok)
+//   kartKirp({ width, height }, { kirp, odak, oran }, ph)    -> { left, top, width, height }  (oran yoksa ORAN en/boy, buyutme yok)
 
 export const ORAN = 5 / 4; // kart fotografi kutusu (site.css .slide-f aspect-ratio ile ayni)
 export const EN_AZ = { w: 600, h: 480 }; // kendiliginden eslesmede en kucuk kare (kart 2x icin; buyutme yok)
@@ -76,11 +76,12 @@ export function kartFotoPlan(slider, photos, { isletme = '', haric = [] } = {}) 
 }
 
 // ORAN kutusu: elle kirpma ya da odak noktasi cevresindeki en buyuk kutu (kaynagin icinde kalir)
-export function kartKirp(md, { kirp = null, odak = null } = {}, ph = {}) {
+export function kartKirp(md, { kirp = null, odak = null, oran = ORAN } = {}, ph = {}) {
   const W = md.width, H = md.height;
   if (kirp) { const left = Math.max(0, Math.round(kirp.left)), top = Math.max(0, Math.round(kirp.top)); return { left, top, width: Math.min(Math.round(kirp.width), W - left), height: Math.min(Math.round(kirp.height), H - top) }; }
   const fx = (odak && odak.x) ?? (ph.focus && ph.focus.x) ?? 0.5, fy = (odak && odak.y) ?? (ph.focus && ph.focus.y) ?? 0.5;
-  let w = W, h = Math.round(W / ORAN); if (h > H) { h = H; w = Math.round(H * ORAN); }
+  const O = oran > 0 ? oran : ORAN; // sablon kendi oranini verebilir (pastane vitrini 4:5 dik); varsayilan 5:4
+  let w = W, h = Math.round(W / O); if (h > H) { h = H; w = Math.round(H * O); }
   const sinir = (v, a, b) => Math.max(a, Math.min(b, v));
   return { left: sinir(Math.round(fx * W - w / 2), 0, W - w), top: sinir(Math.round(fy * H - h / 2), 0, H - h), width: w, height: h };
 }

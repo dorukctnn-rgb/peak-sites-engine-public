@@ -1,14 +1,14 @@
-// Pastane kancasi (12 Kas 2026, yeme-icme odagi): pastane, firin ve tatlici (shop=bakery|pastry|confectionery) tespit edilir, ama "pastane" sablonu birlesene kadar
-// sablon v5 kalir.  Mevcut uc kategori (burger, burrito, pizza) kararlari degismez.  Ag yok.
+// Pastane (12 Kas 2026): pastane, firin ve tatlici (shop=bakery|pastry|confectionery) tespit edilir ve sablonu (sablon-pastane) birlestigi icin
+// pastane sablonuna gider.  Mevcut uc kategori (burger, burrito, pizza) kararlari degismez ve her zaman once denenir.  Ag yok.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sablonSec, kategoriOf, KATEGORILER, KANCA_KATEGORILER, SABLONLAR } from '../sablon-sec.mjs';
 import { gerceklikler, sablonlar } from '../lib/slogan.mjs';
 
-test('kanca: pastane sablonu henuz yok; KATEGORILER ve SABLONLAR onu icermez, KANCA_KATEGORILER icerir', () => {
-  assert.deepEqual(KATEGORILER, ['burger', 'burrito', 'pizza']);
-  assert.deepEqual(KANCA_KATEGORILER, ['pastane']);
-  assert.ok(!SABLONLAR.includes('pastane'), 'uretici ve icerik denetimi pastane sablonunu henuz kabul etmez');
+test('pastane sablonu birlesti: KATEGORILER ve SABLONLAR onu icerir, kanca listesi bos', () => {
+  assert.deepEqual(KATEGORILER, ['burger', 'burrito', 'pizza', 'pastane']);
+  assert.deepEqual(KANCA_KATEGORILER, []);
+  assert.ok(SABLONLAR.includes('pastane'), 'uretici ve icerik denetimi pastane sablonunu kabul eder');
   assert.ok(!KATEGORILER.some((k) => KANCA_KATEGORILER.includes(k)));
 });
 
@@ -42,7 +42,7 @@ test('mevcut uc kategori HER ZAMAN once: kanca eski kararlari degistirmez', () =
   assert.equal(kategoriOf({ metin: 'pizza pizza pizza pizza cakes cakes cakes cakes cakes cakes cakes' }).kategori, null);
 });
 
-test('sablonSec: pastane ve firin icin kanca v5 dondurur ve ipucunu tasir; digerleri aynen', () => {
+test('sablonSec: pastane ve firin pastane sablonuna gider; digerleri aynen', () => {
   for (const lead of [
     { sektor: 'restoran', name: 'Rye Street', kind: 'bakery' },
     { sektor: 'restoran', name: 'Maison Sucre', kind: 'pastry shop' },
@@ -51,14 +51,13 @@ test('sablonSec: pastane ve firin icin kanca v5 dondurur ve ipucunu tasir; diger
     { sektor: 'restoran', name: 'Güzel Pastanesi', kind: 'restaurant' },
   ]) {
     const s = sablonSec(lead);
-    assert.equal(s.sablon, 'v5', lead.name); assert.equal(s.kategori, 'pastane', lead.name);
-    assert.match(s.neden, /pastane.*henuz birlesmedi.*v5/);
+    assert.equal(s.sablon, 'pastane', lead.name); assert.equal(s.kategori, undefined, lead.name);
     assert.ok(SABLONLAR.includes(s.sablon), 'sablon her zaman uretici ve denetimin bildigi bir sablon');
   }
-  // sablon birlesince (hazir listesine pastane girince) ayni lead pastane olur: baska kod gerekmez
-  const hazir = [...KATEGORILER, 'pastane'];
-  assert.equal(sablonSec({ sektor: 'restoran', name: 'Rye Street', kind: 'bakery' }, null, hazir).sablon, 'pastane');
-  assert.equal(sablonSec({ sektor: 'restoran', name: 'Rye Street', kind: 'bakery' }, null, hazir).kategori, undefined);
+  // hazir listesi daraltilirsa (or. sablon geri cekilirse) ayni lead v5'e duser ve ipucunu tasir
+  const eski = ['burger', 'burrito', 'pizza'];
+  const g = sablonSec({ sektor: 'restoran', name: 'Rye Street', kind: 'bakery' }, null, eski);
+  assert.equal(g.sablon, 'v5'); assert.equal(g.kategori, 'pastane'); assert.match(g.neden, /pastane.*henuz birlesmedi.*v5/);
   // kafe, bar, restoran, dondurma ve kebap: v5, kancasiz
   for (const kind of ['cafe', 'bar', 'restaurant', 'ice cream shop', 'kebab house']) { const s = sablonSec({ sektor: 'restoran', name: 'Lina Rooftop', kind }); assert.equal(s.sablon, 'v5', kind); assert.equal(s.kategori, undefined, kind); }
   // eski kararlar
@@ -69,10 +68,10 @@ test('sablonSec: pastane ve firin icin kanca v5 dondurur ve ipucunu tasir; diger
   assert.equal(sablonSec({ sektor: 'guzellik', name: 'Cake Nails' }).sablon, 'eski');
 });
 
-test('sablonSec: cikarici metninden de pastane (R.menu, R.ek); kanca yine v5', () => {
+test('sablonSec: cikarici metninden de pastane (R.menu, R.ek)', () => {
   const R = { name: { n: 'Sade' }, tagline: 'Baked daily', ek: { paragraflar: ['Croissants, pastries and cakes made every morning.', 'Our sourdough loaves and cupcakes sell out by noon.'] }, menu: { items: [{ n: 'Almond croissant', cat: 'Pastries' }, { n: 'Carrot cake', cat: 'Cakes' }, { n: 'Brownie', cat: 'Cakes' }] } };
   const s = sablonSec({ sektor: 'restoran', name: 'Sade', kind: 'restaurant' }, R);
-  assert.equal(s.sablon, 'v5'); assert.equal(s.kategori, 'pastane'); assert.match(s.neden, /sitenin metninde/);
+  assert.equal(s.sablon, 'pastane'); assert.match(s.neden, /sitenin metninde/);
 });
 
 test('slogan: yeni turlerin adi (EN ve TR); bilinmeyen tur restoran kalir', () => {
