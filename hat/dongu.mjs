@@ -83,7 +83,7 @@ export function adaylar({ depo, plan, veri, yazilan = null, uretimLead }) {
     for (const l of jsonl(path.join(depo, 'lead', `${ulke}-${sektor}.tarandi.jsonl`))) {
       if (l.durum !== 'aday' || !l.email) continue;
       if (kapiBitti(path.join(veri, uretimLead(l).slug, 'kapi.json'))) continue;
-      if (yazilan && yazilan.neden(l.email)) continue;
+      if (yazilan && yazilan.neden(l.email, l)) continue;
       out.push(l);
     }
   }

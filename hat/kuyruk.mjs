@@ -2,13 +2,14 @@
 // Serbest birakma hat/birak.mjs'in isidir (sektor onayi + isinma takvimi + otomatik durdurma).
 //   node hat/kuyruk.mjs --son calisma/son/liste.json --leads <dir: *.tarandi.jsonl> --po <peak-outreach klonu> [--yaz]
 // Kontroller: yalniz hedef ulkeler (lead/sektorler.mjs ULKELER: GB IE AU NZ SG, kapali TR; YASAK/BEKLE listesi hic); GB'de sirket kaniti; GB/IE'de serbest posta yok; susturma (suppress.txt), cevap verenler (data/replied.txt),
-// daha once yazilan adres ya da alan adi (sent.jsonl, kuyruk), bu partide tekrar; mail metni kendi lint'imiz + peak-outreach'in KENDI lint'i (lintDemoText) + validateRow.
+// daha once yazilan adres, alan adi ya da AYNI ISLETME (sent.jsonl, kuyruk; hat/isletme.mjs: site, telefon, OSM nesnesi, ad + sehir; ortak e-posta saglayicilarinda adres farkli olsa da), bu partide tekrar; mail metni kendi lint'imiz + peak-outreach'in KENDI lint'i (lintDemoText) + validateRow.
 // E-posta adresleri yalniz dosyaya yazilir; ekrana yalniz satir kimligi ve sayilar basilir.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ULKELER, kapaliUlke } from '../lead/sektorler.mjs';
 import { SERBEST, alanKoku } from '../lead/eposta.mjs';
+import { isletmeIndeksi, indeksOlustur, leadKimligi, bizAlani, SEBEP as ISLETME_SEBEP } from './isletme.mjs';
 import { mailYaz, mailDenetle, mailAdi } from '../mail/sablon.mjs';
 
 export const KAMPANYA = 'websites-demo';
@@ -26,7 +27,9 @@ export function trKuyrukAcik(ulke, onaylanan = new Set(), env = process.env) {
 const jsonl = (t) => String(t || '').split(/\r?\n/).filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 const dom = (a) => alanKoku(String(a).split('@')[1] || '');
 
-// daha once yazilan / susturulan adresler ve alan adlari (peak-outreach'in kendi kurali: eski 'websites' kampanyasinin BEKLEYEN satirlari sayilmaz)
+// daha once yazilan / susturulan adresler, alan adlari ve isletmeler (peak-outreach'in kendi kurali: eski 'websites' kampanyasinin BEKLEYEN satirlari sayilmaz)
+// neden(adres, lead): lead verilirse AYNI ISLETME de denetlenir ('isletme-daha-once'): ortak e-posta saglayicisinda (gmail vb.) alan adi isletmeyi anlatmaz, adres farkli olsa da
+// ayni isletme (site, telefon, OSM nesnesi ya da ad + sehir) bir kez yazildiysa ikinci kez gecemez.  isletme(lead): eslesen kayit ya da null (kimlik ve durum, adres degil).
 export function yazilanlar({ sent, queue, suppress, replied }) {
   const adr = new Set(); const alan = new Set();
   const al = (a) => { const e = String(a || '').trim().toLowerCase(); if (!e.includes('@')) return; adr.add(e); if (!SERBEST.test(e)) alan.add(dom(e)); };
@@ -35,15 +38,18 @@ export function yazilanlar({ sent, queue, suppress, replied }) {
   const sup = String(suppress || '').split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter((l) => l && !l.startsWith('#'));
   const rep = String(replied || '').split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter((l) => l && !l.startsWith('#'));
   const bloke = (e, list) => list.some((s) => (s.startsWith('@') ? e.endsWith(s) || e.split('@')[1].endsWith(s.slice(1)) : s === e));
+  const isl = isletmeIndeksi({ sent, queue });
   return {
-    neden(e) {
+    neden(e, lead = null) {
       e = e.toLowerCase();
       if (bloke(e, sup)) return 'suppressed';
       if (bloke(e, rep)) return 'replied';
       if (adr.has(e)) return 'adres-daha-once';
       if (!SERBEST.test(e) && alan.has(dom(e))) return 'alan-daha-once';
+      if (lead && isl.bul(leadKimligi(lead))) return ISLETME_SEBEP;
       return null;
     },
+    isletme(lead) { return lead ? isl.bul(leadKimligi(lead)) : null; },
   };
 }
 
@@ -51,7 +57,7 @@ export function satirlarKur({ son, leadsById, po, simdi = new Date(), onaylanan 
   const sent = jsonl(po.sent); const queue = jsonl(po.queue); const ids = new Set(queue.map((r) => r.id));
   const Y = yazilanlar({ sent, queue, suppress: po.suppress, replied: po.replied });
   const satirlar = []; const kopyalar = []; const atla = {}; const sk = (w) => { atla[w] = (atla[w] || 0) + 1; };
-  const parti = { adr: new Set(), alan: new Set() }; const sayac = {};
+  const parti = { adr: new Set(), alan: new Set(), isl: indeksOlustur() }; const sayac = {};
   for (const x of son.filter((s) => s.durum === 'hazir')) {
     // restoran ailesi (v5/kategori): mail satiri YOK.  son goz onayi sart ve koordinator RESTORAN_KUYRUK=acik demeden hic satir yazilmaz (Doruk 11 Kas: mail kapali).
     if ((x.sektor || '') === 'restoran' && (x.sonGoz !== true || process.env.RESTORAN_KUYRUK !== 'acik')) { atla.restoran = (atla.restoran || 0) + 1; continue; }
@@ -67,8 +73,9 @@ export function satirlarKur({ son, leadsById, po, simdi = new Date(), onaylanan 
     if (ULKELER[l.ulke].serbestPostaYok && SERBEST.test(e)) { sk(`serbest-posta:${l.ulke}`); continue; }
     if (ULKELER[l.ulke].sirketSart && !l.sirket) { sk('gb-sirket-kaniti-yok'); continue; }
     const id = satirId(l); if (ids.has(id)) { sk('kuyrukta-var'); continue; }
-    const n = Y.neden(e); if (n) { sk(n); continue; }
-    if (parti.adr.has(e) || (!SERBEST.test(e) && parti.alan.has(dom(e)))) { sk('partide-tekrar'); continue; }
+    const n = Y.neden(e, l); if (n) { sk(n); continue; }
+    const kim = leadKimligi(l);
+    if (parti.adr.has(e) || (!SERBEST.test(e) && parti.alan.has(dom(e))) || parti.isl.bul(kim)) { sk('partide-tekrar'); continue; }
     const sayfa = `${SAYFA_TABAN}${x.page.replace(/\/?$/, '/')}`;
     const ad = mailAdi(x.ad || l.name);
     // restoran ailesinin yurt disi mail sablonu motorda yok (v5 sesi peak-outreach'te): sablon yoksa satir atlanir, teslim adimi DUSMEZ (RESTORAN_KUYRUK=acik iken eskiden hata verirdi)
@@ -81,7 +88,8 @@ export function satirlarKur({ son, leadsById, po, simdi = new Date(), onaylanan 
     const row = { id, to: e, name: ad, campaign: KAMPANYA, region: l.ulke, lang: 'en', segment: `demo-${sek}`, subject: m.konu, body: m.govde, notBefore: new Date(simdi.getTime() + 864e5).toISOString().slice(0, 10) + 'T00:00:00Z' };
     if (ab === 'A') { const rel = `attachments/websites-demo/${id}.jpg`; row.preview = { path: rel, href: sayfa, alt: 'Preview of your new homepage' }; kopyalar.push({ from: x.onizleme, to: rel }); }
     Object.assign(row, { _held: onaylanan.has(sek) ? BEKLET : BEKLET_ILK, _ab: ab, _slug: x.slug, _page: sayfa, _hat: { sektor: sek, parti: x.parti, eklendi: simdi.toISOString() } });
-    parti.adr.add(e); if (!SERBEST.test(e)) parti.alan.add(dom(e));
+    const biz = bizAlani(kim, l.city); if (biz) row._biz = biz; // hangi isletme: site, telefon, OSM nesnesi, sehir (sonraki kontroller ve peak-outreach okur)
+    parti.adr.add(e); if (!SERBEST.test(e)) parti.alan.add(dom(e)); parti.isl.ekle(kim, { id, kampanya: KAMPANYA, durum: 'parti' });
     ids.add(id); satirlar.push(row);
   }
   return { satirlar, kopyalar, atla };
