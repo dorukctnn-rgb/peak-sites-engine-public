@@ -1,7 +1,7 @@
 // RESTORAN ICERIK KARARI (11 Kas 2026): inceleme turunun yazdigi karar/<parti>/<slug>.json (tur "icerik") -> denetim -> <veri>/<slug>/icerik.json
 // (v5 icin uret-v5.mjs'in elle kaydi, kategori icin uret-kategori.mjs'in kaydi).  Model yok, ag yok.
 // Karar bicimi (ornekler: inceleme/ornek/<sablon>.json; kurallar: inceleme/ROUTINE.md "Restoran icerik turu"):
-//   { tur: 'icerik', karar: 'icerik'|'gozden-gecir'|'elendi', neden, inceleyen: 'icerik-turu'|'sonGoz', sablon: 'v5'|'burger'|'burrito'|'pizza',
+//   { tur: 'icerik', karar: 'icerik'|'gozden-gecir'|'elendi', neden, inceleyen: 'icerik-turu'|'sonGoz', sablon: 'v5'|'burger'|'burrito'|'pizza'|'pastane'|'sokak',
 //     hero: { id, gerekce, reddedilen: [{ id, neden }] },
 //     menu: { kaynak: { tur: 'sayfa'|'pdf'|'gorsel'|'siparis-sitesi', url, dosya, sayfa }, kalemler: [{ n, d, p, cat }] },
 //     saat: { satirlar: [...], kaynak } | null,   eylem: { url, tur: 'siparis'|'rezervasyon' },
@@ -96,6 +96,15 @@ export function denetle(k, ctx = {}) {
     if (ctx.ad && norm(String(slg).replace(/\*/g, '')).replace(/[^a-z0-9 ]/g, '').trim() === norm(ctx.ad).replace(/[^a-z0-9 ]/g, '').trim()) H.push('slogan isletmenin adi');
   }
   if (KATEGORILER.includes(k.sablon) && ic.kategori && ic.kategori !== k.sablon) H.push(`icerik.kategori (${ic.kategori}) sablonla (${k.sablon}) ayni olmali`);
+  // SOKAK (12 Kas 2026): urun seridi ve menude fotograf yalniz menude adi ve fiyati olan kalemlerden, isletmenin kendi kesimleriyle (R.kesme kimligi k01...); kayan yazi yok
+  if (k.sablon === 'sokak') {
+    const adlar = new Set(kal.map((x) => norm(String(x.n || '')).trim()));
+    const ur = Array.isArray(ic.urunler) ? ic.urunler : [];
+    for (const [i, u] of ur.entries()) { if (!u || !adlar.has(norm(String(u.n || '')).trim())) H.push(`icerik.urunler[${i}] menude yok: ${u && u.n}`); if (!u || !/^k\d+$/.test(String(u.kesme || ''))) H.push(`icerik.urunler[${i}].kesme isletmenin kendi kesimi (k01...) olmali`); }
+    if (ur.length && ur.length < 3) H.push('icerik.urunler en az 3 kalem olmali (ya da hic)');
+    for (const n of Object.keys(ic.menuFoto || {})) if (!adlar.has(norm(n).trim())) H.push(`icerik.menuFoto menude yok: ${n}`);
+    if (ic.devYazi || ic.serit) H.push('kayan yazi seridi yok (Doruk 12 Kas 2026, kalici): icerik.devYazi / icerik.serit kullanilmaz');
+  }
   // adres ve telefon: cikarici bulamadiysa (bilgi.json null) icerikte sitenin metninden aynen; verilen her adres/telefon metinde gecmeli
   if (ctx.bilgi) {
     const adr = k.sablon === 'v5' ? ic.konum && ic.konum.address : ic.kategoriEk && ic.kategoriEk.adres;

@@ -3,6 +3,8 @@
 // Girdi : <veri>/<slug>/cikarici.json (+ img/, hero/), data/elle/kategori-b.json (kategori, slogan adaylari, kare secimi, tema, gercekler)
 // Sablon: sablon-<kategori>/{site.css, page.js, sayfa.mjs, malzeme-3d.webp, malzeme-3d.json, malzeme-buyuk.webp} + sablon-kategori-ortak/imlec.js
 //   Pastane (12 Kas): ortak 3D atlas yok; imlec izi sayfanin KENDI atlasi (lib/iz-atlas.mjs, isletmenin kendi urunleri), fontlar isletmenin kendi sitesinden (AYAR.isletmeFontu).
+//   VARYANT (sokak, 12 Kas): AYAR.taban = 'burger' -> sayfa, site.css ve page.js TABAN sablonun AYNI dosyalari (kopya yok; <taban>.css, <taban>.js ortak klasorde ayni ad),
+//   varyantin kendi klasorundeki site.css / page.js varsa yalniz EK KATMAN olarak arkadan yuklenir (<kategori>.css, <kategori>.js).  AYAR.cssEk(D) -> theme.css sonuna sayfaya ozel kural.
 // Cikti : <out>/<ORTAK_K>/ (varsayilan _hat1k) {<kategori>.css, <kategori>.js, <kategori>-3d.webp, <kategori>-buyuk.webp, imlec.js, fonts/, CREDITS.txt}
 //         <out>/r/<slug>-<kod>/{index.html, theme.css, img/}   (noindex)      + <veri>/<slug>/uret-kategori.json (rapor)
 // Model yok, ag yok. Logo dosyasi bayt bayt ayni kopyalanir. Hicbir gorsel buyutulmez (withoutEnlargement).
@@ -116,12 +118,17 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   const rapor = { slug, kategori: kat, at: new Date().toISOString(), sayfa: pageDir(slug), dosyalar: [], uyarilar: [] };
 
   /* ---- ortak dosyalar ---- */
-  const atlasVar = fs.existsSync(path.join(S, 'malzeme-3d.json'));
-  const atlas = atlasVar ? JSON.parse(fs.readFileSync(path.join(S, 'malzeme-3d.json'), 'utf8')) : { cell: 0, frames: 0, names: [] };
-  for (const [a, b] of [[path.join(S, 'site.css'), `${kat}.css`], [path.join(S, 'page.js'), `${kat}.js`], [path.join(S, 'malzeme-3d.webp'), `${kat}-3d.webp`], [path.join(S, 'malzeme-buyuk.webp'), `${kat}-buyuk.webp`], [path.join(HERE, 'sablon-kategori-ortak', 'imlec.js'), 'imlec.js'], [path.join(HERE, 'sablon-kategori-ortak', 'CREDITS.txt'), 'CREDITS.txt'], [path.join(HERE, 'sablon-kategori-ortak', 'FONT-LICENSES.txt'), path.join('fonts', 'LICENSES.txt')]]) if (fs.existsSync(a)) fs.copyFileSync(a, path.join(ortak, b));
-  const sh = crypto.createHash('sha1').update(fs.readFileSync(path.join(S, 'site.css'))).update(fs.readFileSync(path.join(S, 'page.js'))).update(fs.readFileSync(path.join(HERE, 'sablon-kategori-ortak', 'imlec.js')));
-  if (atlasVar) sh.update(fs.readFileSync(path.join(S, 'malzeme-3d.webp')));
+  // taban: varyantin kullandigi sablon (sokak -> burger); taban yoksa kategorinin kendisi.  Ek katman: varyant klasorundeki site.css / page.js (varsa).
+  const taban = AYAR.taban && AYAR.taban !== kat ? AYAR.taban : kat; const TB = path.join(HERE, `sablon-${taban}`);
+  const ekCss = taban !== kat && fs.existsSync(path.join(S, 'site.css')); const ekJs = taban !== kat && fs.existsSync(path.join(S, 'page.js'));
+  const atlasVar = fs.existsSync(path.join(TB, 'malzeme-3d.json'));
+  const atlas = atlasVar ? JSON.parse(fs.readFileSync(path.join(TB, 'malzeme-3d.json'), 'utf8')) : { cell: 0, frames: 0, names: [] };
+  for (const [a, b] of [[path.join(TB, 'site.css'), `${taban}.css`], [path.join(TB, 'page.js'), `${taban}.js`], [path.join(TB, 'malzeme-3d.webp'), `${taban}-3d.webp`], [path.join(TB, 'malzeme-buyuk.webp'), `${taban}-buyuk.webp`], ...(ekCss ? [[path.join(S, 'site.css'), `${kat}.css`]] : []), ...(ekJs ? [[path.join(S, 'page.js'), `${kat}.js`]] : []), [path.join(HERE, 'sablon-kategori-ortak', 'imlec.js'), 'imlec.js'], [path.join(HERE, 'sablon-kategori-ortak', 'CREDITS.txt'), 'CREDITS.txt'], [path.join(HERE, 'sablon-kategori-ortak', 'FONT-LICENSES.txt'), path.join('fonts', 'LICENSES.txt')]]) if (fs.existsSync(a)) fs.copyFileSync(a, path.join(ortak, b));
+  const sh = crypto.createHash('sha1').update(fs.readFileSync(path.join(TB, 'site.css'))).update(fs.readFileSync(path.join(TB, 'page.js'))).update(fs.readFileSync(path.join(HERE, 'sablon-kategori-ortak', 'imlec.js')));
+  if (ekCss) sh.update(fs.readFileSync(path.join(S, 'site.css'))); if (ekJs) sh.update(fs.readFileSync(path.join(S, 'page.js')));
+  if (atlasVar) sh.update(fs.readFileSync(path.join(TB, 'malzeme-3d.webp')));
   const surum = sh.digest('hex').slice(0, 8);
+  rapor.taban = taban !== kat ? { sablon: taban, ekKatman: [ekCss && `${kat}.css`, ekJs && `${kat}.js`].filter(Boolean) } : null;
 
   /* ---- fontlar: kategori (referans) fontlari + govde ---- */
   // FONT KANCASI (pastane, 12 Kas): AYAR.isletmeFontu -> basliklar ve metin isletmenin KENDI sitesindeki fontlardan (lib/font.mjs fontEslestir; ticari olana en yakin
@@ -192,11 +199,25 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
       else liste.push({ id: x.id, ad: x.ad, buf: fs.readFileSync(path.join(dir, x.file)) });
     }
     if (liste.length >= 2) {
-      const at = await izAtlas(liste); const ad = `iz-${crypto.createHash('sha1').update(at.webp).digest('hex').slice(0, 8)}.webp`;
+      const at = await izAtlas(liste, AYAR.izHucre ? { cell: AYAR.izHucre } : {}); const ad = `iz-${crypto.createHash('sha1').update(at.webp).digest('hex').slice(0, 8)}.webp`;
       fs.writeFileSync(path.join(imgDir, ad), at.webp); rapor.dosyalar.push({ f: `img/${ad}`, w: at.w, h: at.h, kb: Math.round(at.webp.length / 1024) });
       const varId = (id) => liste.some((x) => x.id === id);
       iz = { src: `img/${ad}`, cell: at.cell, frames: at.frames, names: liste.map((x) => x.id), adlar: liste.map((x) => x.ad), zincir: plan.zincir.filter(varId), parcalar: plan.parcalar.filter(varId) };
     } else rapor.uyarilar.push('imlec izi: isletmenin kendi urununden en az iki kesit yok; iz kapali (rastgele urun cizilmez)');
+  }
+  // KESME GORSELLERI (sokak, 12 Kas): AYAR.kesmeGorsel -> isletmenin kendi urun kesmeleri (R.kesme, saydam; kendi fotografindan) sayfada da kullanilir
+  // (urun kaydiricisi, menu satirinda fotograf).  Yalniz icerik kaydinin andigi kesmeler (E.urunler[].kesme, E.menuFoto); 320 ve 640 genislik, buyutme yok.
+  const KS = {};
+  if (AYAR.kesmeGorsel) {
+    const ist = new Set([...(E.urunler || []).map((u) => u && u.kesme), ...Object.values(E.menuFoto || {})].filter(Boolean).map(String));
+    for (const k of (R.kesme || []).filter((x) => ist.has(String(x.id)))) {
+      const buf = fs.readFileSync(path.join(dir, k.file)); const md = await sharp(buf).metadata(); const v = [];
+      for (const w of [...new Set([320, 640].map((x) => Math.min(x, md.width)))]) { const o = await sharp(buf).resize({ width: w, withoutEnlargement: true }).webp({ quality: 82, alphaQuality: 90, effort: 5 }).toBuffer({ resolveWithObject: true }); const f = `u${k.id}-${o.info.width}.webp`; fs.writeFileSync(path.join(imgDir, f), o.data); rapor.dosyalar.push({ f: `img/${f}`, w: o.info.width, h: o.info.height, kb: Math.round(o.data.length / 1024) }); v.push({ f: `img/${f}`, w: o.info.width, h: o.info.height }); }
+      const son = v[v.length - 1]; KS[k.id] = { id: k.id, src: son.f, srcset: v.map((x) => `${x.f} ${x.w}w`).join(', '), w: son.w, h: son.h, ad: k.ad, kaynakFoto: k.kaynakFoto };
+      if (md.width < 600) rapor.uyarilar.push(`kesme kucuk: ${k.id} ${md.width} px (buyutulmedi)`);
+    }
+    const eksik = [...ist].filter((id) => !KS[id]); if (eksik.length) rapor.uyarilar.push(`icerik kaydindaki kesme yok: ${eksik.join(', ')}`);
+    rapor.kesmeGorsel = Object.keys(KS);
   }
   // kart fotograflari (pizza kaydiricisi): her kartta YALNIZ o urunun kendi fotografi (lib/kart-foto.mjs); yoksa kart oldugu gibi kalir.
   // ORAN (5:4) kutusuna kirpilir, 480 ve 960 genislik (kaynaktan buyuk yazilmaz), sablon srcset + loading=lazy ile kullanir.
@@ -241,7 +262,7 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   for (const [k, v] of Object.entries(rapor.kontrast)) if (v < 4.5) rapor.uyarilar.push(`kontrast dusuk: ${k} ${v}`);
 
   const D = {
-    slug, kat, ad, sehir, bolge, ulke: ULKE[bolge] || '', site: R.lead.site, dil, t, koyu, logo, hero, P, KF, E, R, slogan, atlas, surum, isaret, iz, font: fontBilgi,
+    slug, kat, ad, sehir, bolge, ulke: ULKE[bolge] || '', site: R.lead.site, dil, t, koyu, logo, hero, P, KF, KS, E, R, tema, AYAR, slogan, atlas, surum, isaret, iz, font: fontBilgi,
     ustYazi: E.ustYazi || R.tagline || '', lede: E.lede || '', saatler, week,
     tel: tel ? { href: `tel:${tel}`, text: R.phone } : null,
     // adres OSM'den geldiyse (address.konum) harita ve yol tarifi koordinata gider (12 Kas 2026)
@@ -250,7 +271,7 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
     veri: {
       t: dil === 'tr' ? { ...t.durum, to: t.to, closedToday: t.closedToday } : t.durum,
       days: t.days, h: week, h12: dil !== 'tr', tz: E.tz || (bolge === 'AU' ? AU_TZ[String(sehir).toLowerCase()] : null) || TZ[bolge] || null,
-      imlec: iz ? { src: iz.src, cell: iz.cell, frames: iz.frames, names: iz.names, stack: iz.zincir, gap: null, parts: iz.parcalar, max: 40, yer: AYAR.izYer || null, boy: AYAR.izBoy || null } : AYAR.izKendi ? null : { src: `../../${ORTAK_K}/${kat}-3d.webp?v=${surum}`, cell: atlas.cell, frames: atlas.frames, names: atlas.names, stack: AYAR.zincir, gap: AYAR.zincirAralik || null, parts: AYAR.parcalar, max: 40 },
+      imlec: iz ? { src: iz.src, cell: iz.cell, frames: iz.frames, names: iz.names, stack: iz.zincir, gap: null, parts: iz.parcalar, max: 40, yer: AYAR.izYer || null, boy: AYAR.izBoy || null, ...(AYAR.izTepsi ? { tepsi: typeof AYAR.izTepsi === 'function' ? AYAR.izTepsi({ tema, E }) : AYAR.izTepsi } : {}) } : AYAR.izKendi ? null : { src: `../../${ORTAK_K}/${taban}-3d.webp?v=${surum}`, cell: atlas.cell, frames: atlas.frames, names: atlas.names, stack: AYAR.zincir, gap: AYAR.zincirAralik || null, parts: AYAR.parcalar, max: 40 },
     },
     esc,
     // <img> yardimcisi: srcset yalniz gercek genisliklerle
@@ -262,7 +283,7 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
 
   /* ---- theme.css ---- */
   const logoH = AYAR.logoH ? AYAR.logoH(logo) : 44;
-  const css = `/* ${ad}: renkler isletmenin kendi sitesinden (zemin ${bg}, vurgu ${accent}). Fontlar: ${rapor.fontlar.map((f) => `${f.aile} (${f.rol})`).join(', ')}. Logo: orijinal dosya, filtre yok. */\n${faces.map((f) => f.css).join('\n')}\n:root{\n${Object.entries(tema).map(([k, v]) => `--${k}:${v};`).join('\n')}\n${AYAR.temaEk ? AYAR.temaEk(D, logo) : ''}--lg-h:${logoH}px;\n--hero-max:${hero.maxCss}px;\n--hero-ar:${(hero.bw / hero.bh).toFixed(4)};\n}\n`;
+  const css = `/* ${ad}: renkler isletmenin kendi sitesinden (zemin ${bg}, vurgu ${accent}). Fontlar: ${rapor.fontlar.map((f) => `${f.aile} (${f.rol})`).join(', ')}. Logo: orijinal dosya, filtre yok. */\n${faces.map((f) => f.css).join('\n')}\n:root{\n${Object.entries(tema).map(([k, v]) => `--${k}:${v};`).join('\n')}\n${AYAR.temaEk ? AYAR.temaEk(D, logo) : ''}--lg-h:${logoH}px;\n--hero-max:${hero.maxCss}px;\n--hero-ar:${(hero.bw / hero.bh).toFixed(4)};\n}\n${AYAR.cssEk ? AYAR.cssEk(D) : ''}`;
   fs.writeFileSync(path.join(pd, 'theme.css'), css);
 
   /* ---- index.html ---- */
@@ -270,7 +291,7 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   const ikon = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="${accent}"/><text x="16" y="23" font-family="Georgia,serif" font-size="20" font-weight="700" text-anchor="middle" fill="${tema['accent-ink']}">${bas}</text></svg>`);
   const on = fontlar.filter((f) => f.onYukle && f.stil !== 'italic').map((f) => `<link rel="preload" href="../../${ORTAK_K}/fonts/${f.id}-latin-${f.agirlik}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n');
   const html = `<!doctype html>
-<html lang="${dil}" class="k-${kat}${koyu ? ' is-dark' : ''}">
+<html lang="${dil}" class="k-${taban}${taban !== kat ? ` k-${kat}` : ''}${koyu ? ' is-dark' : ''}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -282,14 +303,14 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
 <link rel="icon" href="${ikon}">
 ${on}
 <link rel="preload" as="image" href="${hero.big}" imagesrcset="${hero.srcset || `${hero.sm} ${hero.sw}w, ${hero.big} ${hero.bw}w`}" imagesizes="${hero.sizes}" fetchpriority="high">
-<link rel="stylesheet" href="../../${ORTAK_K}/${kat}.css?v=${surum}">
+<link rel="stylesheet" href="../../${ORTAK_K}/${taban}.css?v=${surum}">${ekCss ? `\n<link rel="stylesheet" href="../../${ORTAK_K}/${kat}.css?v=${surum}">` : ''}
 <link rel="stylesheet" href="theme.css?v=${surum}">
 <script>(function(){var c=document.documentElement.classList,q=location.search;if(/capture=1/.test(q))c.add('no-intro','still');else if(/nointro=1/.test(q)||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))c.add('no-intro');})();</script>
 </head>
 <body>
 ${govde}
 <script type="application/json" id="r-data">${JSON.stringify(D.veri).replace(/</g, '\\u003c')}</script>
-<script src="../../${ORTAK_K}/${kat}.js?v=${surum}" defer></script>
+<script src="../../${ORTAK_K}/${taban}.js?v=${surum}" defer></script>${ekJs ? `\n<script src="../../${ORTAK_K}/${kat}.js?v=${surum}" defer></script>` : ''}
 </body>
 </html>
 `;
@@ -297,7 +318,7 @@ ${govde}
   // bu calismada yazilmayan eski gorseller (yalniz bu sayfanin img/ klasoru) kaldirilir: depoya bayat dosya girmesin
   const yazilan = new Set([logoAd, ...rapor.dosyalar.map((x) => x.f.slice(4))]);
   for (const f of fs.readdirSync(imgDir)) if (!yazilan.has(f)) { fs.unlinkSync(path.join(imgDir, f)); rapor.uyarilar.push(`eski dosya kaldirildi: img/${f}`); }
-  rapor.kb = { html: Math.round(html.length / 1024), css: Math.round(fs.statSync(path.join(ortak, `${kat}.css`)).size / 1024), js: Math.round(fs.statSync(path.join(ortak, `${kat}.js`)).size / 1024), imlec: Math.round(fs.statSync(path.join(ortak, 'imlec.js')).size / 1024), atlas: fs.existsSync(path.join(ortak, `${kat}-3d.webp`)) ? Math.round(fs.statSync(path.join(ortak, `${kat}-3d.webp`)).size / 1024) : null, iz: iz ? Math.round(fs.statSync(path.join(imgDir, iz.src.slice(4))).size / 1024) : null };
+  rapor.kb = { html: Math.round(html.length / 1024), css: Math.round(fs.statSync(path.join(ortak, `${taban}.css`)).size / 1024) + (ekCss ? Math.round(fs.statSync(path.join(ortak, `${kat}.css`)).size / 1024) : 0), js: Math.round(fs.statSync(path.join(ortak, `${taban}.js`)).size / 1024) + (ekJs ? Math.round(fs.statSync(path.join(ortak, `${kat}.js`)).size / 1024) : 0), imlec: Math.round(fs.statSync(path.join(ortak, 'imlec.js')).size / 1024), atlas: !AYAR.izKendi && fs.existsSync(path.join(ortak, `${taban}-3d.webp`)) ? Math.round(fs.statSync(path.join(ortak, `${taban}-3d.webp`)).size / 1024) : null, iz: iz ? Math.round(fs.statSync(path.join(imgDir, iz.src.slice(4))).size / 1024) : null };
   rapor.slogan = { secilen: slogan.duz, kaynak: sec.kaynak, adaylar: E.aday.map((a) => a.text.replace(/\*/g, '')) };
   fs.writeFileSync(path.join(dir, 'uret-kategori.json'), JSON.stringify(rapor, null, 1));
   log(`${slug}: ${kat} -> ${pageDir(slug)} | hero ${hero.bw}x${hero.bh} (${hero.kaynak}) | ${rapor.dosyalar.length} gorsel | uyari ${rapor.uyarilar.length ? rapor.uyarilar.join('; ') : 'yok'}`);

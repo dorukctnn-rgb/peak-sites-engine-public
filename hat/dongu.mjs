@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { kapiBitti } from '../uyarla/lib/surum.mjs';
 import { uretimPuani } from '../lead/puan.mjs';
 import { ULKELER, TEMEL_ULKE, kapaliUlke } from '../lead/sektorler.mjs';
-import { leadKategori, leadOncelik } from './on-eleme.mjs';
+import { leadKategori, leadOncelik, leadPB } from './on-eleme.mjs';
 
 const jsonOku = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const jsonYaz = (f, o) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, 1)); };
@@ -90,7 +90,7 @@ export function adayDengele(liste, { adet = TUR_ADAY_VARSAYILAN, restoranSiniri 
 }
 
 // PIZZA VE BURGER ONCELIGI (12 Kas 2026, Doruk: "pizzacı ve hamburgercilere çok ağırlık ver, o şablonlar çok iyi!"): restoran adaylari kategori onceligine gore
-// secilir (pizza + burger, sonra burrito/taco, sonra digerleri: hat/on-eleme.mjs leadOncelik); her oncelik grubunda ulkeler dengeli (adayDengele).  Pizza ve burger adayi
+// secilir (burger; sonra sokak lezzetleri, burrito/taco ve pizza; sonra digerleri: hat/on-eleme.mjs leadOncelik); her oncelik grubunda ulkeler dengeli (adayDengele).  Pizza ve burger adayi
 // varken tur hakkinin tamami once onlara gider (en az ~2/3 sarti boylece kendiliginden saglanir); yetmezse siradaki grup tamamlar.
 export function restoranSec(liste, { adet = RESTORAN_HER_TUR, ofset = 0, oncelikOf = leadOncelik } = {}) {
   const out = [];
@@ -170,7 +170,7 @@ export async function dongu({ depo, kutu, po = null, sureDk = 40, parti = `p${Da
     const yenile = L.leadYenilemeGun ?? 120; const pbYas = fs.existsSync(pbF) ? (Date.now() - fs.statSync(pbF).mtimeMs) / 864e5 : Infinity;
     if (!devam && pbYas < yenile) continue;
     const ana = path.join(depo, 'lead', `${ulke}-${sektor}.jsonl`);
-    const anaPB = fs.existsSync(ana) ? jsonl(ana).filter((l) => !l.elendi && leadOncelik(l) === 0).length : 0; // eski etiketli liste de sayilir (restaurant ve fast_food eski etiketlerde de vardi)
+    const anaPB = fs.existsSync(ana) ? jsonl(ana).filter((l) => !l.elendi && leadPB(l)).length : 0; // eski etiketli liste de sayilir (restaurant ve fast_food eski etiketlerde de vardi)
     if (!devam && anaPB >= PB_LISTE_ESIK) continue; // ana liste pizza ve burger acisindan zengin
     pbKota--;
     const butceDk = Math.max(1, Math.min(3, kalanDk() - 10));
@@ -188,7 +188,7 @@ export async function dongu({ depo, kutu, po = null, sureDk = 40, parti = `p${Da
   // pizza ve burger (12 Kas 2026): ulkenin genel havuzu dolu olsa da pizza+burger havuzu PB_HAVUZ'un altindaysa yalniz pizza/burger lead'leri taranir;
   // restoran listesi taranirken pizza/burger lead'leri once (hedefli liste <ULKE>-restoran.pb.jsonl de girdi).
   const PBH = L.pizzaBurgerHavuz ?? PB_HAVUZ; const pbBitti = new Set();
-  const havuz = () => { const m = {}; const pb = {}; for (const l of adaylar({ depo, plan, veri, yazilan, uretimLead: A.uretimLead })) { m[l.ulke] = (m[l.ulke] || 0) + 1; if (l.sektor === 'restoran' && leadOncelik(l) === 0) pb[l.ulke] = (pb[l.ulke] || 0) + 1; } return { m, pb }; };
+  const havuz = () => { const m = {}; const pb = {}; for (const l of adaylar({ depo, plan, veri, yazilan, uretimLead: A.uretimLead })) { m[l.ulke] = (m[l.ulke] || 0) + 1; if (l.sektor === 'restoran' && leadPB(l)) pb[l.ulke] = (pb[l.ulke] || 0) + 1; } return { m, pb }; };
   let polite = null; let browser = null;
   for (const [ulke, sektor] of plan.sira) {
     if (Date.now() > taraBitis - 30000) break;
@@ -200,8 +200,8 @@ export async function dongu({ depo, kutu, po = null, sureDk = 40, parti = `p${Da
     if (!girdiler.length) { if (yalnizPB) pbBitti.add(ulke); continue; }
     const cikti = path.join(depo, 'lead', `${ulke}-${sektor}.tarandi.jsonl`); const onceki = A.tarananlar(cikti);
     const gor = new Set(); let leads = girdiler.flatMap((f) => jsonl(f)).filter((l) => !l.elendi && !onceki.has(l.id) && !gor.has(l.id) && gor.add(l.id));
-    if (sektor === 'restoran') leads = [...leads.filter((l) => leadOncelik(l) === 0), ...leads.filter((l) => leadOncelik(l) !== 0)];
-    if (yalnizPB) leads = leads.filter((l) => leadOncelik(l) === 0);
+    if (sektor === 'restoran') leads = leads.map((l, i) => ({ l, i, o: leadOncelik(l) })).sort((a, b) => a.o - b.o || a.i - b.i).map((x) => x.l); // burger, sonra sokak lezzetleri ve pizza, sonra digerleri
+    if (yalnizPB) leads = leads.filter(leadPB);
     if (!leads.length) { if (yalnizPB) pbBitti.add(ulke); continue; }
     if (!polite) { polite = new A.Polite({ gapMs: 400, hostGapMs: 1600, timeoutMs: 15000 }); browser = await A.openBrowser(); }
     const r = await A.taraHepsi({ leads, cikti, es: L.tarayiciEs ?? 6, polite, browser, sureDk: (taraBitis - Date.now()) / 60000, onceki, log: () => {} });

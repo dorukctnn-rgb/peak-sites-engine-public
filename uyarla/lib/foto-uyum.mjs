@@ -33,7 +33,9 @@ const KELIME = {
   dondurma: ['ice ?creams?', 'gelato', 'gelateria', 'sorbets?', 'sundaes?', 'cones?', 'scoops?', 'frozen yog(?:h)?urt', 'dondurma\\w*', 'maras'],
   kafe: ['coffee', 'cafe', 'espresso', 'lattes?', 'cappuccinos?', 'flat whites?', 'barista', 'brunch', 'breakfast', 'teas?', 'kahve\\w*', 'kahvalti\\w*', 'cay', 'toasts?', 'sandwich(?:es)?', 'croissants?', 'cakes?', 'pastr(?:y|ies)'],
   bar: ['bars?', 'pubs?', 'cocktails?', 'beers?', 'pints?', 'ales?', 'lagers?', 'wines?', 'whiske?y', 'gin', 'spirits', 'taps?', 'bartenders?', 'drinks?', 'draught', 'brewery', 'taproom', 'kokteyl\\w*', 'bira\\w*', 'sarap\\w*', 'raki', 'meyhane\\w*'],
-  kebap: ['kebabs?', 'kebap\\w*', 'doner\\w*', 'shawarma', 'sis', 'adana', 'urfa', 'iskender', 'lahmacun', 'pide\\w*', 'grill(?:ed)?', 'ocakbasi', 'mangal', 'kofte\\w*', 'meze\\w*', 'durum'],
+  kebap: ['kebabs?', 'kebap\\w*', 'doner\\w*', 'shawarma', 'sis', 'adana', 'urfa', 'iskender', 'lahmacun', 'pide\\w*', 'grill(?:ed)?', 'ocakbasi', 'mangal', 'kofte\\w*', 'meze\\w*', 'durum',
+    // sokak lezzeti (12 Kas 2026, sokak sablonu): ayni tur
+    'gyros', 'souvlaki', 'falafel', 'gozleme\\w*', 'hsp', 'snack ?packs?', 'kokorec\\w*', 'kumpir\\w*', 'ayran', 'tantuni\\w*', 'wraps?'],
   restoran: [], // genel restoran: tur sozcugu yok; stok yalniz menusundeki ya da mutfagindaki bir sozcukle eslesir
 };
 // Turkce "pasta" pastanede tatli (yurt disi metinde makarna): yalniz TR isletmesinde pastane sozcugu
@@ -59,6 +61,7 @@ const kok = (t) => (t.length > 4 ? t.replace(/(?:es|s)$/, '') : t);
 // isletmenin turu: sablon kategorisi (burger, burrito, pizza) > kanca kategorisi (pastane) > OSM turu (lead.kind) > mutfak > ad
 export function isletmeTuru({ sablon = '', kategori = '', kind = '', mutfak = '', ad = '' } = {}) {
   if (['burger', 'burrito', 'pizza'].includes(sablon)) return sablon;
+  if (sablon === 'sokak' || kategori === 'sokak') return 'kebap'; // sokak lezzeti sablonu: doner, kebap, pide-lahmacun, durum ... (KELIME.kebap)
   if (kategori === 'pastane' || sablon === 'pastane') return 'pastane';
   const k = sade(kind);
   if (/^(bakery|pastry shop|confectionery)$/.test(k)) return 'pastane';
