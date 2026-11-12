@@ -4,7 +4,7 @@
     "restoran": {
       "aktif": true,
       "ad": "yeme-icme ailesi: restoran, bar, pub, kafe, pastane, firin, dondurmaci, tatlici, burgerci, burrito/taco, pizzaci, kebap/doner (v5 ve kategori sablonlari; pastane ve firin icin sablon kancasi)",
-      "not": "11 Kas: deneme turu icin acik; mail satirlari RESTORAN_KUYRUK=acik ve koordinatorun ilk 5 sayfa onayina kadar yazilmaz. Turda en cok limitler.restoranHerTur isletme hazirlanir. 12 Kas: tek odak. OSM etiketleri lead/sektorler.mjs SEKTORLER.restoran.osm (amenity restaurant, fast_food, bar, pub, cafe, ice_cream; shop bakery, pastry, confectionery); zincir elemesi ayni; menu ve fiyat kaynagi yoksa kapi eler."
+      "not": "11 Kas: deneme turu icin acik; mail satirlari RESTORAN_KUYRUK=acik ve koordinatorun ilk 5 sayfa onayina kadar yazilmaz. Turda en cok limitler.restoranHerTur isletme hazirlanir. 12 Kas: tek odak. OSM etiketleri lead/sektorler.mjs SEKTORLER.restoran.osm (amenity restaurant, fast_food, bar, pub, cafe, ice_cream; shop bakery, pastry, confectionery); zincir elemesi ayni; menu ve fiyat kaynagi yoksa kapi eler. 12 Kas (kapi verimi): turda 15 isletme; saat ve adres sitede yoksa OSM (kaynak kayitli), yalniz telefon butun ulkelerde eylem, hazirliktan once on eleme (hat/on-eleme.mjs); pizza ve burger once (Doruk: o sablonlar cok iyi)."
     },
     "konaklama": {
       "aktif": false,
@@ -84,12 +84,15 @@
     ]
   ],
   "limitler": {
+    "_not": "12 Kas 2026 kapi verimi: restoranHerTur 6 -> 15. Sure (tur gunlukleri): kurulum+yazma 1,2-1,6 dk; restoran hazirligi ortalama 61 sn (15-167 sn, 59 aday), gecen aday ~90 sn; on eleme en cok 2,5 dk; OSM en cok 6 dk (+ hedefli pizza/burger 3 dk) yalniz liste eskiyse. Tipik tur ~22 dk (15 x ~70 sn + on eleme + kurulum); en agir tur dongu --sure 40 ile sinirli (yeni aday kalan sure 1,5 dk altindaysa baslamaz, aday siniri kalan sureyi 1,5 dk asmaz) -> en cok ~43 dk < 50. Pizza ve burger once (hat/dongu.mjs restoranSec); pizzaBurgerHavuz: ulke basina hedefli tarama esigi; osmHedefliHerTur: turda hedefli pizza/burger OSM sorgusu.",
     "osmSorguHerTur": 1,
     "havuzHedef": 40,
     "uretimHerTur": 20,
     "tarayiciEs": 6,
     "leadYenilemeGun": 120,
-    "restoranHerTur": 6
+    "restoranHerTur": 15,
+    "pizzaBurgerHavuz": 8,
+    "osmHedefliHerTur": 1
   },
   "ulkeler": {
     "TR": {

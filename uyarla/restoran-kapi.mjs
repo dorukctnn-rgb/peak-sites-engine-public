@@ -121,9 +121,10 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
   if (menuN < 6) why.push(`fiyatlı menü kalemi az (${menuN}; en az 6)`);
   if (!menuKaynak) why.push('menünün kaynağı kayıtlı değil');
   const html = page ? path.join(out, page) : null;
-  // TR telefon eylemi (TR devam-3): kararda eylem 'telefon' ise ana eylem sayfanin ilk tel: baglantisidir (isletmenin kendi numarasi); ilk ekranda olmasi asagida olculur
-  const telKarar = R.lead && R.lead.region === 'TR' && ((ik.v5 && ik.v5.cta && ik.v5.cta.tur === 'telefon') || (ik.kategori && ik.kategori.kategoriEk && ik.kategori.kategoriEk.eylemTur === 'telefon'));
-  if (!eylemUrl && telKarar && html && fs.existsSync(html)) { const m = /<a\b[^>]*href="(tel:\+90\d{7,10})"/.exec(fs.readFileSync(html, 'utf8')); if (m) { eylemUrl = m[1]; warn.push(`ana eylem telefon (${m[1]}): sitede çevrimiçi sipariş/rezervasyon bağlantısı yok`); } }
+  // telefon eylemi (TR devam-3; 12 Kas 2026 butun ulkeler): kararda eylem 'telefon' ise ana eylem sayfanin ilk tel: baglantisidir (isletmenin kendi numarasi, uluslararasi bicim);
+  // ilk ekranda olmasi asagida olculur.  Sitede gercek bir siparis/rezervasyon baglantisi varken icerik denetimi telefonu zaten kabul etmez (restoran-icerik.mjs).
+  const telKarar = (ik.v5 && ik.v5.cta && ik.v5.cta.tur === 'telefon') || (ik.kategori && ik.kategori.kategoriEk && ik.kategori.kategoriEk.eylemTur === 'telefon');
+  if (!eylemUrl && telKarar && html && fs.existsSync(html)) { const m = /<a\b[^>]*href="(tel:\+\d{8,15})"/.exec(fs.readFileSync(html, 'utf8')); if (m) { eylemUrl = m[1]; warn.push(`ana eylem telefon (${m[1]}): sitede çevrimiçi sipariş/rezervasyon bağlantısı yok`); } }
   if (!eylemUrl) why.push('gerçek sipariş/rezervasyon bağlantısı yok');
   if (!html || !fs.existsSync(html)) why.push('sayfa dosyası yok');
   else {

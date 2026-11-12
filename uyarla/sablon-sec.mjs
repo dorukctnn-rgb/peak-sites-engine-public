@@ -14,16 +14,20 @@ export const KATEGORILER = ['burger', 'burrito', 'pizza'];
 // sablonu henuz olmayan kategoriler: tespit edilir, sablonSec v5'e dusurur ("pastane" sablonu ayri PR'da gelir)
 export const KANCA_KATEGORILER = ['pastane'];
 export const SABLONLAR = ['v5', ...KATEGORILER];
+// HAT ONCELIGI (12 Kas 2026, Doruk: "pizzacı ve hamburgercilere çok ağırlık ver, o şablonlar çok iyi!"): pizza ve burger once, sonra burrito/taco, sonra digerleri
+export const ONCELIK = { pizza: 0, burger: 0, burrito: 1 };
+export const oncelik = (kategori) => ONCELIK[kategori] ?? 2;
 
 const CUISINE = [
   ['burger', /^(burger|burgers|hamburger|smash_burger)$/],
   ['burrito', /^(mexican|tex-mex|tex_mex|burrito|burritos|taco|tacos|taqueria|latin_american_mexican)$/],
   ['pizza', /^(pizza|pizzeria|italian_pizza|neapolitan_pizza|pizza_by_the_slice)$/],
 ];
+// 12 Kas 2026 (pizza ve burger onceligi): Turkce ekler ve bitisik yazim da yakalanir (Hamburger Evi, Burgerci, Pizzacı, Pizzetta); "Burgerfuel" gibi bitisik ad degil
 const AD = [
-  ['burger', /\bburgers?\b|\bsmash(?:ed)?\b.*\bburg/i],
+  ['burger', /(?<!\p{L})(?:ham|cheese|smash(?:ed)?\s*)?burger(?:s|c[ıi]\p{L}*|lar\p{L}*|house)?(?!\p{L})|\bsmash(?:ed)?\b.*\bburg/iu],
   ['burrito', /\b(burritos?|tacos?|taqueria|tacoria|cantina|mexican|mexicana|tex-?mex|el\s+\w+\s+loco)\b/i],
-  ['pizza', /\b(pizza|pizzas|pizzeria|pizzaria|pizzeta)\b/i],
+  ['pizza', /(?<!\p{L})(?:pizza|pizzas|pizzeria|pizzaria|pizzeta|pizzetta|pizzac[ıi]\p{L}*|pizzalar\p{L}*|pizzaevi)(?!\p{L})/iu],
 ];
 const METIN = { burger: /\bburgers?\b/gi, burrito: /\b(burritos?|tacos?|quesadillas?|nachos)\b/gi, pizza: /\b(pizzas?|pizzeria|margherita|wood[- ]fired)\b/gi };
 

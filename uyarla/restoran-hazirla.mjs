@@ -26,6 +26,8 @@ import { VERI } from './lib/yol.mjs';
 import { platformOf } from './lib/siparis.mjs';
 import { kesinStok, kesinUretilmis, kesinAfis } from './lib/foto-topla.mjs';
 import { fotoUyum, uyumBaglami } from './lib/foto-uyum.mjs';
+import { osmSaatKaydi } from './lib/osm-saat.mjs';
+import { telEylemEtiket } from './lib/metin.mjs';
 
 const J = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const clean = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
@@ -36,8 +38,12 @@ export const FIYAT_SATIR = /[£€$₺]\s?\d{1,3}(?:[.,]\d{2,3})?\b|\b\d{2,5}(?:
 // TR adres (cadde, sokak, bulvar, mahalle, No) ve TR telefon (0242 123 45 67, +90 532 123 4567, 444 1 234)
 export const TR_ADRES = /(?<!\p{L})(cad(?:desi)?\.?|cd\.|sok(?:ak|a[ğg][ıi])?\.?|sk\.|bulvar[ıi]?|blv\.|mah(?:allesi)?\.?|mh\.|no\s?[:.]\s?\d+)(?!\p{L})/iu;
 export const TR_TEL = /(?:\+90|0)\s?\(?[2-5]\d{2}\)?[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}\b|\b444[\s.-]?\d[\s.-]?\d{3}\b/;
+// yurt disi telefon (adres/telefon on kapisindaki kural ile ayni)
+export const TEL_METIN = /(?:\+\d{2}[\d\s()-]{7,15}\d|\(0\d\)\s?\d{3,4}\s?\d{3,4}|\b0\d{1,4}[\s-]?\d{3}[\s-]?\d{3,4}\b)/;
 // zincir/franchise: sitenin kendi Turkce metni ("subelerimiz", "bayilik", "12 subemizle")
 export const TR_ZINCIR_METIN = /(?<!\p{L})(franchise|bayilik|bay[ıi]l[ıi]k ba[şs]vurusu|[şs]ubelerimiz|(?:[4-9]|\d{2,})\s+[şs]ube(?:miz|si|de|yle|mizle)?)(?!\p{L})/iu;
+// zincir/franchise: sitenin kendi Ingilizce metni (deneme turu 11 Kas: "branches all across New Zealand", "7 locations", franchise sayfasi); hat/on-eleme.mjs de kullanir
+export const ZINCIR_METIN = /\bfranchis(?:e|es|ing|ee)\b|\bbranches (?:all )?(?:across|around|throughout)\b|\b(?:[4-9]|\d{2,}|four|five|six|seven|eight|nine|ten|twelve)\s+(?:\w+\s+)?(?:locations|branches|restaurants|stores|outlets|venues)\b/i;
 
 // eski sitenin olculmus bulgularindan mail gozlemi adaylari (son goz son incelemede dogrular; uydurma yok)
 // Gozlem metinleri dile gore (TR 11 Kas 2026): ayni olculmus bulgu, dogal Turkce cumle.  Ikisi de isletmenin bugunku sitesi hakkinda, bizim hakkimizda degil.
@@ -153,6 +159,10 @@ export async function temasSayfasi(files, { cols, tw, th, etiketler, hedef, q = 
   return hedef;
 }
 
+// ON KAPI SURUMU (12 Kas 2026, kapi verimi): 2 = saat OSM opening_hours'tan, adres OSM addr + koordinattan, yalniz telefon butun ulkelerde eylem.  Bu surumden ONCE
+// yalniz bu uc nedenle elenmis restoranlar (lib/surum.mjs yenidenHazirlik) bir kez, saklanan cikarici verisiyle (yeni tarama yok) yeniden hazirliktan gecer.
+export const ON_KAPI_SURUM = 2;
+
 // ON KAPI (veri; ag yok): cikarici verisi + sitenin metni -> { why[], eksik[], eylem, fotolar, osmAdres }.  Hazirlik ve olcum ayni islevi kullanir (uyarla/olcum-cikarici.mjs).
 // 12 Kas (cikarici guclendirme): stok ve uretilmis gorsel (adres/metadata/dosya adi ile kesin olanlar) ISLETMENIN kendi fotografi sayilmaz; olu siparis baglantisi eylem sayilmaz.
 export function onKapi(R, lead, { ham, sec }) {
@@ -172,9 +182,11 @@ export function onKapi(R, lead, { ham, sec }) {
   const minFoto = sec.sablon === 'v5' ? 4 : 3; // kategori sablonlari 3 kareyle de dolar (onayli Bay City Burrito demosu); v5 en az 4
   if (fotolar.length < minFoto) why.push(`kullanılabilir fotoğraf az (${fotolar.length}; en az ${minFoto}, 800 px+${sayilmayan ? `; ${sayilmayan} stok, üretilmiş görsel ya da afiş sayılmadı` : ''}${uymayan ? `; ${uymayan} logo, harita, ekran görüntüsü, ikon ya da bulanık kare sayılmadı` : ''})`);
   if (!hepsi.some((p) => p.w >= 1000 && p.w / p.h >= 1.1 && kendi(p) && gecer(p))) why.push('1000 px üstünde yatay fotoğraf yok (ana fotoğraf olmaz)');
-  // sitenin adresi bulunamadiysa OSM'nin adres etiketleri (sokak + sehir + posta kodu; sokak yoksa sayilmaz)
+  // sitenin adresi bulunamadiysa OSM'nin adres etiketleri (hat/uretim.mjs uretimLead -> lead/osm.mjs osmAdresKur: sokak + ust parca, numara ya da koordinat).
+  // 12 Kas (kapi verimi): koordinat varsa adrese yazilir; sablonlar harita ve yol tarifi baglantisini koordinattan kurar (lib/metin.mjs mapsUrl).
   let osmAdres = false;
-  if (!R.address && lead.osmAdres && /\d/.test(lead.osmAdres) && lead.osmAdres.split(',').length >= 2) { R.address = { text: lead.osmAdres, via: 'osm (addr etiketleri)' }; osmAdres = true; }
+  const osmKonum = lead.osmKonum && Number.isFinite(lead.osmKonum.lat) && Number.isFinite(lead.osmKonum.lon) ? lead.osmKonum : null;
+  if (!R.address && lead.osmAdres && lead.osmAdres.split(',').length >= 2 && (/\d/.test(lead.osmAdres) || osmKonum)) { R.address = { text: lead.osmAdres, via: lead.osmAdresKaynak || 'osm (addr etiketleri)', ...(osmKonum ? { konum: osmKonum } : {}) }; osmAdres = true; }
   // adres ya da telefon cikaricidan gelmediyse sitenin metninde var mi (icerik turu oradan aynen alir; restoran-icerik denetler, siki kapi ilk ekranda arar)
   if (!R.address) { if (/\b\d{1,5}[A-Za-z]?\s+[A-Z][\w'’.]+(?:\s+[A-Z][\w'’.]+){0,3}\s+(Street|St|Road|Rd|Avenue|Ave|Lane|Ln|Quay|Square|Sq|Place|Pl|Terrace|Parade|Drive|Dr|Way|Row|Mall|Court|Ct)\b/.test(ham) || (tr && TR_ADRES.test(ham))) eksik.push('adres (metin.txt icinde)'); else why.push('adres yok'); }
   if (!R.phone) { if (/(?:\+\d{2}[\d\s()-]{7,15}\d|\(0\d\)\s?\d{3,4}\s?\d{3,4}|\b0\d{1,4}[\s-]?\d{3}[\s-]?\d{3,4}\b)/.test(ham) || (tr && TR_TEL.test(ham))) eksik.push('telefon (metin.txt icinde)'); else why.push('telefon yok'); }
@@ -182,16 +194,22 @@ export function onKapi(R, lead, { ham, sec }) {
   const eylem0 = (R.order && R.order.url && !olu(R.order)) ? { tur: 'siparis', url: R.order.url, platform: R.order.platform, dogrulama: R.order.dogrulama || null } : (R.reservation && R.reservation.external && R.reservation.url && !olu(R.reservation)) ? { tur: 'rezervasyon', url: R.reservation.url, platform: platformOf(R.reservation.url) || R.reservation.platform || new URL(R.reservation.url).host, dogrulama: R.reservation.dogrulama || null }
       // TR: isletmenin kendi sitesindeki AYRI rezervasyon sayfasi (yolunda "rezervasyon") da rezervasyon sistemidir; ana sayfa ya da iletisim sayfasi sayilmaz
       : (tr && R.reservation && R.reservation.url && !olu(R.reservation) && /\/(rezervasyon|reservation|reservations|rezervasyon-yap|online-rezervasyon)(?:[/.?#]|$)/i.test(new URL(R.reservation.url, lead.site).pathname)) ? { tur: 'rezervasyon', url: new URL(R.reservation.url, lead.site).href, platform: 'kendi rezervasyon sayfası', dogrulama: R.reservation.dogrulama || null } : null;
-  // TR (11 Kas 2026, TR devam-3; koordinator onayi): Turkiye'de bagimsiz restoranlarin cogu masayi ve paket siparisi TELEFONLA alir; sitede cevrimici baglanti
-  // yoksa isletmenin KENDI sitesindeki numarasi gercek eylemdir ("Rezervasyon için arayın" / "Hemen arayın"; demo form yok, uydurma baglanti yok).
-  // Yurt disinda kural ayni kalir (gercek cevrimici baglanti sart).  Sitede siparis baglantisi VAR ama olu ise telefon yedegi kullanilmaz: kategori sablonlari o baglantiyi dugme yapardi (#2 kurali korunur).
-  const telVar = !!R.phone || TR_TEL.test(ham);
-  const eylem = eylem0 || (tr && telVar && !(R.order && R.order.url) ? { tur: 'telefon', url: null, platform: 'telefon', rezervasyonSozu: /rezervasyon|reservation/i.test(ham) } : null);
-  if (!eylem) why.push(`gerçek sipariş ya da rezervasyon bağlantısı yok (yalnız telefon${olu(R.order) || olu(R.reservation) ? '; bulunan bağlantı açılmıyor' : ''})`);
-  if (eylem && eylem.tur === 'telefon') eksik.push('eylem telefon (sitede çevrimiçi sipariş/rezervasyon bağlantısı yok)');
-  // saat ilk ekranin zorunlu parcasi ("simdi acik"): sitenin hicbir sayfasinda saat satiri yoksa icerik turuna gonderilmez (deneme turu: Scugnizzo ve La Tortilleria siki kapida saatten dustu)
-  if (!R.hours || !R.hours.tableOk) { if (SAAT_METIN.test(ham)) eksik.push('saat (sitenin metninden tamamlanacak)'); else why.push('çalışma saati yok (sitenin hiçbir sayfasında)'); }
-  return { why, eksik, eylem, fotolar, osmAdres, uyum };
+  // TELEFON EYLEMI (11 Kas TR devam-3, 12 Kas kapi verimi: BUTUN ulkeler).  Bagimsiz restoranlarin cogu masayi ve paket siparisi TELEFONLA alir; sitede cevrimici
+  // baglanti yoksa isletmenin KENDI numarasi gercek eylemdir: ana dugme tel: ("Ara" / "Call"; etiket lib/metin.mjs telEylemEtiket, dile gore).  Demo form yok, uydurma baglanti yok.
+  // Sitede siparis baglantisi VAR ama olu ise telefon yedegi kullanilmaz: kategori sablonlari o baglantiyi dugme yapardi (#2 kurali korunur).
+  const telVar = !!R.phone || (tr ? TR_TEL.test(ham) : TEL_METIN.test(ham));
+  const rezervasyonSozu = /rezervasyon|reservation|book a table|bookings?\b/i.test(ham);
+  const eylem = eylem0 || (telVar && !(R.order && R.order.url) ? { tur: 'telefon', url: null, platform: 'telefon', rezervasyonSozu, ...telEylemEtiket(tr ? 'tr' : 'en', { rezervasyon: rezervasyonSozu }) } : null);
+  if (!eylem) why.push(R.order && R.order.url && olu(R.order) ? 'gerçek sipariş bağlantısı yok (sitedeki bağlantı açılmıyor; telefon yedeği kullanılmaz: şablon o bağlantıyı düğme yapardı)' : 'gerçek sipariş ya da rezervasyon bağlantısı da telefon da yok');
+  if (eylem && eylem.tur === 'telefon') eksik.push('eylem telefon (sitede çevrimiçi sipariş/rezervasyon bağlantısı yok; ana düğme işletmenin kendi numarası)');
+  // saat ilk ekranin zorunlu parcasi ("simdi acik" + bugunku saat; onayli kalite citasi): sitenin hicbir sayfasinda saat satiri yoksa OSM opening_hours (gercek kaynak, kayda yazilir).
+  // Ikisi de yoksa ELENIR: saat uydurulmaz, saatsiz sayfa siki kapidan da (statusOk) son gozden de gecmez.
+  let osmSaat = false;
+  if (!R.hours || !R.hours.tableOk) {
+    if (SAAT_METIN.test(ham)) eksik.push('saat (sitenin metninden tamamlanacak)');
+    else { const h = osmSaatKaydi(lead); if (h) { R.hours = h; osmSaat = true; eksik.push(`saat OSM kaydından (${h.via}: "${h.ham}"); sitede saat yok`); } else why.push('çalışma saati yok (sitenin hiçbir sayfasında, OSM kaydında da yok)'); }
+  }
+  return { why, eksik, eylem, fotolar, osmAdres, osmSaat, uyum };
 }
 
 // HAZIRLIK KAPISI (ag yok): erken elemeler (site, kapali, zincir, hedef disi ulke) + on kapi.  restoranHazirla ve olcum araci (uyarla/olcum-cikarici.mjs) ayni islevi kullanir.
@@ -203,7 +221,7 @@ export function hazirlikKapisi(R, lead, dir) {
   const sec = sablonSec({ ...R.lead, mutfak: lead.mutfak || R.lead.mutfak }, R);
   // zincir / franchise: sitenin kendi metni soyluyor (deneme turu 11 Kas: Thai Chef "branches all across New Zealand", "7 locations", franchise sayfasi; lead filtresi yakalamamisti)
   const ham0 = ['_home.txt', '_sayfalar.txt'].map((f) => (fs.existsSync(path.join(dir, f)) ? fs.readFileSync(path.join(dir, f), 'utf8') : '')).join('\n');
-  const zincir = /\bfranchis(?:e|es|ing|ee)\b|\bbranches (?:all )?(?:across|around|throughout)\b|\b(?:[4-9]|\d{2,}|four|five|six|seven|eight|nine|ten|twelve)\s+(?:\w+\s+)?(?:locations|branches|restaurants|stores|outlets|venues)\b/i.exec(ham0);
+  const zincir = ZINCIR_METIN.exec(ham0);
   if (zincir) return { elendi: [`zincir ya da franchise (sitenin kendi metni: "${zincir[0]}")`], sec };
   const tr = lead.region === 'TR';
   const zincirTr = tr ? TR_ZINCIR_METIN.exec(ham0) : null;
@@ -215,14 +233,14 @@ export function hazirlikKapisi(R, lead, dir) {
     : /\b(Canada|USA|United States|Türkiye|Turkey|Germany|Deutschland|España|Spain|Italia|Italy|France|Ecuador)\b|\b(BC|ON|QC|AB)\s+[A-Z]\d[A-Z]\b|\+(1|90|49|34|39|33|593)\d/.exec(adr0);
   if (disUlke) return { elendi: [`site hedef ulkedeki isletmenin degil (adres/telefon: "${disUlke[0]}")`], sec };
   const ok = onKapi(R, lead, { ham: ham0, sec });
-  return { elendi: ok.why.length ? ok.why : null, sec, eksik: ok.eksik, eylem: ok.eylem, fotolar: ok.fotolar, osmAdres: ok.osmAdres, ham0, fotoUyum: ok.uyum };
+  return { elendi: ok.why.length ? ok.why : null, sec, eksik: ok.eksik, eylem: ok.eylem, fotolar: ok.fotolar, osmAdres: ok.osmAdres, osmSaat: ok.osmSaat, ham0, fotoUyum: ok.uyum };
 }
 
 export async function restoranHazirla(lead, { veri = VERI, polite = null, log = () => {} } = {}) {
   const slug = lead.slug; const dir = path.join(veri, slug); const R = J(path.join(dir, 'cikarici.json'));
-  const kapiYaz = (status, reasons, ek = {}) => { const k = { surum: KAPI_SURUM, slug, name: R && R.name && R.name.n, site: lead.site, region: lead.region, sektor: 'restoran', at: new Date().toISOString(), status, reasons, warnings: [], metrics: {}, ...ek }; fs.writeFileSync(path.join(dir, 'kapi.json'), JSON.stringify(k, null, 1)); return k; };
+  const kapiYaz = (status, reasons, ek = {}) => { const k = { surum: KAPI_SURUM, onKapiSurum: ON_KAPI_SURUM, slug, name: R && R.name && R.name.n, site: lead.site, region: lead.region, sektor: 'restoran', at: new Date().toISOString(), status, reasons, warnings: [], metrics: {}, ...ek }; fs.writeFileSync(path.join(dir, 'kapi.json'), JSON.stringify(k, null, 1)); return k; };
   const kg = hazirlikKapisi(R, lead, dir);
-  if (kg.osmAdres) fs.writeFileSync(path.join(dir, 'cikarici.json'), JSON.stringify(R, null, 1));
+  if (kg.osmAdres || kg.osmSaat) fs.writeFileSync(path.join(dir, 'cikarici.json'), JSON.stringify(R, null, 1));
   if (kg.elendi) return kapiYaz('elendi', kg.elendi, kg.sec ? { sablon: kg.sec.sablon } : {});
   const { sec, eksik, eylem, ham0, fotoUyum: uyum } = kg;
 
@@ -251,7 +269,8 @@ export async function restoranHazirla(lead, { veri = VERI, polite = null, log = 
   const bilgi = {
     slug, ad: clean(R.name && R.name.n), site: lead.site, bolge: lead.region, sehir: lead.city, tur: lead.kind, mutfak: lead.mutfak || R.lead.mutfak || null,
     sablon: sec.sablon, sablonNeden: sec.neden, ornek: `inceleme/ornek/${sec.sablon}.json`,
-    adres: R.address ? clean(R.address.text) : null, telefon: R.phone || null, saat: R.hours ? { tableOk: R.hours.tableOk, week: R.hours.week, byDay: R.hours.byDay } : null,
+    adres: R.address ? clean(R.address.text) : null, adres_kaynak: R.address ? R.address.via || 'site' : null, konum: (R.address && R.address.konum) || null, telefon: R.phone || null,
+    saat: R.hours ? { tableOk: R.hours.tableOk, week: R.hours.week, byDay: R.hours.byDay, kaynak: R.hours.via || (R.hours.source === 'json-ld' ? 'sitenin schema.org kaydı' : 'sitenin metni'), ...(R.hours.ham ? { ham: R.hours.ham } : {}) } : null,
     eylem, rezervasyon: R.reservation || null, siparis: R.order || null,
     logo: { dosya: R.logo.orig.file, boyut: `${R.logo.orig.w}x${R.logo.orig.h}`, sha256: R.logo.orig.sha256, kaynak: R.logo.url || null },
     renkler: R.colours && R.colours.computed ? { zemin: R.colours.computed.body && R.colours.computed.body.bg, metin: R.colours.computed.body && R.colours.computed.body.color, nav: R.colours.computed.nav && R.colours.computed.nav.color } : null,

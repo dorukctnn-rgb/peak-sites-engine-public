@@ -10,8 +10,17 @@ export function tekrarGerek(k) {
   return !!k && k.status === 'gozden-gecir' && (k.surum || 1) < KAPI_SURUM && (k.reasons || []).some((r) => !VERI_SORUNU.test(String(r)));
 }
 
+// RESTORAN ON KAPI SURUMU (12 Kas 2026, kapi verimi; uyarla/restoran-hazirla.mjs ON_KAPI_SURUM): saat artik OSM opening_hours'tan, adres OSM addr + koordinattan
+// tamamlanir ve yalniz telefon butun ulkelerde eylemdir.  Daha eski surumde YALNIZ bu nedenlerle elenmis restoran bir kez yeniden hazirliktan gecer; cikarici verisi
+// saklandigi icin siteye yeniden gidilmez (hat/uretim.mjs).  Baska bir neden de varsa (zincir, fotograf, logo, menu, telefon yok) karar nihaidir.
+export const RESTORAN_ON_KAPI_SURUM = 2;
+const YENI_KURAL = /^(çalışma saati yok \(sitenin hiçbir sayfasında\)|adres yok|gerçek sipariş ya da rezervasyon bağlantısı yok \(yalnız telefon\))$/;
+export function yenidenHazirlik(k) {
+  return !!k && k.status === 'elendi' && k.sektor === 'restoran' && (k.onKapiSurum || 1) < RESTORAN_ON_KAPI_SURUM && Array.isArray(k.reasons) && k.reasons.length > 0 && k.reasons.every((r) => YENI_KURAL.test(String(r).trim()));
+}
+
 // bu isletmenin kapi sonucu NIHAI mi (yeniden uretime girmez)?  kapi.json yoksa false
 export function kapiBitti(file) {
   let k = null; try { k = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return false; }
-  return !tekrarGerek(k);
+  return !tekrarGerek(k) && !yenidenHazirlik(k);
 }

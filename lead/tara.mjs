@@ -9,6 +9,7 @@ import { Polite } from '../uyarla/v2lib/polite.mjs';
 import { htmlPuan, tarayiciPuan, tarayiciOlc, topla, malzemeOlc } from './puan.mjs';
 import { epostaBul } from './eposta.mjs';
 import { kapaliMi } from '../uyarla/lib/kapali.mjs';
+import { onSinyal } from '../hat/on-eleme.mjs';
 
 export async function taraBir(lead, { polite, browser = null }) {
   const o = { ...lead, tarandi: new Date().toISOString() };
@@ -36,7 +37,8 @@ export async function taraBir(lead, { polite, browser = null }) {
   }
   const p = topla(b, lead.sektor);
   const e = await epostaBul({ html, finalUrl, ulke: lead.ulke, polite, osmEmail: lead.email });
-  const out = { ...o, finalUrl, puan: p.puan, bulgular: p.bulgular, olculdu: p.olculdu, malzeme: malzemeOlc(html, finalUrl), email: e.email || null, sirket: e.sirket || null };
+  // restoran ailesi (12 Kas 2026): hazirlik oncesi on eleme sinyalleri ayni HTML'den (hat/on-eleme.mjs); turda bu satir icin ikinci bir istek gerekmez
+  const out = { ...o, finalUrl, puan: p.puan, bulgular: p.bulgular, olculdu: p.olculdu, malzeme: malzemeOlc(html, finalUrl), ...(lead.sektor === 'restoran' ? { on: onSinyal({ html, finalUrl, ulke: lead.ulke }) } : {}), email: e.email || null, sirket: e.sirket || null };
   if (!p.kotu) return { ...out, durum: 'iyi-site' };
   if (e.engel) return { ...out, durum: 'engel', engel: e.engel };
   return { ...out, durum: 'aday' };

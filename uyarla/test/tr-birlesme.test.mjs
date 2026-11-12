@@ -43,13 +43,20 @@ const trR = () => ({
   logo: { orig: { file: 'img/logo-orijinal.png' } }, order: null, reservation: null,
   photos: [1, 2, 3, 4, 5].map((i) => ({ id: `0${i}`, w: 1600, h: 1000, meanS: 0.5, lapVar: 400 })),
 });
-test('hazirlikKapisi: TR telefon eylemi (kendi numarasi) gecer, yurt disinda gecmez; olu siparis baglantisi telefonla kurtarilmaz; TR ayri rezervasyon sayfasi', () => {
+test('hazirlikKapisi: telefon eylemi (kendi numarasi) TR\'de ve 12 Kas\'tan beri yurt disinda gecer; olu siparis baglantisi telefonla kurtarilmaz; TR ayri rezervasyon sayfasi', () => {
   const dir = tmp('tr-birlesme-'); const lead = { slug: 'kaleici', name: 'Kaleiçi Meyhane', region: 'TR', site: 'https://kaleici.com.tr/' };
   try {
     let k = hazirlikKapisi(trR(), lead, dir); assert.equal(k.elendi, null, JSON.stringify(k.elendi));
     assert.equal(k.eylem.tur, 'telefon'); assert.equal(k.eylem.url, null); assert.ok(k.eksik.some((x) => /^eylem telefon/.test(x)));
-    // ayni veri yurt disi isletmesinde: gercek cevrimici baglanti sart
-    k = hazirlikKapisi(trR(), { ...lead, region: 'IE' }, dir); assert.match((k.elendi || []).join(' | '), /gerçek sipariş ya da rezervasyon bağlantısı yok/);
+    assert.equal(k.eylem.etiket, 'Hemen arayın'); assert.equal(k.eylem.kisa, 'Ara');
+    // yurt disi isletmesi (12 Kas 2026, kapi verimi): yalniz telefon da eylemdir; etiket Ingilizce (genel: sablon "Call <numara>" yazar, rezervasyon sozu varsa "Call to book")
+    const IE = () => ({ ...trR(), lead: { ...trR().lead, lang: 'en', region: 'IE', name: 'Quay Kitchen' }, name: { n: 'Quay Kitchen' }, address: { text: '12 Quay Street, Galway' }, phone: '+353 91 123 4567' });
+    const ie = { slug: 'quay', name: 'Quay Kitchen', region: 'IE', site: 'https://quay.example/' };
+    k = hazirlikKapisi(IE(), ie, dir); assert.equal(k.elendi, null, JSON.stringify(k.elendi)); assert.equal(k.eylem.tur, 'telefon'); assert.equal(k.eylem.etiket, null); assert.equal(k.eylem.kisa, 'Call');
+    fs.writeFileSync(path.join(dir, '_home.txt'), 'Bookings by phone only. Call us to book a table.');
+    k = hazirlikKapisi(IE(), ie, dir); assert.equal(k.eylem.etiket, 'Call to book'); fs.writeFileSync(path.join(dir, '_home.txt'), '');
+    // telefon da yoksa eylem yok
+    const R0 = IE(); R0.phone = null; k = hazirlikKapisi(R0, ie, dir); assert.match((k.elendi || []).join(' | '), /gerçek sipariş ya da rezervasyon bağlantısı da telefon da yok/);
     // olu siparis baglantisi: kategori sablonlari onu dugme yapardi; telefon yedegi kullanilmaz
     const R3 = trR(); R3.order = { url: 'https://www.yemeksepeti.com/restaurant/olu/x', platform: 'Yemeksepeti', dogrulama: { durum: 'olu' } };
     k = hazirlikKapisi(R3, lead, dir); assert.match(k.elendi.join(' | '), /bağlantı açılmıyor/);
