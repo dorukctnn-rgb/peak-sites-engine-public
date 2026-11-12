@@ -223,6 +223,9 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
     // ust cubuk yazisi: paletin kendi metin rengi (sitenin hesaplanan nav rengi tarayici varsayilani #0000ee olabiliyor)
     logo.headInk = [t.ink, t.onDeep, '#ffffff', '#111111'].find((c) => contrast(c, logo.headBg) >= 7) || logo.headInk;
     if (logo.hero) { fs.rmSync(path.join(imgDir, logo.hero.file), { force: true }); delete logo.hero; }
+    // LOGO NETLIK (12 Kas): dosya 2x icin kucukse acilis isletme adini yazar (kurala uygun otomatik cozum: not); baslikta da olmuyorsa son goz bilir (uyari)
+    if (logo.acilisYazi) notes.push(`logo netlik: dosya ${logo.w}x${logo.h}, acilista 2x net gosterilemez; acilista isletme adi yazili`);
+    if (logo.baslikYazi) warn.push(`logo netlik: dosya ${logo.w}x${logo.h}, baslikta 2x net gosterilemez; baslik ve alt bilgide isletme adi yazili`);
   }
 
   // ---- font ----

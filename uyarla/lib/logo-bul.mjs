@@ -9,6 +9,7 @@ import { decode, jsonLd, metaContent } from '../v2lib/scrape.mjs';
 import { sniff, analiz } from './gorsel.mjs';
 import { srcsetEnBuyuk } from './foto-topla.mjs';
 import { orijinalKaydet } from './logo.mjs';
+import { asilBoyutAdaylari, asilUygun } from './logo-netlik.mjs';
 
 const abs = (u, base) => { try { const x = new URL(decode(String(u).trim()), base); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
 // logo olmayan ama adinda "logo" gecen gorseller: sosyal, odeme, platform, odul, ortak, siparis siteleri
@@ -109,7 +110,23 @@ export async function logoSec({ adaylar, getir, onceden = new Map(), imgDir, log
       buf = b.buf; mime = sniff(buf);
     }
     if (!mime || mime === 'image/gif') { rapor.push({ via: c.via, url, sonuc: 'gorsel degil/gif' }); continue; }
-    const a = await analiz(buf, mime); if (a.error) { rapor.push({ via: c.via, url, sonuc: `olculemedi (${a.error})` }); continue; }
+    let a = await analiz(buf, mime); if (a.error) { rapor.push({ via: c.via, url, sonuc: `olculemedi (${a.error})` }); continue; }
+    // LOGO NETLIK (12 Kas): site kucuk bir kopya gonderdiyse (WordPress -WxH, Wix /v1/, Squarespace format, _next/image ...) ayni dosyanin buyuk asli denenir;
+    // ayni en/boy oraninda ve en az %20 genisse (ya da ayni oranda SVG ise) o alinir.  Yeni logo uydurulmaz: ayni yoldaki ayni dosya.
+    if (url && mime !== 'image/svg+xml') {
+      for (const au of asilBoyutAdaylari(url)) {
+        if (!guvenilirHost(au, url)) continue;
+        let b2 = onceden.get(au) || null; if (!b2) { try { b2 = await getir(au); } catch { b2 = null; } }
+        if (!b2 || !b2.buf) continue;
+        const m2 = sniff(b2.buf); if (!m2 || m2 === 'image/gif') continue;
+        const a2 = await analiz(b2.buf, m2); if (a2.error) continue;
+        const ayniOran = a2.w && a2.h && Math.abs(a2.w / a2.h - a.w / a.h) / (a.w / a.h) <= 0.03;
+        if (!(m2 === 'image/svg+xml' ? ayniOran : asilUygun(a, a2))) { rapor.push({ via: c.via, url: au, sonuc: `asil uymadi (${a2.w}x${a2.h})` }); continue; }
+        rapor.push({ via: c.via, url: au, sonuc: `buyuk asil (${a.w}x${a.h} -> ${a2.w}x${a2.h})` });
+        not = `${not ? `${not}; ` : ''}buyuk asil: ${url} yerine ${au}`; buf = b2.buf; mime = m2; url = au; a = a2;
+        break;
+      }
+    }
     const svg = mime === 'image/svg+xml'; const min = c.via === 'favicon' || c.via === 'icon' ? 96 : 40;
     if (!svg && (a.w < min || a.h < min * 0.3)) { rapor.push({ via: c.via, url, sonuc: `kucuk (${a.w}x${a.h})` }); continue; }
     if (!svg && (a.w / a.h > 9 || a.w / a.h < 0.25)) { rapor.push({ via: c.via, url, sonuc: 'oran' }); continue; }

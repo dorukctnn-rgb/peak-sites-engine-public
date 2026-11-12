@@ -1,5 +1,7 @@
 // Sayfa metinleri (TR/EN), saat/telefon/fiyat bicimleri, saat dilimi. Kural tabanli; model yok. Turkce karakterler tam.
 export const DAYS = { tr: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'], en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] };
+// cumle ici gun adi (durum satiri: "Şu an kapalı · açılış pazartesi 12:00"): Turkcede belirli bir tarih yoksa gun adi kucuk harfle yazilir; tablo basliklari DAYS'te kalir
+export const DAYS_CUMLE = { tr: DAYS.tr.map((d) => d.toLocaleLowerCase('tr')), en: DAYS.en };
 const SHORT = { tr: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'], en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] };
 const ORDER = [1, 2, 3, 4, 5, 6, 0]; // Pzt ... Paz
 
@@ -7,9 +9,9 @@ export const T = {
   tr: {
     skip: 'İçeriğe geç', book: 'Masa ayırtın', bookShort: 'Masa ayırt', menu: 'Menü', gallery: 'Galeri', visit: 'Ziyaret', seeMenu: 'Menüye bakın', fullMenu: 'Tam menüyü görün', directions: 'Yol tarifi alın', directionsShort: 'Yol tarifi', call: 'Ara', callUs: 'Ya da arayın',
     now: 'Şimdi', hours: 'Saatler', address: 'Adres', phone: 'Telefon', closed: 'Kapalı', unknown: '—',
-    galleryH: ['İçeriden', 'bir bakış'], menuH: 'Menü', menuSub: (n) => `Yemekler ve fiyatlar ${n} sitesindeki gibi.`, menuLegend: (n) => `Kalemler ve fiyatlar ${n} sitesinden alınmıştır; güncel fiyat ve alerjen bilgisi için servis ekibine sorun.`,
+    galleryH: ['İçeriden', 'bir bakış'], menuH: 'Menü', menuSub: (n) => `Yemekler ve fiyatlar ${n} sitesinden alındı.`, menuLegend: (n) => `Yemekler ve fiyatlar ${n} sitesinden alındı; güncel fiyat ve alerjen bilgisi için servis ekibine sorabilirsiniz.`,
     menuLinkOnly: 'Menüyü restoranın kendi sayfasında görebilirsiniz.', bookH: ['Masa', 'ayırtın'], bookSub: 'Bir saat seçin ve isteğinizi gönderin.', people: 'Kişi', day: 'Gün', time: 'Saat', name: 'Adınız', tel: 'Telefon', note: 'Not (isteğe bağlı)', notePh: 'Doğum günü, alerji, pencere kenarı...', send: 'İsteği gönder',
-    demoNote: 'Demo: istek hiçbir yere gitmez.', thanks: (n) => `Teşekkürler${n ? ', ' + n : ''}.`, replyLine: 'Size telefonla dönülür.', realLine: (x) => `Gerçek sitede bu istek ${x} ile bağlanır.`, realLineGeneric: 'Gerçek sitede bu istek restoranın telefonuna ve e-postasına düşer.',
+    demoNote: 'Demo: istek hiçbir yere gitmez.', thanks: (n) => `Teşekkürler${n ? ', ' + n : ''}.`, replyLine: 'Sizi telefonla ararız.', realLine: (x) => `Gerçek sitede bu istek ${x} ile bağlanır.`, realLineGeneric: 'Gerçek sitede bu istek restoranın telefonuna ve e-postasına düşer.',
     visitH: ['Bizi', 'bulun'], today: 'Bugün', tomorrow: 'Yarın', tonight: 'Bu akşam', guests: (n) => `${n} kişi`, rating: 'Google puanı', reviews: 'Google yorumu', daysOpen: 'gün açık', openDays: (n) => (n === 7 ? 'Her gün' : `${n} gün`),
     open: (c) => `Şimdi açık · kapanış ${c}`, shut: (w) => `Şu an kapalı · açılış ${w}`, whenTomorrow: (t) => `yarın ${t}`, whenToday: (t) => `bugün ${t}`, whenDay: (d, t) => `${d} ${t}`,
     draft: (n) => `${n} için hazırlanmış web sitesi taslağı. Metinler, fiyatlar ve fotoğraflar işletmenin mevcut sitesinden alınmıştır; yayında değildir.`, draftBy: 'Peak Apps Studio', currentSite: 'Mevcut siteniz', follow: 'Takip edin', map: 'Konum', openMaps: 'Haritada aç', hoursCap: 'Çalışma saatleri', bookExt: 'Mevcut rezervasyon sayfanız',

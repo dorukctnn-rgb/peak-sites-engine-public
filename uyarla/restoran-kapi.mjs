@@ -5,6 +5,8 @@
 //                        kategori -> kategori-kapi.mjs (ayni olculer + imlec, dokunma, azaltilmis hareket).
 // Ustune ortak maddeler: logo dosyasi bayt bayt (sha256), lint-copy 0, hicbir metinde yasak kisaltma yok, 1440/1920/390'da buyutulmus (bulanik) gorsel ve bos bolum yok,
 // ilk ekranda simdi acik + bugunku saat + adres + telefon + isletmenin GERCEK siparis/rezervasyon baglantisi, en az 6 fiyatli menu kalemi ve kaydi tutulmus kaynagi.
+// LOGO NETLIK (12 Kas 2026, kalici): logo acilis, baslik, kayan baslik ve alt bilgide 1440 ve 390'da dogal boyutunun en az yarisinda (2x); acilis ?capture/?nointro
+// OLMADAN, animasyon durdurularak en buyuk karede olculur (lib/logo-netlik.mjs).  Logo dosyasinda bos tuval son goze uyaridir.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -14,6 +16,7 @@ import { sharp } from './lib/gorsel.mjs';
 import { KAPI_SURUM } from './lib/surum.mjs';
 import { yasakVar } from './lib/sozluk.mjs';
 import { kalipArg } from './kategori-kapi.mjs';
+import { logoNetlikTara, bosTuval } from './lib/logo-netlik.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const J = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
@@ -90,7 +93,7 @@ export function lintCopy(file) {
 
 export async function restoranKapi(slug, { browser, base, out, veri, sablon, log = () => {} }) {
   const dir = path.join(veri, slug); const R = J(path.join(dir, 'cikarici.json')); const ik = J(path.join(dir, 'icerik.json'), {});
-  const why = []; const warn = []; let page = null; let eylemUrl = null; let menuN = 0; let menuKaynak = null; let base0 = null;
+  const why = []; const warn = []; let page = null; let eylemUrl = null; let menuN = 0; let menuKaynak = null; let base0 = null; let logoNet = null;
   if (sablon === 'v5') {
     const { kapi } = await import('./kapi.mjs');
     base0 = await kapi(slug, { browser, base, out, veri, log });
@@ -134,8 +137,15 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
     if (!/<meta name="robots" content="noindex/.test(ham)) why.push('noindex yok');
     const td = await tarayiciDenetim(browser, `${base}/${page}`, eylemUrl, dir);
     why.push(...td.sorunlar);
+    const ln = await logoNetlikTara(browser, `${base}/${page}`, { dir });
+    why.push(...ln.sorunlar); logoNet = { sorun: ln.sorunlar.length, ekran: ln.dosyalar.map((x) => path.basename(x)) };
+    const imgD = path.join(out, path.dirname(page), 'img');
+    for (const f of (fs.existsSync(imgD) ? fs.readdirSync(imgD) : []).filter((x) => /^logo.(png|jpe?g|webp|avif)$/i.test(x))) {
+      const bt = await bosTuval(fs.readFileSync(path.join(imgD, f)));
+      if (bt && bt.bos) warn.push(`logo dosyasinda bos tuval: img/${f} icerik %${Math.round(bt.icerik * 100)} (gorunen logo kutudan kucuk)`);
+    }
   }
-  const k = { ...(base0 || {}), surum: KAPI_SURUM, slug, name: R.name && R.name.n, site: R.lead.site, region: R.lead.region, sektor: 'restoran', sablon, at: new Date().toISOString(), status: why.length ? 'gozden-gecir' : 'hazir', reasons: [...new Set(why)], warnings: [...new Set(warn)], page: page ? path.dirname(page) : null, eylem: eylemUrl, menuKalem: menuN, menuKaynak, siki: true };
+  const k = { ...(base0 || {}), surum: KAPI_SURUM, slug, name: R.name && R.name.n, site: R.lead.site, region: R.lead.region, sektor: 'restoran', sablon, at: new Date().toISOString(), status: why.length ? 'gozden-gecir' : 'hazir', reasons: [...new Set(why)], warnings: [...new Set(warn)], page: page ? path.dirname(page) : null, eylem: eylemUrl, menuKalem: menuN, menuKaynak, siki: true, ...(logoNet ? { logoNetlik: logoNet } : {}) };
   fs.writeFileSync(path.join(dir, 'kapi.json'), JSON.stringify(k, null, 1));
   return k;
 }
