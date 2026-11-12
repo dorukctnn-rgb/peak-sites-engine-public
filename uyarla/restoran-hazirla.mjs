@@ -25,6 +25,7 @@ import { KAPI_SURUM } from './lib/surum.mjs';
 import { VERI } from './lib/yol.mjs';
 import { platformOf } from './lib/siparis.mjs';
 import { kesinStok, kesinUretilmis, kesinAfis } from './lib/foto-topla.mjs';
+import { fotoUyum, uyumBaglami } from './lib/foto-uyum.mjs';
 
 const J = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const clean = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
@@ -161,11 +162,16 @@ export function onKapi(R, lead, { ham, sec }) {
   // en az 4 kare (onayli burrito demosu 3 kendi karesi + isaretle durdu; sablonlar bolumu karesi yoksa gizler, siki kapi bos bolumu yakalar)
   const hepsi = R.photos || [];
   const kendi = (p) => !kesinStok(p.isaretler || {}) && !kesinUretilmis(p.isaretler || {}) && !kesinAfis(p.isaretler || {});
-  const fotolar = hepsi.filter((p) => p.w >= 800 && !(p.meanS < 0.26 && p.lapVar > 1800) && kendi(p));
+  // 12 Kas FOTO UYUMU (lib/foto-uyum.mjs): logo, harita, ekran goruntusu, ikon, bulanik ve grafik kareler de isletmenin kullanilabilir fotografi sayilmaz
+  const uyum = fotoUyum(hepsi, uyumBaglami(R, { sablon: sec.sablon, kategori: sec.kategori }));
+  const kapiEleme = new Set(uyum.elenen.filter((e) => !['stok', 'uretilmis', 'afis'].includes(e.tur)).map((e) => e.id));
+  const gecer = (p) => !kapiEleme.has(String(p.id));
+  const fotolar = hepsi.filter((p) => p.w >= 800 && !(p.meanS < 0.26 && p.lapVar > 1800) && kendi(p) && gecer(p));
   const sayilmayan = hepsi.filter((p) => p.w >= 800 && !kendi(p)).length;
+  const uymayan = hepsi.filter((p) => p.w >= 800 && kendi(p) && !gecer(p)).length;
   const minFoto = sec.sablon === 'v5' ? 4 : 3; // kategori sablonlari 3 kareyle de dolar (onayli Bay City Burrito demosu); v5 en az 4
-  if (fotolar.length < minFoto) why.push(`kullanılabilir fotoğraf az (${fotolar.length}; en az ${minFoto}, 800 px+${sayilmayan ? `; ${sayilmayan} stok, üretilmiş görsel ya da afiş sayılmadı` : ''})`);
-  if (!hepsi.some((p) => p.w >= 1000 && p.w / p.h >= 1.1 && kendi(p))) why.push('1000 px üstünde yatay fotoğraf yok (ana fotoğraf olmaz)');
+  if (fotolar.length < minFoto) why.push(`kullanılabilir fotoğraf az (${fotolar.length}; en az ${minFoto}, 800 px+${sayilmayan ? `; ${sayilmayan} stok, üretilmiş görsel ya da afiş sayılmadı` : ''}${uymayan ? `; ${uymayan} logo, harita, ekran görüntüsü, ikon ya da bulanık kare sayılmadı` : ''})`);
+  if (!hepsi.some((p) => p.w >= 1000 && p.w / p.h >= 1.1 && kendi(p) && gecer(p))) why.push('1000 px üstünde yatay fotoğraf yok (ana fotoğraf olmaz)');
   // sitenin adresi bulunamadiysa OSM'nin adres etiketleri (sokak + sehir + posta kodu; sokak yoksa sayilmaz)
   let osmAdres = false;
   if (!R.address && lead.osmAdres && /\d/.test(lead.osmAdres) && lead.osmAdres.split(',').length >= 2) { R.address = { text: lead.osmAdres, via: 'osm (addr etiketleri)' }; osmAdres = true; }
@@ -185,7 +191,7 @@ export function onKapi(R, lead, { ham, sec }) {
   if (eylem && eylem.tur === 'telefon') eksik.push('eylem telefon (sitede çevrimiçi sipariş/rezervasyon bağlantısı yok)');
   // saat ilk ekranin zorunlu parcasi ("simdi acik"): sitenin hicbir sayfasinda saat satiri yoksa icerik turuna gonderilmez (deneme turu: Scugnizzo ve La Tortilleria siki kapida saatten dustu)
   if (!R.hours || !R.hours.tableOk) { if (SAAT_METIN.test(ham)) eksik.push('saat (sitenin metninden tamamlanacak)'); else why.push('çalışma saati yok (sitenin hiçbir sayfasında)'); }
-  return { why, eksik, eylem, fotolar, osmAdres };
+  return { why, eksik, eylem, fotolar, osmAdres, uyum };
 }
 
 // HAZIRLIK KAPISI (ag yok): erken elemeler (site, kapali, zincir, hedef disi ulke) + on kapi.  restoranHazirla ve olcum araci (uyarla/olcum-cikarici.mjs) ayni islevi kullanir.
@@ -209,7 +215,7 @@ export function hazirlikKapisi(R, lead, dir) {
     : /\b(Canada|USA|United States|Türkiye|Turkey|Germany|Deutschland|España|Spain|Italia|Italy|France|Ecuador)\b|\b(BC|ON|QC|AB)\s+[A-Z]\d[A-Z]\b|\+(1|90|49|34|39|33|593)\d/.exec(adr0);
   if (disUlke) return { elendi: [`site hedef ulkedeki isletmenin degil (adres/telefon: "${disUlke[0]}")`], sec };
   const ok = onKapi(R, lead, { ham: ham0, sec });
-  return { elendi: ok.why.length ? ok.why : null, sec, eksik: ok.eksik, eylem: ok.eylem, fotolar: ok.fotolar, osmAdres: ok.osmAdres, ham0 };
+  return { elendi: ok.why.length ? ok.why : null, sec, eksik: ok.eksik, eylem: ok.eylem, fotolar: ok.fotolar, osmAdres: ok.osmAdres, ham0, fotoUyum: ok.uyum };
 }
 
 export async function restoranHazirla(lead, { veri = VERI, polite = null, log = () => {} } = {}) {
@@ -218,18 +224,23 @@ export async function restoranHazirla(lead, { veri = VERI, polite = null, log = 
   const kg = hazirlikKapisi(R, lead, dir);
   if (kg.osmAdres) fs.writeFileSync(path.join(dir, 'cikarici.json'), JSON.stringify(R, null, 1));
   if (kg.elendi) return kapiYaz('elendi', kg.elendi, kg.sec ? { sablon: kg.sec.sablon } : {});
-  const { sec, eksik, eylem, ham0 } = kg;
+  const { sec, eksik, eylem, ham0, fotoUyum: uyum } = kg;
 
   // ---- paket ----
   const pdir = path.join(dir, 'paket'); fs.rmSync(pdir, { recursive: true, force: true }); fs.mkdirSync(pdir, { recursive: true });
   const getir = polite ? async (u) => { const r = await polite.get(u, { maxBytes: 40_000_000, accept: 'image/*', binary: true }); return r.ok && r.buf ? r : null; } : null;
-  const hs = await heroSec(R, { dir, imgDir: null, getir, log, maxFetch: 10, adayDir: path.join(pdir, 'hero-aday') });
+  // foto uyumu: elenen kareler, bolum icin kucuk kareler ve (kendi karesi varken) stok kareler ana fotograf adayi olmaz
+  const kendiVar = uyum.uygun.some((x) => x.kaynak === 'kendi' && !x.yalnizKart);
+  const heroHaric = [...uyum.elenen.map((e) => e.id), ...uyum.uygun.filter((x) => x.yalnizKart || (kendiVar && x.kaynak === 'stok')).map((x) => x.id)];
+  const hs = await heroSec(R, { dir, imgDir: null, getir, log, maxFetch: 10, adayDir: path.join(pdir, 'hero-aday'), haric: heroHaric });
   fs.writeFileSync(path.join(dir, 'hero-adaylar.json'), JSON.stringify({ slug, adaylar: hs.adaylar, kural: hs.kural, at: hs.at, not: 'puanlayicinin onerisi; secim inceleme turunda gozle yapilir (Pausa paket kutulari, BoTOWN 09 dersleri)' }, null, 1));
   const onz = hs.adaylar.filter((a) => a.onizleme);
   if (!onz.length) return kapiYaz('elendi', ['ana fotoğraf adayı yok'], { sablon: sec.sablon });
   await temasSayfasi(onz.map((a) => path.join(pdir, 'hero-aday', a.onizleme)), { cols: onz.length > 3 ? 3 : onz.length, tw: 520, th: 346, etiketler: onz.map((a) => `${a.id}  ${a.w}x${a.h}  puan ${a.puan}`), hedef: path.join(pdir, 'hero-adaylar.jpg') });
-  const tum = (R.photos || []).filter((p) => fs.existsSync(path.join(dir, p.file)));
-  if (tum.length) await temasSayfasi(tum.map((p) => path.join(dir, p.file)), { cols: 6, tw: 220, th: 150, etiketler: tum.map((p) => `${p.id} ${p.w}`), hedef: path.join(pdir, 'fotolar.jpg'), q: 74 });
+  // temas sayfasi foto uyumu sirasinda: uygun kareler en iyi once, elenenler sonda "elendi" etiketiyle
+  const sirali = [...uyum.sira, ...uyum.elenen.map((e) => e.id)]; const elenenId = new Set(uyum.elenen.map((e) => e.id));
+  const tum = sirali.map((id) => (R.photos || []).find((p) => String(p.id) === id)).filter((p) => p && fs.existsSync(path.join(dir, p.file)));
+  if (tum.length) await temasSayfasi(tum.map((p) => path.join(dir, p.file)), { cols: 6, tw: 220, th: 150, etiketler: tum.map((p) => `${p.id} ${p.w}${elenenId.has(String(p.id)) ? ' elendi' : ''}`), hedef: path.join(pdir, 'fotolar.jpg'), q: 74 });
   const kaynak = await menuKaynaklari(R, { pdir, polite, log });
   const okunur = kaynak.filter((x) => x.dosya);
   if (!okunur.length) { fs.rmSync(pdir, { recursive: true, force: true }); return kapiYaz('elendi', [`fiyatlı menü kaynağı yok ya da robots.txt izin vermiyor (${kaynak.map((x) => `${x.tur}: ${x.robots}`).join('; ') || 'kaynak bulunamadı'})`], { sablon: sec.sablon }); }
@@ -245,7 +256,9 @@ export async function restoranHazirla(lead, { veri = VERI, polite = null, log = 
     logo: { dosya: R.logo.orig.file, boyut: `${R.logo.orig.w}x${R.logo.orig.h}`, sha256: R.logo.orig.sha256, kaynak: R.logo.url || null },
     renkler: R.colours && R.colours.computed ? { zemin: R.colours.computed.body && R.colours.computed.body.bg, metin: R.colours.computed.body && R.colours.computed.body.color, nav: R.colours.computed.nav && R.colours.computed.nav.color } : null,
     slogan_ipuclari: { title: R.slogan && R.slogan.title, og: R.slogan && R.slogan.ogTitle, aciklama: R.slogan && R.slogan.desc, tagline: R.tagline || null },
-    fotograflar: (R.photos || []).map((p) => ({ id: p.id, w: p.w, h: p.h, alt: p.alt || '' })),
+    // foto uyumu (lib/foto-uyum.mjs): uygun kareler en iyi once (kendi kareleri stoktan once), sonra elenenler nedeniyle; yuvalara yalniz uygun kare girer
+    fotograflar: (() => { const ph = new Map((R.photos || []).map((p) => [String(p.id), p])); const b = (id) => { const p = ph.get(id) || {}; return { id, w: p.w, h: p.h, alt: p.alt || '' }; }; return [...uyum.uygun.map((u) => ({ ...b(u.id), uyum: 'uygun', kaynak: u.kaynak, konu: u.konu, puan: u.puan, ...(u.yalnizKart ? { yalnizKart: true } : {}) })), ...uyum.elenen.map((e) => ({ ...b(e.id), uyum: 'elendi', neden: e.neden }))]; })(),
+    foto_uyum: { tur: uyum.tur, dil: uyum.dil, sira: uyum.sira, uygun: uyum.uygun, elenen: uyum.elenen, ozet: uyum.ozet, kural: 'Yuvalara yalnız uygun kareler girer (sıra en iyi önce; işletmenin kendi kareleri stoktan önce; stok yalnız türle ya da menüyle eşleşirse). Uyan kare yoksa yuva boş bırakılır, şablon bölümü daraltır; uymayan kare seçilirse içerik denetimi HATA verir. Ana fotoğraf işletmenin kendi karesidir.' },
     hero_adaylari: hs.adaylar.map((a) => ({ id: a.id, px: `${a.w}x${a.h}`, puan: a.puan, neden: a.neden, onizleme: a.onizleme ? `hero-aday/${a.onizleme}` : null })),
     menu_kaynaklari: kaynak, menu_cikarici: { via: R.menu && R.menu.via, kalem: ((R.menu && R.menu.items) || []).length, sayfa: R.menu && R.menu.pageUrl },
     eksik, eski_site_bulgulari: tarama, gozlem_adaylari: gozlemAdaylari({ bulgular: tarama, R, homeText: ham0 }),
@@ -253,5 +266,5 @@ export async function restoranHazirla(lead, { veri = VERI, polite = null, log = 
     gorsel_uyari: (() => { const G = new Set(['1024x1024', '1344x768', '768x1344', '1376x768', '768x1376', '1536x1024', '1024x1536', '1792x1024', '1024x1792', '1216x832', '832x1216', '1152x896', '896x1152', '896x1195', '1456x816', '1248x832', '832x1248']); const n = (R.photos || []).filter((p) => G.has(`${p.w}x${p.h}`)).length; return n ? `${n}/${(R.photos || []).length} kare uretilmis gorsel olcusunde (1376x768, 1024x1024 ...): gercek fotograf mi, gozle bak` : null; })(),
   };
   fs.writeFileSync(path.join(pdir, 'bilgi.json'), JSON.stringify(bilgi, null, 1));
-  return kapiYaz('icerik-bekliyor', [], { sablon: sec.sablon, sablonNeden: sec.neden, eksik, menuKaynak: kaynak.map((x) => `${x.tur}:${x.robots}`) });
+  return kapiYaz('icerik-bekliyor', [], { sablon: sec.sablon, sablonNeden: sec.neden, eksik, menuKaynak: kaynak.map((x) => `${x.tur}:${x.robots}`), fotoUyum: uyum.ozet });
 }

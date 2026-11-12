@@ -23,6 +23,7 @@ import { platformHepsi as platformOf } from './lib/siparis-tr.mjs';
 import { DILLER, dilSec, dilFontlari } from './lib/dil-v5.mjs';
 import { themeCssV5, sayfaHtmlV5 } from './lib/sayfa-v5.mjs';
 import { yasakVar } from './lib/sozluk.mjs';
+import { fotoUyum, uyumBaglami, yuvaDaralt, yuvaUygun } from './lib/foto-uyum.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // sayfa kodu: bulutta gizli tuz (SAYFA_TUZU) ile 10 hane; tuz yoksa (yerel) el yapimi v5 demolarinin kurali (6 hane).  Tuz DEGISMEMELI.
@@ -196,7 +197,15 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
 
   // ---- fotograflar (bolumler) ----
   const F = e.foto || {}; const pics = {};
-  const ids = [F.menu, F.quiet, F.story, F.contact, ...(F.cards || [])].filter(Boolean);
+  // FOTO UYUMU (12 Kas, lib/foto-uyum.mjs): uymayan kare (logo, harita, ikon, kucuk, bulanik, ture uymayan stok) yuvaya girmez; yuva daralir, uyari son goze gider
+  const uyum = fotoUyum(R.photos || [], uyumBaglami(R, { sablon: 'v5', menuItems: (e.menu && e.menu.items) || null }));
+  const yuvalar = [['foto.menu', F.menu], ['foto.quiet', F.quiet], ['foto.story', F.story], ['foto.contact', F.contact], ...(F.cards || []).map((id, i) => [`foto.cards[${i}]`, id]), ...(((e.cards && e.cards.items) || []).map((x, i) => [`cards.items[${i}]`, x && x.pic]))]
+    .filter(([, id]) => id && String(id) !== String(sec.id)).map(([yuva, id]) => ({ yuva, id: String(id) }));
+  const daralt = yuvaDaralt(yuvalar, uyum); const fotoUyari = [...new Set(daralt.uyari)];
+  const heroUy = yuvaUygun(uyum, sec.id); const heroUyumsuz = heroUy.ok ? null : `kare ${sec.id}: ${heroUy.neden}`;
+  if (heroUyumsuz) fotoUyari.unshift(`foto uyumu: ana fotograf ${heroUyumsuz}`);
+  warn.push(...fotoUyari);
+  const ids = [F.menu, F.quiet, F.story, F.contact, ...(F.cards || [])].filter(Boolean).filter((id) => daralt.gecen.has(String(id)));
   for (const id of new Set(ids)) { if (String(id) === String(sec.id)) continue; const p = await picKur(id, R, dir, imgDir, alt[id]); if (p) pics[id] = p; else warn.push(`foto yok: ${id}`); }
   const P = (id) => (id ? pics[id] || null : null);
 
@@ -344,6 +353,7 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
     hero: { id: hero.id, served: `${hero.w}x${hero.h}`, orig: hero.orig, files: Object.values(files).map((f) => `${f.file} ${f.w}x${f.h} ${f.kb}KB`), kaynak: hero.kaynak, neden: sec.neden, gozle: sec.gozle || null, adaylar: (HS.adaylar || []).slice(0, 5).map((a) => ({ id: a.id, px: `${a.w}x${a.h}`, puan: a.puan, neden: a.neden })), duzen: variant },
     heroContrast, shadeA, shadeM, photos: Object.keys(pics).length + 1, menuItems, menuLink: !!(menu && menu.link), menuKaynak: mE ? mE.kaynak || null : null,
     hoursOk, hoursIssue: sd.issue, statusOk, tz, sections: model.order.filter((k) => model[k]), notes, warn, size: size.h1,
+    fotoUyum: { tur: uyum.tur, ozet: uyum.ozet, sira: uyum.sira }, fotoUyari, heroUyumsuz,
   };
   if (yazRapor) fs.writeFileSync(path.join(dir, 'uret.json'), JSON.stringify(report, null, 1));
   log(`uretildi (v5): ${rel}  (${dil}/${D.referans}, ${variant}, slogan "${slogan.text}", font ${fe.display.id}/${fe.text.id}, ${pal.mode}, hero ${hero.w}x${hero.h} (orijinal ${hero.orig}), menu ${menuItems}, saat ${hoursOk ? 'var' : 'yok'}${statusOk ? ' + simdi acik' : ''}${warn.length ? ', UYARI: ' + warn.join('; ') : ''})`);
