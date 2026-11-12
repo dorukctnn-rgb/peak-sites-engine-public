@@ -2,6 +2,7 @@
 // Kurallar: buyuk baslik SLOGANDIR (ad degil); logo orijinal dosyadir ve hicbir filtre almaz; hareket katmanlari (WebGL, 3D, acilis) JS/WebGL olmadan da ayni icerigi duragan gosterir.
 import { T, DAYS } from './metin.mjs';
 import { ORTAK } from './yol.mjs';
+import { netCss } from './logo-netlik.mjs';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const rgbTriplet = (hex) => { const x = hex.replace('#', ''); return `${parseInt(x.slice(0, 2), 16)},${parseInt(x.slice(2, 4), 16)},${parseInt(x.slice(4, 6), 16)}`; };
@@ -37,8 +38,10 @@ export function themeCss(m) {
   lines.push(`--h1-size:${m.size.h1};--h1-max:${m.size.h1max};--h2-size:${m.size.h2};--h3-size:${m.size.h3};--h1-lh:${m.size.lh};--btn-r:${m.btnR};--r:${m.cardR};`);
   lines.push(`--kb-step:${k.step}s;--kb-total:${k.total}s;--kb-ov:${k.ov}s;`);
   lines.push(`--map-bg:${m.map.bg};--map-road:${m.map.road};--map-fine:${m.map.fine};`);
-  if (lg) lines.push(`--lg-h:${Math.min(lg.d, Math.floor(300 / lg.ratio))}px;--lg-h-m:${Math.min(lg.m, Math.floor(200 / lg.ratio))}px;--head:${Math.max(72, lg.d + 28)}px;--head-m:${Math.max(58, lg.m + 22)}px;--intro-w:${lg.kare ? 'min(38vw, 230px)' : 'min(62vw, 380px)'};`);
+  if (lg) lines.push(`--lg-h:${Math.min(lg.d, Math.floor(300 / lg.ratio))}px;--lg-h-m:${Math.min(lg.m, Math.floor(200 / lg.ratio))}px;--head:${Math.max(72, lg.d + 28)}px;--head-m:${Math.max(58, lg.m + 22)}px;--intro-w:min(${lg.kare ? 38 : 62}vw, ${lg.introW || (lg.kare ? 230 : 380)}px);`);
   lines.push(`}`);
+  // logo netlik (12 Kas): hicbir logo dogal boyutunun yarisindan buyuk cizilmez (lib/logo-netlik.mjs)
+  if (lg) { const nc = netCss([{ file: `img/${lg.file}`, w: lg.w, h: lg.h, svg: lg.svg }, ...(lg.hero ? [{ file: `img/${lg.hero.file}`, w: lg.hero.w, h: lg.hero.h, svg: lg.hero.svg }] : [])]); if (nc) lines.push(nc.trim()); }
   // Ken Burns yedegi (WebGL yoksa): kendi fotograflari, yavas yaklasma ve kayma, fotograflar arasi gecis (yalniz CSS)
   const T0 = k.total; const ov = k.ov; const S = k.step;
   const p = (x) => +((x / T0) * 100).toFixed(3);
@@ -71,7 +74,7 @@ export function sayfaHtml(m) {
   const secondary = hasRooms ? `<a class="btn btn-ghost btn-lg" href="#odalar">${esc(L.seeMenu)}</a>` : hasMenu || hasLink ? `<a class="btn btn-ghost btn-lg" href="#menu">${esc(L.seeMenu)}</a>` : m.mapsUrl ? `<a class="btn btn-ghost btn-lg" href="${esc(m.mapsUrl)}" rel="noopener">${esc(L.directionsShort)}</a>` : '';
   // LOGO: orijinal dosya, oldugu gibi (genislik/yukseklik oranini tarayici korur; filtre, kirpma yok)
   const logoImg = (cls, alt) => `<img class="${cls}" src="img/${lg.file}" alt="${esc(alt)}" width="${lg.w}" height="${lg.h}" decoding="async">`;
-  const brandHtml = (cls) => (lg ? logoImg(cls, m.name) : `<span class="brand-t">${esc(m.name)}</span>`);
+  const brandHtml = (cls) => (lg && !lg.baslikYazi ? logoImg(cls, m.name) : `<span class="brand-t">${esc(m.name)}</span>`);
   const split = m.variant === 'bolme';
   const heroSizes = split ? '(max-width: 899px) 100vw, 56vw' : '100vw';
   const slides = m.hero.map((p, i) => `<li style="--i:${i};--fx:${pct(p.focus.x)};--fy:${pct(p.focus.y)}"${p.depth ? ` data-d="img/${p.depth}"` : ''}>${pic(p, { size: '1600', sizes: heroSizes, lazy: i > 0 })}</li>`).join('');
@@ -295,7 +298,7 @@ export function sayfaHtml(m) {
     days: D, h: m.statusOk ? m.week : null, h12: !!m.h12, tz: m.tz, slots: m.slots, fx: m.fx, glow: rgbTriplet(m.palette.t.accent2).split(',').map((n) => +(n / 255).toFixed(3)) };
   const icon = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="${m.palette.t.accent}"/><text x="16" y="23" font-family="Georgia,serif" font-size="20" font-weight="700" text-anchor="middle" fill="${m.palette.t.accentInk}">${esc((m.name.match(/[\p{L}\p{N}]/u) || ['•'])[0].toUpperCase())}</text></svg>`)}`;
   const heroLogo = lg && lg.hero && m.variant === 'orta' ? `<img class="hero-logo" src="img/${lg.hero.file}" alt="" width="${lg.hero.w}" height="${lg.hero.h}" decoding="async">` : '';
-  const introLogo = lg ? (lg.hero && m.variant === 'orta' ? `<img src="img/${lg.hero.file}" alt="" width="${lg.hero.w}" height="${lg.hero.h}">` : `<img src="img/${lg.file}" alt="" width="${lg.w}" height="${lg.h}">`) : `<span class="brand-t">${esc(m.name)}</span>`;
+  const introLogo = lg && !(lg.acilisYazi && !(lg.hero && m.variant === 'orta')) ? (lg.hero && m.variant === 'orta' ? `<img src="img/${lg.hero.file}" alt="" width="${lg.hero.w}" height="${lg.hero.h}">` : `<img src="img/${lg.file}" alt="" width="${lg.w}" height="${lg.h}">`) : `<span class="brand-t">${esc(m.name)}</span>`;
   return `<!doctype html>
 <html lang="${m.lang}" class="v-${m.variant} fx-${m.fx} ${m.dark ? 'is-dark' : 'is-light'}${m.sektor ? ' s-' + m.sektor : ''}">
 <head>

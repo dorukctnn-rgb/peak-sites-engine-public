@@ -20,6 +20,7 @@ import { T, KIND, saatTablo, saatOzet, fmtPrice, telHref, telText, mapsUrl, tzOf
 import { themeCss, sayfaHtml } from './lib/sayfa.mjs';
 import { sloganSec, sloganDogrula, sloganParcalari, sloganlaOrtusur, gerceklikler, iddiaVar, ascii, adresParcala } from './lib/slogan.mjs';
 import { logoPiksel, gorunurOran, logoBoyut, dusukCozunurluk, lumHex } from './lib/logo.mjs';
+import { netBoyut } from './lib/logo-netlik.mjs';
 import { derinlik } from './lib/derinlik.mjs';
 import { profil } from './sektor/index.mjs';
 
@@ -170,7 +171,11 @@ export async function logoKur(R, dir, imgDir, t, { shade } = {}) {
   const kare = h.ratio < 1.6;
   const b = logoBoyut({ svg: h.svg, w: h.w, h: h.h });
   const boyut = kare ? { d: h.svg ? 60 : Math.max(48, Math.min(64, Math.round(h.h / 2))), m: h.svg ? 46 : Math.max(40, Math.min(48, Math.round(h.h / 2))) } : { d: b.d, m: b.m };
-  const out = { ...h, px: undefined, alpha: h.px.alpha, headBg, headInk, plate, kare, d: boyut.d, m: boyut.m, dusuk: dusukCozunurluk({ svg: h.svg, w: h.w, h: h.h }), vis: +gorunurOran(h.px.lums, headBg).toFixed(3), surum: head.rol, adaylar: cands.map((c) => ({ url: c.url, rol: c.rol, rw: c.rw, hdr: c.hdr })) };
+  // LOGO NETLIK (12 Kas, lib/logo-netlik.mjs): baslik, alt bilgi (baslik x1.12) ve acilis dogal boyutun yarisini gecmez (2x).  Sinir cok kucukse
+  // acilista ve/veya baslikta logo yerine isletme adi yazilir; bitmap asla buyutulmez.
+  const nb = netBoyut({ w: h.w, h: h.h, svg: h.svg }, { baslik: boyut.d, baslikMobil: boyut.m, acilis: kare ? 230 : 380, altK: 1.12 });
+  boyut.d = nb.baslik; boyut.m = nb.baslikMobil;
+  const out = { ...h, px: undefined, alpha: h.px.alpha, headBg, headInk, plate, kare, d: boyut.d, m: boyut.m, introW: nb.acilis, acilisYazi: nb.acilisYazi, baslikYazi: nb.baslikYazi, dusuk: dusukCozunurluk({ svg: h.svg, w: h.w, h: h.h }), vis: +gorunurOran(h.px.lums, headBg).toFixed(3), surum: head.rol, adaylar: cands.map((c) => ({ url: c.url, rol: c.rol, rw: c.rw, hdr: c.hdr })) };
   if (big) { const g = await put(big, 'logo-hero'); if (gorunurOran(g.px.lums, shade || '#14110f') >= 0.9) out.hero = { ...g, px: undefined, rw: big.rw }; else fs.rmSync(path.join(imgDir, g.file), { force: true }); }
   return out;
 }

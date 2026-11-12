@@ -3,6 +3,7 @@
 // Kurallar: buyuk baslik SLOGANDIR; logo orijinal dosyadir, filtre almaz; ana sayfa fotografi hero-secim.json'daki tek karedir ve buyutulmez;
 // eylem baglantilari isletmenin GERCEK baglantilaridir (rezervasyon, telefon, menu sayfasi); demo form yok. Hareket JS olmadan da ayni icerigi duragan gosterir.
 import { T, DAYS } from './metin.mjs';
+import { netCss } from './logo-netlik.mjs';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const rgb = (hex) => { const x = hex.replace('#', ''); return `${parseInt(x.slice(0, 2), 16)},${parseInt(x.slice(2, 4), 16)},${parseInt(x.slice(4, 6), 16)}`; };
@@ -39,8 +40,10 @@ export function themeCssV5(m) {
   L.push(`--t-weight:${s.tWeight};--t-strong:${f.text.strong || 600};--t-size:${s.tSize};--lede-size:${s.lede};`);
   L.push(`--h1-size:${s.h1};--h1-max:${s.h1max};--h1-lh:${s.lh};--h2-size:${s.h2};--h2-lh:${s.h2lh};--h3-size:${s.h3};--h2s-size:${s.h2s};`);
   L.push(`--hero-w:${m.hero.w}px;--hero-h:${m.hero.h}px;--fx:${pct(m.hero.focus.x)};--fy:${pct(m.hero.focus.y)};`);
-  if (lg) L.push(`--lg-h:${Math.min(lg.d, Math.floor(300 / lg.ratio))}px;--lg-h-m:${Math.min(lg.m, Math.floor(200 / lg.ratio))}px;--head:${Math.max(72, lg.d + 28)}px;--head-m:${Math.max(58, lg.m + 22)}px;--intro-w:${lg.kare ? 'min(38vw, 230px)' : 'min(62vw, 380px)'};`);
+  // acilis genisligi: logo dosyasinin yarisini gecmez (lib/logo-netlik.mjs netBoyut -> lg.introW)
+  if (lg) L.push(`--lg-h:${Math.min(lg.d, Math.floor(300 / lg.ratio))}px;--lg-h-m:${Math.min(lg.m, Math.floor(200 / lg.ratio))}px;--head:${Math.max(72, lg.d + 28)}px;--head-m:${Math.max(58, lg.m + 22)}px;--intro-w:min(${lg.kare ? 38 : 62}vw, ${lg.introW || (lg.kare ? 230 : 380)}px);`);
   L.push('}');
+  if (lg) { const nc = netCss([{ file: `img/${lg.file}`, w: lg.w, h: lg.h, svg: lg.svg }]); if (nc) L.push(nc.trim()); }
   // cerceve duzeni: fotograf kendi genisliginin ustune cikmaz; ekran daha genisse kenarlar marka zeminine erir
   if (m.variant === 'cerceve') L.push(`@media (min-width:${m.hero.w + 1}px){.v-cerceve .hero-media{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 9%,#000 91%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 9%,#000 91%,transparent 100%)}}`);
   L.push(`@media (max-width:899px){:root{--h1-size:clamp(30px,${s.h1m.toFixed(2)}vw,64px)}}`);
@@ -66,7 +69,8 @@ export function sayfaHtmlV5(m) {
   const L = T[m.lang]; const D = DAYS[m.lang]; const x = X[m.lang] || X.en; const lg = m.logo; const dil = m.dil;
   const ext = (a) => (a && a.ext ? ' rel="noopener"' : '');
   const logoImg = (cls) => `<img class="${cls}" src="img/${lg.file}" alt="${esc(m.name)}" width="${lg.w}" height="${lg.h}" decoding="async">`;
-  const brand = lg ? logoImg('lg') : `<span class="brand-t">${esc(m.name)}</span>`;
+  // logo dosyasi baslikta 2x net olamayacak kadar kucukse (lg.baslikYazi) baslik ve alt bilgi isletme adini yazar
+  const brand = lg && !lg.baslikYazi ? logoImg('lg') : `<span class="brand-t">${esc(m.name)}</span>`;
   const main = m.cta.main; const second = m.cta.second;
   const nav = [];
   if (m.menu) nav.push(['#menu', L.menu]);
@@ -194,7 +198,7 @@ ${pre}
 </head>
 <body>
 <a class="skip" href="#main">${esc(L.skip)}</a>
-<div class="intro" aria-hidden="true"><div class="intro-in">${lg ? `<img src="img/${lg.file}" alt="" width="${lg.w}" height="${lg.h}">` : `<span class="brand-t">${esc(m.name)}</span>`}<i></i></div></div>
+<div class="intro" aria-hidden="true"><div class="intro-in">${lg && !lg.acilisYazi ? `<img src="img/${lg.file}" alt="" width="${lg.w}" height="${lg.h}">` : `<span class="brand-t">${esc(m.name)}</span>`}<i></i></div></div>
 
 <header class="top${m.topSolid ? ' solid' : ''}" id="top"${m.topSolid ? ' data-solid' : ''}>
   ${top}
