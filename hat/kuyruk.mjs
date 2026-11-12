@@ -11,6 +11,7 @@ import { ULKELER, kapaliUlke } from '../lead/sektorler.mjs';
 import { SERBEST, alanKoku } from '../lead/eposta.mjs';
 import { isletmeIndeksi, indeksOlustur, leadKimligi, bizAlani, SEBEP as ISLETME_SEBEP } from './isletme.mjs';
 import { mailYaz, mailDenetle, mailAdi } from '../mail/sablon.mjs';
+import { trSatirKur, trEksikTopla, trHazirla, KAMPANYA_TR } from './kuyruk-tr.mjs';
 
 export const KAMPANYA = 'websites-demo';
 export const BEKLET_ILK = 'hat: sektörün ilk 5 sayfası koordinatör kontrolü bekliyor';
@@ -45,7 +46,7 @@ export function yazilanlar({ sent, queue, suppress, replied }) {
   const adr = new Set(); const alan = new Set();
   const al = (a) => { const e = String(a || '').trim().toLowerCase(); if (!e.includes('@')) return; adr.add(e); if (!SERBEST.test(e)) alan.add(dom(e)); };
   for (const r of sent) if (['sent', 'uncertain', 'pending', 'rejected'].includes(r.status)) al(r.to);
-  for (const r of queue) if (!r._held || r.campaign === KAMPANYA) al(r.to);
+  for (const r of queue) if (!r._held || r.campaign === KAMPANYA || r.campaign === KAMPANYA_TR) al(r.to); // bekleyen Turkiye satirlari da yazilmis sayilir (12 Kas 2026)
   const sup = String(suppress || '').split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter((l) => l && !l.startsWith('#'));
   const rep = String(replied || '').split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter((l) => l && !l.startsWith('#'));
   const bloke = (e, list) => list.some((s) => (s.startsWith('@') ? e.endsWith(s) || e.split('@')[1].endsWith(s.slice(1)) : s === e));
@@ -64,7 +65,10 @@ export function yazilanlar({ sent, queue, suppress, replied }) {
   };
 }
 
-export function satirlarKur({ son, leadsById, po, simdi = new Date(), onaylanan = new Set(), dis = null }) {
+// tr (12 Kas 2026, TR metin V2): hat/kuyruk-tr.mjs trHazirla'nin verdigi nesne; yoksa Turkiye satiri yazilmaz.  Eksikler onceden toplanmamissa isletme tr.bekleyen'e girer (tr-eksik-bekliyor)
+// ve ana akis eksikleri toplayip satirlarKur'u ikinci kez cagirir.
+export function satirlarKur({ son, leadsById, po, simdi = new Date(), onaylanan = new Set(), dis = null, tr = null }) {
+  if (tr && tr.parti) tr.parti.length = 0;
   const sent = jsonl(po.sent); const queue = jsonl(po.queue); const ids = new Set(queue.map((r) => r.id));
   const Y = yazilanlar({ sent, queue, suppress: po.suppress, replied: po.replied });
   const satirlar = []; const kopyalar = []; const atla = {}; const sk = (w) => { atla[w] = (atla[w] || 0) + 1; };
@@ -92,6 +96,17 @@ export function satirlarKur({ son, leadsById, po, simdi = new Date(), onaylanan 
     // adayla onarilir, emin olunamiyorsa satir atlanir ('ad-belirsiz'; mail/sablon.mjs mailAdi)
     const ad = mailAdi(x.ad || l.name, adAdaylari(x, l));
     if (!ad) { sk('ad-belirsiz'); continue; }
+    if (l.ulke === 'TR') {
+      // Turkiye: Turkce V2 maili, kampanya websites-demo-tr, eksikler canli siteden kanitlariyla (hat/kuyruk-tr.mjs)
+      if (!tr || tr.hata) { sk('tr-modulleri-yok'); continue; }
+      const t = trSatirKur({ x, l, id, ad, sayfa, e, simdi, tr, kaynak: `${l.finalUrl || l.website || ''} (işletmenin sitesinde yayımlanmış iş e-postası, hat taraması ${String(l.tarandi || '').slice(0, 10)})` });
+      if (t.atla) { sk(t.atla); continue; }
+      sayac.restoran = (sayac.restoran || 0) + 1;
+      const biz = bizAlani(kim, l.city); if (biz) t.row._biz = biz;
+      parti.adr.add(e); if (!SERBEST.test(e)) parti.alan.add(dom(e)); parti.isl.ekle(kim, { id, kampanya: KAMPANYA_TR, durum: 'parti' });
+      ids.add(id); satirlar.push(t.row); kopyalar.push(t.kopya);
+      continue;
+    }
     // restoran ailesinin yurt disi mail sablonu motorda yok (v5 sesi peak-outreach'te): sablon yoksa satir atlanir, teslim adimi DUSMEZ (RESTORAN_KUYRUK=acik iken eskiden hata verirdi)
     let m; try { m = mailYaz({ sektor: x.sektor || l.sektor, ad, sayfa, fiyatVar: !!x.fiyatVar }); } catch { sk(`mail-sablon-yok:${x.sektor || l.sektor}`); continue; }
     const sorun = mailDenetle({ ...m, ad, sayfa });
@@ -123,7 +138,16 @@ if (isMain) {
   try { const L = await import(pathToFileURL(path.join(poDir, 'src', 'lint-websites-demo.mjs')).href); dis = (o) => L.lintDemoText({ id: o.id, lang: 'en', subject: o.subject, body: o.body, rendered: true, name: o.name, pageUrl: o.pageUrl }); } catch { console.log('UYARI: peak-outreach lint-websites-demo.mjs yok (websites-demo kodu mainde degil): satir YAZILMAZ'); if (process.argv.includes('--yaz')) process.exit(3); }
   try { const Q = await import(pathToFileURL(path.join(poDir, 'src', 'queue.mjs')).href); validate = Q.validateRow; checkBody = Q.checkBody; if (!Q.PREVIEW) throw new Error('PREVIEW yok'); } catch (e) { console.log(`UYARI: peak-outreach queue.mjs onizleme desteklemiyor (${e.message}): satir YAZILMAZ`); if (process.argv.includes('--yaz')) process.exit(3); }
   const config = JSON.parse(rd('config.json') || '{"regions":{}}');
-  const r = satirlarKur({ son, leadsById, po: { sent: rd('data/sent.jsonl'), queue: rd('data/queue.jsonl'), suppress: rd('suppress.txt'), replied: rd('data/replied.txt') }, onaylanan: new Set(Object.keys(onay).filter((k) => onay[k] && onay[k].onaylandi)), dis });
+  const kurGirdi = { son, leadsById, po: { sent: rd('data/sent.jsonl'), queue: rd('data/queue.jsonl'), suppress: rd('suppress.txt'), replied: rd('data/replied.txt') }, onaylanan: new Set(Object.keys(onay).filter((k) => onay[k] && onay[k].onaylandi)), dis };
+  // Turkiye (METIN V2): TR satiri yalniz TR hazirsa kurulur; eksikler isletmenin canli sitesinden ve OSM'den toplanir (ilk tur bekleyenleri bulur, ikinci tur kurar)
+  const tr = await trHazirla({ poDir, rd });
+  if (tr.hata) console.log(`UYARI: Turkiye modulleri yok ya da eski (${tr.hata}): TR satiri YAZILMAZ`);
+  let r = satirlarKur({ ...kurGirdi, tr });
+  if (!tr.hata && tr.bekleyen.length) {
+    const { Polite } = await import('../uyarla/v2lib/polite.mjs'); const polite = new Polite({ gapMs: 900, hostGapMs: 1600, timeoutMs: 20000 });
+    await trEksikTopla({ tr, E: tr.E, getir: tr.E.politeGetir(polite), osmGetir: tr.E.osmEtiketGetir(polite), simdi: new Date() });
+    r = satirlarKur({ ...kurGirdi, tr });
+  }
   const gecer = r.satirlar.filter((row) => { const neden = satirGecerliMi(row, { validate, checkBody, config }); if (neden) { r.atla[neden] = (r.atla[neden] || 0) + 1; return false; } return true; });
   console.log(`kuyruk: ${gecer.length} bekletilen satir hazir (${[...new Set(gecer.map((x) => x.segment))].join(', ') || '-'}); atlanan ${JSON.stringify(r.atla)}`);
   if (process.argv.includes('--yaz') && gecer.length) {
