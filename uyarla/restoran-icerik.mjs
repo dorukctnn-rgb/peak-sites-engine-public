@@ -15,6 +15,7 @@ import { sloganDogrula } from './lib/slogan.mjs';
 import { SABLONLAR, KATEGORILER } from './sablon-sec.mjs';
 import { yasakVar } from './lib/sozluk.mjs';
 import { yuvaDenetle } from './lib/foto-uyum.mjs';
+import { telEylemEtiket } from './lib/metin.mjs';
 
 const ID = /^\d{2}$/;
 const FIYAT = /^(?:from\s+)?[£€$]\s?\d{1,4}(?:[.,]\d{2})?(?:\s?(?:\/|or|–|-)\s?[£€$]?\s?\d{1,4}(?:[.,]\d{2})?)?$/i;
@@ -76,12 +77,13 @@ export function denetle(k, ctx = {}) {
   }
   // eylem: gercek siparis ya da rezervasyon baglantisi
   const e = k.eylem || {};
-  // TR (TR devam-3): cevrimici baglantisi olmayan isletmede eylem isletmenin kendi telefonudur (hazirlik kapisi bilgi.json eylem.tur 'telefon' yazar); url yok, sayfa numarayi sitenin kendisinden alir
-  const telEylem = k.dil === 'tr' && e.tur === 'telefon';
+  // TELEFON EYLEMI (TR devam-3; 12 Kas 2026 butun ulkeler): cevrimici baglantisi olmayan isletmede eylem isletmenin kendi telefonudur (hazirlik kapisi bilgi.json eylem.tur
+  // 'telefon' yazar); url yok, sayfa numarayi sitenin kendisinden alir.  Sitede gercek bir baglanti varken telefon secilemez.
+  const telEylem = e.tur === 'telefon';
   if (telEylem) { if (ctx.bilgi && ctx.bilgi.eylem && ctx.bilgi.eylem.tur && ctx.bilgi.eylem.tur !== 'telefon') H.push(`eylem.tur telefon secildi ama sitede gercek ${ctx.bilgi.eylem.tur} baglantisi var: ${ctx.bilgi.eylem.url}`); if (e.url) H.push('telefon eyleminde url verilmez (numara sitenin kendisinden)'); }
   else {
     if (!/^https:\/\//.test(String(e.url || '')) || /peakappsstudio/.test(e.url || '')) H.push('eylem.url isletmenin gercek https siparis/rezervasyon baglantisi olmali');
-    if (!['siparis', 'rezervasyon'].includes(e.tur)) H.push(`eylem.tur siparis ya da rezervasyon olmali${k.dil === 'tr' ? ' (TR: ya da telefon)' : ''}`);
+    if (!['siparis', 'rezervasyon'].includes(e.tur)) H.push('eylem.tur siparis, rezervasyon ya da telefon olmali');
   }
   // saat
   if (k.saat && (!Array.isArray(k.saat.satirlar) || !k.saat.satirlar.length || !k.saat.kaynak)) H.push('saat { satirlar, kaynak } olmali ya da null');
@@ -133,15 +135,17 @@ export function kayitKur(k) {
   if (k.sablon === 'v5') {
     ic.foto = { ...(ic.foto || {}), hero: String(k.hero.id) };
     ic.menu = { ...(ic.menu || {}), items: kal.map(({ n, d, p }) => ({ n, d, p })), kaynak: kaynakYazi };
+    // telefon eylemi: etiket karardan (bilgi.json eylem.etiket/kisa), yoksa dile gore lib/metin.mjs telEylemEtiket (EN genel: etiket yok, sablon "Call <numara>" yazar)
+    const te = telEylemEtiket(k.dil === 'tr' ? 'tr' : 'en', { rezervasyon: !!k.eylem.rezervasyonSozu });
     ic.cta = k.eylem.tur === 'telefon'
-      ? { tur: 'telefon', label: k.eylem.etiket || 'Rezervasyon için arayın', short: k.eylem.kisa || 'Arayın' }
+      ? { tur: 'telefon', ...((k.eylem.etiket || te.etiket) ? { label: k.eylem.etiket || te.etiket } : {}), short: k.eylem.kisa || te.kisa }
       : { url: k.eylem.url, tur: k.eylem.tur, platform: k.eylem.platform || null, ...(k.eylem.metin ? { metin: k.eylem.metin } : {}), ...(k.eylem.etiket ? { label: k.eylem.etiket, short: k.eylem.kisa || k.eylem.etiket } : {}) };
     if (k.saat && k.saat.satirlar) ic.saat = { satirlar: k.saat.satirlar.map(String), kaynak: k.saat.kaynak };
     ic.heroGerekce = k.hero.gerekce;
     return { v5: ic, sablon: 'v5' };
   }
   ic.kategori = k.sablon; ic.hero = [String(k.hero.id)]; ic.heroNeden = k.hero.gerekce; ic.menuKaynak = kaynakYazi;
-  if (k.eylem.tur === 'telefon') { // TR: siparis baglantisi yok; sablon kendi telefon eylemini (D.tel) kullanir
+  if (k.eylem.tur === 'telefon') { // siparis baglantisi yok (butun ulkeler); sablon kendi telefon eylemini (D.tel, "Call <numara>" / "Arayın: <numara>") kullanir
     ic.kategoriEk = { ...(ic.kategoriEk || {}), menu: kal.map((x) => ({ n: x.n, d: x.d, p: x.p, cat: x.cat || 'Menu' })), eylemTur: 'telefon' };
     if (k.saat && k.saat.satirlar) ic.kategoriEk.saatSatirlar = k.saat.satirlar.map(String);
     return { kategori: ic, sablon: k.sablon };

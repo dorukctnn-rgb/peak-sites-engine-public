@@ -13,6 +13,7 @@ import { sharp } from './lib/gorsel.mjs';
 import { VERI, DEMO, ORTAK_K, SABLON_FONT } from './lib/yol.mjs';
 import { ONBELLEK } from './lib/font.mjs';
 import { KM, kmOf } from './lib/kategori-metin.mjs';
+import { mapsUrl, konumGecerli } from './lib/metin.mjs';
 import { kartFotoPlan, kartKirp, kenarAcik } from './lib/kart-foto.mjs';
 import { fotoUyum, uyumBaglami, yuvaDaralt, yuvaUygun } from './lib/foto-uyum.mjs';
 
@@ -159,6 +160,8 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   const sec = E.aday[E.sec || 0]; const m = /^(.*?)\*(.+?)\*(.*)$/.exec(sec.text);
   const slogan = m ? { l1: m[1].trim(), l2: (m[2] + m[3]).trim(), duz: sec.text.replace(/\*/g, '') } : { l1: sec.text, l2: '', duz: sec.text };
   const week = (R.hours && R.hours.week) || null;
+  // kaynak kaydi (12 Kas 2026): saat ya da adres sitede yoksa OSM'den gelir; son goz ve inceleme bunu gorur
+  rapor.kaynaklar = { saat: R.hours ? R.hours.via || (R.hours.source === 'json-ld' ? 'sitenin schema.org kaydi' : 'sitenin metni') : null, adres: R.address ? R.address.via || 'site' : null };
   // dil: isletmenin dili (TR 11 Kas 2026: Turkce arayuz, 24 saat, Turkce gun adlari, Turkiye saati)
   const dil = R.lead.lang === 'tr' || bolge === 'TR' ? 'tr' : 'en'; const t = kmOf(dil);
   const saatler = week ? [1, 2, 3, 4, 5, 6, 0].map((d) => ({ d, gun: t.days[d], t: week[d] ? (dil === 'tr' ? `${hhmm24(week[d][0])}–${hhmm24(week[d][1])}` : `${hhmm12(week[d][0])} to ${hhmm12(week[d][1])}`) : t.closed })) : [];
@@ -182,7 +185,8 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
     slug, kat, ad, sehir, bolge, ulke: ULKE[bolge] || '', site: R.lead.site, dil, t, koyu, logo, hero, P, KF, E, R, slogan, atlas, surum, isaret,
     ustYazi: E.ustYazi || R.tagline || '', lede: E.lede || '', saatler, week,
     tel: tel ? { href: `tel:${tel}`, text: R.phone } : null,
-    adres: adres ? { text: adres, map: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ad}, ${adres}`)}` } : null,
+    // adres OSM'den geldiyse (address.konum) harita ve yol tarifi koordinata gider (12 Kas 2026)
+    adres: adres ? { text: adres, map: R.address && konumGecerli(R.address.konum) ? mapsUrl(adres, ad, sehir, R.address.konum) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ad}, ${adres}`)}`, ...(R.address && konumGecerli(R.address.konum) ? { konum: R.address.konum, kaynak: R.address.via || 'osm' } : {}) } : null,
     siparis: R.order || null, hediye: R.giftUrl || null, social: R.social || {}, menu: menuG, ek: R.kategoriEk || {}, paragraflar: (R.ek && R.ek.paragraflar) || [],
     veri: {
       t: dil === 'tr' ? { ...t.durum, to: t.to, closedToday: t.closedToday } : t.durum,

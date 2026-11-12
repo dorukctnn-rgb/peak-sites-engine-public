@@ -252,7 +252,9 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   const tel = phoneRaw ? telHref(phoneRaw, region) : null;
   let phone = phoneRaw;
   if (phone && region === 'AU' && /^\+61\d{9}$/.test(phone)) phone = `(0${phone[3]}) ${phone.slice(4, 8)} ${phone.slice(8)}`;
-  const maps = address ? mapsUrl(address, name, lead.city) : null;
+  // adres OSM'den geldiyse (cikarici.json address.konum) harita koordinata gider; elle adres (icerik.konum) sitenin metnidir, koordinat kullanilmaz
+  const konum = !clean(K.address) && R.address && R.address.konum ? R.address.konum : null;
+  const maps = address ? mapsUrl(address, name, lead.city, konum) : null;
   if (K.kaynak) notes.push(`adres/telefon: ${K.kaynak}`);
 
   // ---- saat ----
@@ -261,6 +263,8 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
     const p = parseSaatler(e.saat.satirlar);
     if (p && p.tableOk) { hoursIn = p; notes.push(`saatler sitenin kendi satırlarından (${e.saat.kaynak || 'elle'})`); } else warn.push('elle saat satirlari cozulmedi');
   }
+  if (hoursIn === R.hours && R.hours && R.hours.via) notes.push(`saatler ${R.hours.via}${R.hours.ham ? `: "${R.hours.ham}"` : ''} (sitede saat yok)`);
+  if (konum) notes.push(`adres ve harita ${R.address.via || 'osm'} (sitede adres yok)`);
   const sd = saatDenetle(hoursIn); const hrs = sd.hours;
   const h12 = ['AU', 'NZ', 'US', 'CA', 'SG'].includes(region); const tz = tzOf(lead.city, region);
   let known = 0; if (hrs) for (let d = 0; d < 7; d++) if (hrs.week[d] || (hrs.byDay && hrs.byDay[d] === 'closed')) known++;
@@ -270,8 +274,8 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   if (!statusOk) warn.push('"simdi acik" gosterilemiyor (7 gunun saati ya da saat dilimi eksik)');
 
   // ---- tek ana eylem: isletmenin gercek baglantisi ----
-  // TR telefon eylemi (TR devam-3): karar 'telefon' dediyse cikaricinin dis rezervasyon izi de kullanilmaz; ana dugme isletmenin kendi numarasi
-  const telKarar = lang === 'tr' && e.cta && e.cta.tur === 'telefon';
+  // telefon eylemi (TR devam-3; 12 Kas 2026 butun ulkeler): karar 'telefon' dediyse cikaricinin dis rezervasyon izi de kullanilmaz; ana dugme isletmenin kendi numarasi
+  const telKarar = !!(e.cta && e.cta.tur === 'telefon');
   const resv = telKarar ? null : (e.cta && e.cta.url) || (R.reservation && R.reservation.external ? R.reservation.url : null);
   // TR (11 Kas 2026): eylemin turu gercek baglantidan; siparis platformu -> "Sipariş ver", WhatsApp hatti -> "WhatsApp'tan yazın"/"sipariş ver", rezervasyon -> "Masa ayırtın"
   const ct = e.cta || {}; const pl = resv ? platformOf(resv) : null;
@@ -280,7 +284,7 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
       : pl === 'WhatsApp' ? (/sipari/i.test(`${ct.tur || ''} ${ct.metin || ''}`) ? { label: 'WhatsApp\'tan sipariş ver', short: 'Sipariş', short2: 'Sipariş ver', ikon: 'chat' } : { label: 'WhatsApp\'tan yazın', short: 'WhatsApp', short2: 'WhatsApp\'tan yazın', ikon: 'chat' })
         : (ct.tur === 'siparis' || (pl && ct.tur !== 'rezervasyon')) ? { label: 'Sipariş ver', short: 'Sipariş', short2: 'Sipariş ver', ikon: 'bag' } : null;
   const main = resv ? { href: resv, label: L.book, short: L.bookShort, short2: L.book, ...(trEtiket || {}), ext: true }
-    : tel ? { href: `tel:${tel}`, label: telKarar && ct.label ? ct.label : `${L.call} ${phone}`, short: telKarar && ct.short ? ct.short : L.call, short2: lang === 'tr' ? (telKarar && ct.label ? ct.label : 'Arayın') : 'Call us', tel: true }
+    : tel ? { href: `tel:${tel}`, label: telKarar && ct.label ? ct.label : `${L.call} ${phone}`, short: telKarar && ct.short ? ct.short : L.call, short2: telKarar && ct.label ? ct.label : lang === 'tr' ? 'Arayın' : 'Call us', tel: true }
       : { href: maps, label: L.directions, short: L.directionsShort, ext: true };
 
   // ---- bolumler (yalniz dolu olanlar) ----

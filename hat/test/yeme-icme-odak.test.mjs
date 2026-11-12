@@ -41,9 +41,9 @@ test('plan.json sira: yeme-icme once (alti ulke), durdurulan sektorler sonda; pl
   assert.deepEqual([...new Set(okunan.map(([u]) => u))].sort(), ['AU', 'GB', 'IE', 'NZ', 'SG', 'TR']);
 });
 
-test('plan.json limitler: restoranHerTur son goz kotasiyla ayni (6); TR restoran ailesi; HK kapali', () => {
+test('plan.json limitler: restoranHerTur son goz kotasiyla ayni (15, 12 Kas kapi verimi); TR restoran ailesi; HK kapali', () => {
   const p = planHam();
-  assert.equal(p.limitler.restoranHerTur, 6); assert.equal(p.limitler.uretimHerTur, 20); assert.equal(p.limitler.osmSorguHerTur, 1);
+  assert.equal(p.limitler.restoranHerTur, 15); assert.equal(p.limitler.uretimHerTur, 20); assert.equal(p.limitler.osmSorguHerTur, 1);
   assert.equal(p.ulkeler.TR.aktif, true); assert.deepEqual(p.ulkeler.TR.sektorler, ['restoran']); assert.match(p.ulkeler.TR.not, /pastane/);
   assert.equal(p.ulkeler.HK.aktif, false);
   assert.ok(!planOku(PLAN).sira.some(([u]) => u === 'HK'));

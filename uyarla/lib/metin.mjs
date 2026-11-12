@@ -80,7 +80,24 @@ export function telHref(phone, region) {
 }
 export function telText(phone) { return String(phone || '').replace(/\s+/g, ' ').trim(); }
 
-export const mapsUrl = (address, name, city) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([address || name, address ? '' : city].filter(Boolean).join(' '))}`;
+// konum (12 Kas 2026): adres OSM'den geldiyse koordinat da gelir; harita baglantisi koordinata (tam nokta) gider, adres metni aramasi yapilmaz
+export const konumGecerli = (k) => !!k && Number.isFinite(Number(k.lat)) && Number.isFinite(Number(k.lon)) && Math.abs(Number(k.lat)) <= 90 && Math.abs(Number(k.lon)) <= 180;
+export const mapsUrl = (address, name, city, konum = null) => (konumGecerli(konum)
+  ? `https://www.google.com/maps/search/?api=1&query=${Number(konum.lat).toFixed(6)},${Number(konum.lon).toFixed(6)}`
+  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([address || name, address ? '' : city].filter(Boolean).join(' '))}`);
+export const yolTarifiUrl = (konum) => (konumGecerli(konum) ? `https://www.google.com/maps/dir/?api=1&destination=${Number(konum.lat).toFixed(6)},${Number(konum.lon).toFixed(6)}` : null);
+
+// TELEFON EYLEMI ETIKETI (12 Kas 2026: sitede cevrimici siparis/rezervasyon baglantisi yoksa ana dugme isletmenin kendi numarasidir, butun ulkelerde).
+// label: ana dugme, short: dar yerler (ust cubuk, telefon alt cubugu).  EN genel: label null -> sablon "Call <numara>" yazar (v5 L.call, kategori t.callN).
+// Site rezervasyondan soz ediyorsa "Rezervasyon için arayın" / "Call to book"; etmiyorsa (firin, pastane, kafe) rezervasyon sozu gecmez.
+export const TEL_EYLEM = {
+  tr: { rez: { label: 'Rezervasyon için arayın', short: 'Ara' }, genel: { label: 'Hemen arayın', short: 'Ara' } },
+  en: { rez: { label: 'Call to book', short: 'Call' }, genel: { label: null, short: 'Call' } },
+};
+export function telEylemEtiket(lang, { rezervasyon = false } = {}) {
+  const t = TEL_EYLEM[lang === 'tr' ? 'tr' : 'en'][rezervasyon ? 'rez' : 'genel'];
+  return { etiket: t.label, kisa: t.short };
+}
 
 // saat dilimi: sehir, sonra bolge
 const TZ_CITY = { 'new york': 'America/New_York', miami: 'America/New_York', 'los angeles': 'America/Los_Angeles', chicago: 'America/Chicago', austin: 'America/Chicago', vancouver: 'America/Vancouver', calgary: 'America/Edmonton', toronto: 'America/Toronto', melbourne: 'Australia/Melbourne', sydney: 'Australia/Sydney', brisbane: 'Australia/Brisbane', dublin: 'Europe/Dublin', galway: 'Europe/Dublin', cork: 'Europe/Dublin', auckland: 'Pacific/Auckland', christchurch: 'Pacific/Auckland', wellington: 'Pacific/Auckland', singapore: 'Asia/Singapore', londra: 'Europe/London', london: 'Europe/London', manchester: 'Europe/London' };

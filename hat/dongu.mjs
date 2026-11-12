@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { kapiBitti } from '../uyarla/lib/surum.mjs';
 import { uretimPuani } from '../lead/puan.mjs';
 import { ULKELER, TEMEL_ULKE, kapaliUlke } from '../lead/sektorler.mjs';
+import { leadKategori, leadOncelik } from './on-eleme.mjs';
 
 const jsonOku = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const jsonYaz = (f, o) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, 1)); };
@@ -41,6 +42,11 @@ export function listeEtiketEski(dosya, sektor) {
 // ---- MAKSIMUM HAT (12 Kas 2026) ----
 // HAT_TUR_ADAY: tur basina uretilecek aday sayisi (varsayilan 20; ortam degiskeni, plan.json limitler.uretimHerTur yedek).  Ust sinir 200.
 export const TUR_ADAY_VARSAYILAN = 20;
+// restoran ailesi tur hakki (plan.json limitler.restoranHerTur yoksa).  12 Kas 2026: 6 -> 15 (on eleme + OSM saat/adres ile gecme orani artti; sure hesabi hat/plan.json notunda)
+export const RESTORAN_HER_TUR = 15;
+// pizza ve burger (12 Kas 2026): ulke basina taranmis pizza+burger adayi bunun altindaysa hedefli tarama; restoran listesinde pizza+burger bundan azsa hedefli OSM sorgusu
+export const PB_HAVUZ = 8;
+export const PB_LISTE_ESIK = 50;
 export function turAdayOku(env = process.env, L = {}) {
   const n = Math.floor(Number(env.HAT_TUR_ADAY));
   if (Number.isFinite(n) && n >= 1) return Math.min(n, 200);
@@ -83,6 +89,20 @@ export function adayDengele(liste, { adet = TUR_ADAY_VARSAYILAN, restoranSiniri 
   return out;
 }
 
+// PIZZA VE BURGER ONCELIGI (12 Kas 2026, Doruk: "pizzacı ve hamburgercilere çok ağırlık ver, o şablonlar çok iyi!"): restoran adaylari kategori onceligine gore
+// secilir (pizza + burger, sonra burrito/taco, sonra digerleri: hat/on-eleme.mjs leadOncelik); her oncelik grubunda ulkeler dengeli (adayDengele).  Pizza ve burger adayi
+// varken tur hakkinin tamami once onlara gider (en az ~2/3 sarti boylece kendiliginden saglanir); yetmezse siradaki grup tamamlar.
+export function restoranSec(liste, { adet = RESTORAN_HER_TUR, ofset = 0, oncelikOf = leadOncelik } = {}) {
+  const out = [];
+  for (const p of [0, 1, 2]) { if (out.length >= adet) break; out.push(...adayDengele(liste.filter((l) => oncelikOf(l) === p), { adet: adet - out.length, ofset })); }
+  return out;
+}
+export function havuzKategori(liste) {
+  const m = { restoran: 0, pizza: 0, burger: 0, burrito: 0 };
+  for (const l of liste) { if (l.sektor !== 'restoran') continue; m.restoran++; const k = leadKategori(l); if (k) m[k]++; }
+  return m;
+}
+
 // uretilecek adaylar: taranmis, durum aday, uretilmemis, daha once yazilmamis/susturulmamis; sira: lead/puan.mjs uretimPuani (kotu ama malzemesi olan siteler once)
 export function adaylar({ depo, plan, veri, yazilan = null, uretimLead }) {
   const out = [];
@@ -112,13 +132,26 @@ export async function dongu({ depo, kutu, po = null, sureDk = 40, parti = `p${Da
   }
 
   // 1. lead topla: yeni ya da eskimis liste icin en cok osmSorguHerTur sorgu
+  // 12 Kas 2026: buyuk ulkeler PARCALI (lead/osm.mjs bulParcali): ulke kutusu parcalara bolunur, her turda butce kadar parca cekilir, ilerleme
+  // lead/<ULKE>-<sektor>.parca.json'da turlar arasi tasinir (bitmemis liste varken eski liste kullanilmaya devam eder).  OSM butcesi en cok 6 dk.
   let osmKota = L.osmSorguHerTur ?? 1;
   for (const [ulke, sektor] of plan.sira) {
     if (osmKota <= 0 || kalanDk() < 8) break;
     const f = path.join(depo, 'lead', `${ulke}-${sektor}.jsonl`); const yenile = L.leadYenilemeGun ?? 120;
+    const ilerleme = path.join(depo, 'lead', `${ulke}-${sektor}.parca.json`); const devam = fs.existsSync(ilerleme);
     const eski = fs.existsSync(f) && !listeEtiketEski(f, sektor) ? (Date.now() - fs.statSync(f).mtimeMs) / 864e5 : Infinity;
-    if (eski < yenile) continue;
+    if (eski < yenile && !devam) continue;
     osmKota--;
+    if (A.bulParcali) {
+      const butceDk = Math.max(1, Math.min(6, kalanDk() - 8));
+      try {
+        const r = await zamanli(A.bulParcali(ulke, sektor, { ilerleme, bitis: Date.now() + butceDk * 60000, log: () => {} }), (butceDk + 2.5) * 60000, `osm ${ulke}-${sektor}`);
+        if (r.tamam && r.leads.length) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, `${r.leads.map((x) => JSON.stringify(x)).join('\n')}\n`); }
+        sonuc.osm.push(`${ulke}-${sektor}: ${r.tamam ? r.leads.length : `parca ${r.parca}`}`); log(`osm ${ulke}-${sektor}: ${r.tamam ? `${r.leads.length} lead (${r.parca} parca)` : `parca ${r.parca}, sonraki turda surer`}`);
+        if (r.hata) sonuc.hata.push(`osm ${ulke}-${sektor}: ${r.hata}`);
+      } catch (e) { sonuc.hata.push(`osm ${ulke}-${sektor}: ${String(e.message).slice(0, 80)}`); log(`osm ${ulke}-${sektor} hata: ${String(e.message).slice(0, 80)}`); }
+      continue;
+    }
     try {
       const leads = await zamanli(A.bul(ulke, sektor, { log: () => {} }), Math.min(8, kalanDk() - 2) * 60000, `osm ${ulke}-${sektor}`);
       if (leads.length) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, `${leads.map((x) => JSON.stringify(x)).join('\n')}\n`); }
@@ -126,29 +159,76 @@ export async function dongu({ depo, kutu, po = null, sureDk = 40, parti = `p${Da
     } catch (e) { sonuc.hata.push(`osm ${ulke}-${sektor}: ${String(e.message).slice(0, 80)}`); log(`osm ${ulke}-${sektor} hata: ${String(e.message).slice(0, 80)}`); }
   }
 
+  // 1b. HEDEFLI PIZZA + BURGER SORGUSU (12 Kas 2026, Doruk): restoran listesi yoksa, eski etiketliyse ya da icinde pizza+burger PB_LISTE_ESIK'ten azsa
+  // amenity=restaurant|fast_food + (cuisine~pizza|burger ya da adinda pizza/burger) + (website ya da contact:website) tek, hafif sorgu (lead/osm.mjs sorguPB; parcali, TR'de zaman asimina dusmez).
+  // Sonuc <ULKE>-restoran.pb.jsonl (tarama ana listeyle birlikte okur).  Turda en cok osmHedefliHerTur (1) ulke, en cok 3 dk.
+  let pbKota = L.osmHedefliHerTur ?? 1;
+  for (const [ulke, sektor] of plan.sira) {
+    if (sektor !== 'restoran' || !A.bulParcali) continue;
+    if (pbKota <= 0 || kalanDk() < 10) break;
+    const pbF = path.join(depo, 'lead', `${ulke}-${sektor}.pb.jsonl`); const pbIl = path.join(depo, 'lead', `${ulke}-${sektor}.pb.parca.json`); const devam = fs.existsSync(pbIl);
+    const yenile = L.leadYenilemeGun ?? 120; const pbYas = fs.existsSync(pbF) ? (Date.now() - fs.statSync(pbF).mtimeMs) / 864e5 : Infinity;
+    if (!devam && pbYas < yenile) continue;
+    const ana = path.join(depo, 'lead', `${ulke}-${sektor}.jsonl`);
+    const anaPB = fs.existsSync(ana) ? jsonl(ana).filter((l) => !l.elendi && leadOncelik(l) === 0).length : 0; // eski etiketli liste de sayilir (restaurant ve fast_food eski etiketlerde de vardi)
+    if (!devam && anaPB >= PB_LISTE_ESIK) continue; // ana liste pizza ve burger acisindan zengin
+    pbKota--;
+    const butceDk = Math.max(1, Math.min(3, kalanDk() - 10));
+    try {
+      const r = await zamanli(A.bulParcali(ulke, sektor, { ilerleme: pbIl, hedef: 'pizza-burger', bitis: Date.now() + butceDk * 60000, log: () => {} }), (butceDk + 2.5) * 60000, `osm ${ulke} pizza-burger`);
+      if (r.tamam) { fs.mkdirSync(path.dirname(pbF), { recursive: true }); fs.writeFileSync(pbF, r.leads.length ? `${r.leads.map((x) => JSON.stringify({ ...x, hedefli: 'pizza-burger' })).join('\n')}\n` : ''); }
+      sonuc.osm.push(`${ulke}-pizza-burger: ${r.tamam ? r.leads.length : `parca ${r.parca}`}`); log(`osm ${ulke} pizza-burger: ${r.tamam ? `${r.leads.length} lead (ana listede ${anaPB})` : `parca ${r.parca}`}`);
+      if (r.hata) sonuc.hata.push(`osm ${ulke} pizza-burger: ${r.hata}`);
+    } catch (e) { sonuc.hata.push(`osm ${ulke} pizza-burger: ${String(e.message).slice(0, 80)}`); }
+  }
+
   // 2. tara: uretilmemis aday havuzu hedefin altindaysa yeni lead tara (sure butcesinin ~%40'i)
   const hedef = Math.max(L.havuzHedef ?? 40, turAday); const taraBitis = Date.now() + Math.max(0, kalanDk()) * 0.4 * 60000;
   const ulkeler = [...new Set(plan.sira.map(([u]) => u))]; const ulkeHedef = Math.ceil(hedef / Math.max(1, ulkeler.length));
-  const havuz = () => { const m = {}; for (const l of adaylar({ depo, plan, veri, yazilan, uretimLead: A.uretimLead })) m[l.ulke] = (m[l.ulke] || 0) + 1; return m; };
+  // pizza ve burger (12 Kas 2026): ulkenin genel havuzu dolu olsa da pizza+burger havuzu PB_HAVUZ'un altindaysa yalniz pizza/burger lead'leri taranir;
+  // restoran listesi taranirken pizza/burger lead'leri once (hedefli liste <ULKE>-restoran.pb.jsonl de girdi).
+  const PBH = L.pizzaBurgerHavuz ?? PB_HAVUZ; const pbBitti = new Set();
+  const havuz = () => { const m = {}; const pb = {}; for (const l of adaylar({ depo, plan, veri, yazilan, uretimLead: A.uretimLead })) { m[l.ulke] = (m[l.ulke] || 0) + 1; if (l.sektor === 'restoran' && leadOncelik(l) === 0) pb[l.ulke] = (pb[l.ulke] || 0) + 1; } return { m, pb }; };
   let polite = null; let browser = null;
   for (const [ulke, sektor] of plan.sira) {
-    const say = havuz(); if (ulkeler.every((u) => (say[u] || 0) >= ulkeHedef) || Date.now() > taraBitis - 30000) break;
-    if ((say[ulke] || 0) >= ulkeHedef) continue; // bu ulkenin havuzu dolu: siradaki ulkeye gec (ayni ulkede yiginlanma yok)
-    const girdi = path.join(depo, 'lead', `${ulke}-${sektor}.jsonl`); if (!fs.existsSync(girdi)) continue;
+    if (Date.now() > taraBitis - 30000) break;
+    const { m: say, pb } = havuz(); const pbGerek = (u, sk) => sk === 'restoran' && (pb[u] || 0) < PBH && !pbBitti.has(u);
+    if (plan.sira.every(([u, sk]) => (say[u] || 0) >= ulkeHedef && !pbGerek(u, sk))) break;
+    const tam = (say[ulke] || 0) < ulkeHedef; const yalnizPB = !tam && pbGerek(ulke, sektor);
+    if (!tam && !yalnizPB) continue; // bu ulkenin havuzu dolu: siradaki ulkeye gec (ayni ulkede yiginlanma yok)
+    const girdiler = [`${ulke}-${sektor}.jsonl`, ...(sektor === 'restoran' ? [`${ulke}-${sektor}.pb.jsonl`] : [])].map((f) => path.join(depo, 'lead', f)).filter((f) => fs.existsSync(f));
+    if (!girdiler.length) { if (yalnizPB) pbBitti.add(ulke); continue; }
     const cikti = path.join(depo, 'lead', `${ulke}-${sektor}.tarandi.jsonl`); const onceki = A.tarananlar(cikti);
-    const leads = jsonl(girdi).filter((l) => !l.elendi && !onceki.has(l.id)); if (!leads.length) continue;
+    const gor = new Set(); let leads = girdiler.flatMap((f) => jsonl(f)).filter((l) => !l.elendi && !onceki.has(l.id) && !gor.has(l.id) && gor.add(l.id));
+    if (sektor === 'restoran') leads = [...leads.filter((l) => leadOncelik(l) === 0), ...leads.filter((l) => leadOncelik(l) !== 0)];
+    if (yalnizPB) leads = leads.filter((l) => leadOncelik(l) === 0);
+    if (!leads.length) { if (yalnizPB) pbBitti.add(ulke); continue; }
     if (!polite) { polite = new A.Polite({ gapMs: 400, hostGapMs: 1600, timeoutMs: 15000 }); browser = await A.openBrowser(); }
     const r = await A.taraHepsi({ leads, cikti, es: L.tarayiciEs ?? 6, polite, browser, sureDk: (taraBitis - Date.now()) / 60000, onceki, log: () => {} });
-    sonuc.tarandi[`${ulke}-${sektor}`] = r.sayac; log(`tara ${ulke}-${sektor}: ${JSON.stringify(r.sayac)}`);
+    sonuc.tarandi[`${ulke}-${sektor}${yalnizPB ? '-pb' : ''}`] = r.sayac; log(`tara ${ulke}-${sektor}${yalnizPB ? ' (yalniz pizza+burger)' : ''}: ${JSON.stringify(r.sayac)}`);
+    if (yalnizPB) pbBitti.add(ulke); // bir turda bir kez
   }
   if (browser) await browser.close().catch(() => {});
 
   // 3. uret + kapi + inceleme paketi
-  const liste = adaylar({ depo, plan, veri, yazilan, uretimLead: A.uretimLead }); sonuc.adaySayisi = liste.length;
+  let liste = adaylar({ depo, plan, veri, yazilan, uretimLead: A.uretimLead }); sonuc.adaySayisi = liste.length;
+  sonuc.havuz = havuzKategori(liste); log(`havuz: ${JSON.stringify(sonuc.havuz)}`);
+  // restoran ailesi son goz kutusu kotasina bagli: turda en cok restoranHerTur isletme hazirlanir; secim ulkeler arasi dengeli (HAT_TUR_ADAY adet)
+  const RH = L.restoranHerTur ?? RESTORAN_HER_TUR;
+  // 3a. ON ELEME (12 Kas 2026, hat/on-eleme.mjs): hazirliktan once ucuz bakis (ana sayfa sinyalleri + OSM saat/adres etiketleri); zincir ve menusuz adaylar bu turda atlanir,
+  // digerleri gecme olasiligina gore siralanir.  Sure: en cok ~2,5 dk ya da kalan surenin %10'u.
+  if (A.onHazirla && liste.some((l) => l.sektor === 'restoran') && kalanDk() > 6) {
+    try {
+      const pol = A.Polite ? new A.Polite({ gapMs: 300, hostGapMs: 1600, timeoutMs: 12000 }) : null;
+      const r = await A.onHazirla({ liste, depo, adet: Math.max(RH * 3, 30), bitis: Date.now() + Math.min(2.5, kalanDk() * 0.1) * 60000, polite: pol, es: L.tarayiciEs ?? 6, log: () => {} });
+      liste = r.liste; sonuc.onEleme = r.sayac; log(`on eleme: ${JSON.stringify(r.sayac)}`);
+    } catch (e) { sonuc.hata.push(`on eleme: ${String(e.message).slice(0, 80)}`); }
+  }
   if (liste.length && kalanDk() > 3) {
-    // restoran ailesi son goz kutusu kotasina bagli: turda en cok restoranHerTur isletme hazirlanir; secim ulkeler arasi dengeli (HAT_TUR_ADAY adet)
-    const RH = L.restoranHerTur ?? 6;
-    const secilen = adayDengele(liste, { adet: turAday, restoranSiniri: RH, ofset });
+    // restoran ailesi: pizza + burger once (restoranSec), sonra diger sektorler ulkeler arasi dengeli
+    const rSec = restoranSec(liste.filter((l) => l.sektor === 'restoran'), { adet: Math.min(RH, turAday), ofset });
+    const secilen = [...rSec, ...adayDengele(liste.filter((l) => l.sektor !== 'restoran'), { adet: turAday - rSec.length, restoranSiniri: 0, ofset })];
+    sonuc.secilenKategori = havuzKategori(rSec);
     for (const l of secilen) sonuc.ulkeler[l.ulke] = (sonuc.ulkeler[l.ulke] || 0) + 1;
     const leads = secilen.map((l) => { const c = { ...l }; delete c.email; return c; });
     const r = await A.uretimCalis({ leads, limit: leads.length, sureDk: kalanDk() - 2, log: (s) => log(s.slice(0, 160)) });
@@ -191,12 +271,12 @@ if (isMain) {
   const depo = path.resolve(arg('--depo', 'calisma/veri-depo'));
   if (!process.env.UYARLA_VERI) process.env.UYARLA_VERI = path.join(depo, 'veri');
   if (!process.env.UYARLA_DEMO) process.env.UYARLA_DEMO = path.resolve('calisma/demo');
-  const [{ bul }, tara, { Polite }, { openBrowser }, { uretimCalis, uretimLead }, kutuM, { yazilanlar }] = await Promise.all([import('../lead/osm.mjs'), import('../lead/tara.mjs'), import('../uyarla/v2lib/polite.mjs'), import('../uyarla/lib/ziyaret.mjs'), import('./uretim.mjs'), import('./kutu.mjs'), import('./kuyruk.mjs')]);
+  const [{ bul, bulParcali }, tara, { Polite }, { openBrowser }, { uretimCalis, uretimLead }, kutuM, { yazilanlar }, { onHazirla }] = await Promise.all([import('../lead/osm.mjs'), import('../lead/tara.mjs'), import('../uyarla/v2lib/polite.mjs'), import('../uyarla/lib/ziyaret.mjs'), import('./uretim.mjs'), import('./kutu.mjs'), import('./kuyruk.mjs'), import('./on-eleme.mjs')]);
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const r = await dongu({
     depo, kutu: arg('--kutu') ? path.resolve(arg('--kutu')) : null, po: arg('--po') ? path.resolve(arg('--po')) : null, sureDk: Number(arg('--sure', 40)), parti: arg('--parti') || undefined,
     planDosya: path.join(root, 'hat', 'plan.json'), veri: process.env.UYARLA_VERI,
-    araclar: { bul, taraHepsi: tara.taraHepsi, tarananlar: tara.tarananlar, Polite, openBrowser, uretimCalis, uretimLead, hazirlar: kutuM.hazirlar, icerikHazir: kutuM.icerikHazir, kutuEkle: kutuM.ekle, kutuOku: kutuM.kutuOku, yazilanlar },
+    araclar: { bul, bulParcali, onHazirla, taraHepsi: tara.taraHepsi, tarananlar: tara.tarananlar, Polite, openBrowser, uretimCalis, uretimLead, hazirlar: kutuM.hazirlar, icerikHazir: kutuM.icerikHazir, kutuEkle: kutuM.ekle, kutuOku: kutuM.kutuOku, yazilanlar },
   });
   console.log(`DONGU BITTI ${JSON.stringify({ osm: r.osm, tarandi: r.tarandi, adaySayisi: r.adaySayisi, uretim: r.uretim, turAday: r.turAday, ulkeler: r.ulkeler, kutuya: r.kutuya, hata: r.hata })}`);
   process.exit(0);
