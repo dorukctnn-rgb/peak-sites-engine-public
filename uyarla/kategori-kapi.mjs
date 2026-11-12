@@ -7,10 +7,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { sharp } from './lib/gorsel.mjs';
 import { pageDir } from './uret-kategori.mjs';
-import { yasakVar } from './lib/sozluk.mjs';
+import { kalip } from './lib/sozluk.mjs';
+// tarayici icinde calisan denetime yasak kalip KAYNAK olarak gecer (modul kapsami tarayiciya tasinmaz; kalip yoksa kalip() hata firlatir: fail-closed)
+export const kalipArg = (ad) => { const r = kalip(ad); return [r.source, r.flags.replace('g', '')]; };
 
 // sayfa ici denetim (tek fonksiyon; her genislikte)
-export const DENETIM = async (orderUrl) => {
+export const DENETIM = async (arg) => {
+  const { orderUrl, kis } = arg && typeof arg === 'object' ? arg : { orderUrl: arg, kis: null };
   window.__px = window.__px || {};
   for (const im of document.querySelectorAll('img')) { const u = im.currentSrc || im.src; if (!u || window.__px[u] || !im.complete || !im.naturalWidth) continue; const t = new Image(); t.src = u; try { await t.decode(); window.__px[u] = [t.naturalWidth, t.naturalHeight]; } catch { window.__px[u] = [im.naturalWidth, im.naturalHeight]; } }
   const vw = innerWidth, vh = innerHeight, dpr = devicePixelRatio, S = [];
@@ -45,7 +48,7 @@ export const DENETIM = async (orderUrl) => {
   for (const p of document.querySelectorAll('.panel')) if (!p.querySelector('.mi')) S.push(`bos menu sekmesi: ${p.id}`);
   // metin: yasak kisaltma ve yer adlari
   const metin = [document.title, document.querySelector('meta[name=description]')?.content || '', document.body.innerText, ...[...document.querySelectorAll('[alt],[aria-label],[title]')].map((e) => `${e.getAttribute('alt') || ''} ${e.getAttribute('aria-label') || ''} ${e.getAttribute('title') || ''}`)].join(' \n ');
-  if (yasakVar('kisaltmaKelime', metin)) S.push('metinde yasak kisaltma geciyor');
+  if (!kis) S.push('yasak kisaltma kalibi verilmedi'); else if (new RegExp(kis[0], kis[1]).test(metin)) S.push('metinde yasak kisaltma geciyor');
   // TR sayfasi (lang=tr, 11 Kas): adres ve sehir isletmenin kendisinin (Kadıköy/İstanbul, Lara/Antalya); bizim konumumuz sayfada hic yok, kural yalniz yurt disi sayfalarda
   if (document.documentElement.lang !== 'tr' && /T[uü]rkiye|Turkey|Antalya/i.test(metin)) S.push('metinde yasak yer adi');
   // ilk ekran: saat, adres, telefon, simdi acik, ana eylem
@@ -111,7 +114,7 @@ export async function kategoriKapi(slug, { browser, base, veri }) {
       const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: 1, reducedMotion: 'no-preference', ...opt });
       const pg = await ctx.newPage(); await guard(pg, label);
       await pg.goto(`${url}?capture=1`, { waitUntil: 'load' }); await pg.evaluate(() => document.fonts.ready); await pg.waitForTimeout(500);
-      const ilk = await pg.evaluate(DENETIM, orderUrl);
+      const ilk = await pg.evaluate(DENETIM, { orderUrl, kis: kalipArg('kisaltmaKelime') });
       await jpg(pg, `sonra-${label}.jpg`, 86, undefined, true);
       await tumSayfa(pg); await pg.waitForTimeout(400);
       // tum bolumleri gezip gorselleri denetle (tembel yuklenenler dahil)
@@ -119,7 +122,7 @@ export async function kategoriKapi(slug, { browser, base, veri }) {
       const tum = { sorun: [], gorsel: [] };
       for (const b of bolumler) {
         await pg.evaluate((y) => scrollTo(0, y), Math.max(0, b.y - (label === '390' ? 70 : 90))); await pg.waitForTimeout(260);
-        const a = await pg.evaluate(DENETIM, orderUrl);
+        const a = await pg.evaluate(DENETIM, { orderUrl, kis: kalipArg('kisaltmaKelime') });
         for (const s of a.sorun) if (!s.startsWith('ilk ekranda') && !tum.sorun.includes(s)) tum.sorun.push(s);
         for (const g of a.gorsel) if (!tum.gorsel.find((x) => x.src === g.src && x.css === g.css)) tum.gorsel.push(g);
         if (BOLUM) await jpg(pg, `bolum-${label}-${b.ad}.jpg`, 78);
