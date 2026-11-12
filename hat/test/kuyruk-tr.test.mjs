@@ -11,7 +11,7 @@ const EKSIKLER = [
   { cumle: 'Telefon numaranız sayfada yazıyor ama dokununca aramıyor.', kanit: 'ana sayfa kaynağı (12 Kas 2026): numara düz metin, tel: bağlantısı 0 adet' },
   { cumle: 'Çalışma saatleriniz yalnızca sayfanın en altında duruyor.', kanit: 'ana sayfa kaynağı (12 Kas 2026): saat yalnız alt bilgi bölümünde, üst bölümlerde 0 satır' },
 ];
-const lead = (o = {}) => ({ id: 'TR-n1', osm: 'node/1', ulke: 'TR', sektor: 'restoran', name: 'Örnek Lokanta', website: 'https://ornek-lokanta.example/', finalUrl: 'https://ornek-lokanta.example/', email: 'info@ornek-lokanta.example', durum: 'aday', slug: 'ornek-lokanta-tr0001', tarandi: '2026-11-11T21:00:00Z', ...o });
+const lead = (o = {}) => ({ id: 'TR-n1', osm: 'node/1', ulke: 'TR', sektor: 'restoran', name: 'Örnek Lokanta', website: 'https://ornek-lokanta.example/', finalUrl: 'https://ornek-lokanta.example/', email: 'info@ornek.test', durum: 'aday', slug: 'ornek-lokanta-tr0001', tarandi: '2026-11-11T21:00:00Z', ...o });
 const sonOge = (l, o = {}) => ({ durum: 'hazir', sektor: 'restoran', sonGoz: true, slug: l.slug, leadId: l.id, ad: l.name, page: `r/${l.slug}-ab12cd`, onizleme: '/tmp/onizleme.jpg', sablon: 'v5', parti: 'p1', ...o });
 // sahte tr: eksikler[] ile bir mail govdesi kurar; denetim ve benzersizlik cagrilari sayilir
 const sahteTr = (o = {}) => {
@@ -43,7 +43,7 @@ test('trSatirKur: kamu kurumu ve sahte ornek e-posta adresi satir olmaz, eksik t
     const r = trSatirKur({ x: sonOge(l), l, id: 'WH-TR-n1', ad: l.name, sayfa: SAYFA, e, simdi: SIMDI, tr, kaynak: 'x' });
     assert.equal(r.atla, 'eposta-uygunsuz'); assert.equal(tr.bekleyen.length, 0, 'bekleyene de girmez');
   }
-  for (const e of ['info@ornek-lokanta.example', 'rezervasyon@lokanta.com.tr', 'merhaba@dernek.org.tr', 'ornek@gmail.com']) assert.doesNotMatch(e, EPOSTA_UYGUNSUZ_TR, e);
+  for (const e of ['info@ornek.test', 'rezervasyon@ornek-lokanta.com.tr', 'merhaba@ornek-dernek.org.tr', 'ornek@gmail.com']) assert.doesNotMatch(e, EPOSTA_UYGUNSUZ_TR, e);
 });
 
 test('trSatirKur: 2 kanitli eksik yoksa, onizleme yoksa ya da onizleme gecmiyorsa satir yok', () => {
@@ -61,7 +61,7 @@ test('trSatirKur: satir kampanya websites-demo-tr, TR, tr, bekletilir; kanit sat
   assert.ok(r.row, JSON.stringify(r));
   const row = r.row;
   assert.equal(row.campaign, KAMPANYA_TR); assert.equal(KAMPANYA_TR, 'websites-demo-tr'); assert.equal(row.region, 'TR'); assert.equal(row.lang, 'tr'); assert.equal(row.segment, 'demo');
-  assert.equal(row._held, BEKLET_TR); assert.equal(row.to, 'info@ornek-lokanta.example'); assert.equal(row.id, 'WH-TR-n1');
+  assert.equal(row._held, BEKLET_TR); assert.equal(row.to, 'info@ornek.test'); assert.equal(row.id, 'WH-TR-n1');
   assert.equal(row.preview.path, 'attachments/websites-demo-tr/WH-TR-n1.jpg'); assert.equal(row.preview.href, SAYFA);
   assert.equal(row._eksikler.length, 2); assert.match(row._evidence, /ana sayfa kaynağı \(12 Kas 2026\)/); assert.ok(!row.body.includes('kaynağı (12 Kas'));
   assert.equal(row.notBefore, '2026-11-13T00:00:00Z');
@@ -124,7 +124,7 @@ test('satirlarKur TR: tr nesnesi yoksa ya da hatali ise satir yazilmaz; kapilar 
 });
 
 test('satirlarKur TR: partide ayni adres bir kez; kuyrukta bekleyen TR satirinin adresi yazilmis sayilir', () => {
-  const a = lead(); const b = lead({ id: 'TR-n2', osm: 'node/2', slug: 'baska-tr0002', name: 'Başka Lokanta', website: 'https://baska.example/', finalUrl: 'https://baska.example/', email: 'info@baska.example' });
+  const a = lead(); const b = lead({ id: 'TR-n2', osm: 'node/2', slug: 'baska-tr0002', name: 'Başka Lokanta', website: 'https://baska.example/', finalUrl: 'https://baska.example/', email: 'info@x.test' });
   const { tr } = sahteTr(); ekle(tr, a); ekle(tr, b);
   const r = kur([sonOge(a), sonOge(b, { page: 'r/baska-tr0002-ab12cd', slug: 'baska-tr0002' })], [a, b], tr);
   assert.equal(r.satirlar.length, 2, JSON.stringify(r.atla));
