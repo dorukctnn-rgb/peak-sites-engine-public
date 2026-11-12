@@ -180,7 +180,9 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   } else { const h0 = P[String((E.hero || [])[0])]; hero = { ...h0, kaynak: `kare ${h0.id} ${h0.gercekW}x${h0.gercekH}`, kirpma: null, maxCss: h0.bw }; }
   // object-fit: cover kutularinda yatay kare kutunun yuksekligine gore buyur: sizes en/boy orani kadar buyutulur (deneme turu 11 Kas: pizza dairesinde 3:2 kare
   // 960 surumuyle x1.10-1.15 buyutulmustu; kapi yakaladi).  Fazla bayt bulaniktan iyidir; buyuk surum zaten var.
-  hero.sizes = olcekSizes(AYAR.heroSizes || '100vw', Math.max(1, (hero.bw || 1) / (hero.bh || 1)));
+  // NETLIK (12 Kas 2026, yonetici kurali "flu goruntu olmasin"): AYAR.sizesKat (or. 2) -> tarayici gosterilen boyutun o kati genislikte dosyayi secer (1x ekranda da 2x kaynak)
+  const SK = AYAR.sizesKat > 1 ? AYAR.sizesKat : 1;
+  hero.sizes = olcekSizes(AYAR.heroSizes || '100vw', Math.max(1, (hero.bw || 1) / (hero.bh || 1)) * SK);
   rapor.hero = hero;
   // ikinci marka isareti (or. BCB simsek): isletmenin kendi grafigi, oran ve renk aynen; yalniz kucultulur (buyutme yok), saydamlik korunur
   let isaret = null;
@@ -275,7 +277,7 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
     },
     esc,
     // <img> yardimcisi: srcset yalniz gercek genisliklerle
-    img: (p, { sizes = '100vw', cls = '', alt = '', lazy = true, pri = false } = {}) => `<img${cls ? ` class="${cls}"` : ''} src="${p.big}" srcset="${p.sm} ${p.sw}w, ${p.big} ${p.bw}w" sizes="${olcekSizes(sizes, Math.max(1, p.bw / p.bh))}" alt="${esc(alt)}" width="${p.bw}" height="${p.bh}"${lazy ? ' loading="lazy"' : ''}${pri ? ' fetchpriority="high"' : ''} decoding="async" style="--fx:${(p.fx ?? 50).toFixed(1)}%;--fy:${(p.fy ?? 50).toFixed(1)}%">`,
+    img: (p, { sizes = '100vw', cls = '', alt = '', lazy = true, pri = false } = {}) => `<img${cls ? ` class="${cls}"` : ''} src="${p.big}" srcset="${p.sm} ${p.sw}w, ${p.big} ${p.bw}w" sizes="${olcekSizes(sizes, Math.max(1, p.bw / p.bh) * SK)}" alt="${esc(alt)}" width="${p.bw}" height="${p.bh}"${lazy ? ' loading="lazy"' : ''}${pri ? ' fetchpriority="high"' : ''} decoding="async" style="--fx:${(p.fx ?? 50).toFixed(1)}%;--fy:${(p.fy ?? 50).toFixed(1)}%">`,
     // kart fotografi yardimcisi: dosya zaten kutu oraninda (kirpilmis), sizes olceklenmez; her zaman tembel
     kimg: (k, { sizes = '100vw', alt = '' } = {}) => `<img src="${k.src}" srcset="${k.srcset}" sizes="${sizes}" alt="${esc(alt)}" width="${k.w}" height="${k.h}" loading="lazy" decoding="async">`,
   };
