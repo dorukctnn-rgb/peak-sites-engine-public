@@ -29,6 +29,14 @@ export function kararlariOku(dir) {
   return out;
 }
 
+// isletme adi icin ek kaynaklar (12 Kas 2026, hat mail sesi): sitenin basligi (<title>), og:title ve secilen logonun alt metni; hat/kuyruk.mjs mailAdi sitenin adi, bunlar, OSM adi sirasiyla dener.
+// Yalniz dolu olanlar yazilir; bos ise alan hic olmaz (eski kayitlar zaten bunsuz).
+export function adAdaylariOku(R) {
+  const o = {}; const al = (k, v) => { const t = String(v || '').replace(/\s+/g, ' ').trim().slice(0, 160); if (t) o[k] = t; };
+  al('baslik', R && R.slogan && R.slogan.title); al('ogTitle', R && R.slogan && R.slogan.ogTitle); al('logoAlt', R && R.logoAlt);
+  return Object.keys(o).length ? o : undefined;
+}
+
 // maildeki "fiyatlariniz" cumlesi yalniz sayfada GERCEKTEN fiyat varsa: konaklamada en az bir odanin fiyati, guzellikte en az 4 fiyatli hizmet
 export function fiyatVarMi(ur) {
   if (!ur) return false;
@@ -84,7 +92,7 @@ export async function uygula({ kararDir, veri = VERI, out = DEMO, onizDir, kutuD
           const on = await onizleme(x.slug, { veri, hedef: path.join(onizDir, `${x.slug}.jpg`) });
           if (!on) { sonuc.push({ slug: x.slug, parti: x.parti, durum: 'gozden-gecir', neden: 'onizleme gorseli uretilemedi' }); continue; }
           const R2 = J(path.join(veri, x.slug, 'cikarici.json'));
-          sonuc.push({ slug: x.slug, leadId: R2.lead && R2.lead.id, ad: R2.name && R2.name.n, parti: x.parti, durum: 'hazir', page: path.dirname(ur.page), sektor: ur.sektor, fiyatVar: fiyatVarMi(ur), onizleme: on.file, neden: String(x.k.neden || '').slice(0, 200) });
+          sonuc.push({ slug: x.slug, leadId: R2.lead && R2.lead.id, ad: R2.name && R2.name.n, adAdaylari: adAdaylariOku(R2), parti: x.parti, durum: 'hazir', page: path.dirname(ur.page), sektor: ur.sektor, fiyatVar: fiyatVarMi(ur), onizleme: on.file, neden: String(x.k.neden || '').slice(0, 200) });
           log(`hazir: ${x.slug} -> ${path.dirname(ur.page)}`);
         } catch (e) { sonuc.push({ slug: x.slug, parti: x.parti, durum: 'gozden-gecir', neden: `hata: ${String(e.message).slice(0, 120)}` }); }
       }
