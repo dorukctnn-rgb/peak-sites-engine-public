@@ -19,15 +19,17 @@ const DISH = [
   { re: /\bbaklava/, tr: 'baklava', en: 'baklava' }, { re: /\bkunefe/, tr: 'künefe', en: 'künefe' }, { re: /\bmanti/, tr: 'mantı', en: 'mantı' },
   { re: /\bpizza/, tr: 'pizza', en: 'pizza' }, { re: /\b(burger|hamburger)/, tr: 'burger', en: 'burgers' }, { re: /\btaco/, tr: 'taco', en: 'tacos' }, { re: /\bsushi/, tr: 'suşi', en: 'sushi' },
   { re: /\bramen/, tr: 'ramen', en: 'ramen' }, { re: /\b(pasta|spaghetti)/, tr: 'makarna', en: 'pasta' }, { re: /\b(steak|biftek)/, tr: 'biftek', en: 'steak' },
-  { re: /\btapas/, tr: 'tapas', en: 'tapas' }, { re: /\bcurry/, tr: 'körü', en: 'curry' }, { re: /\b(bbq|barbecue|mangal)/, tr: 'mangal', en: 'barbecue' },
+  { re: /\btapas/, tr: 'tapas', en: 'tapas' }, { re: /\bcurry/, tr: 'köri', en: 'curry' }, { re: /\b(bbq|barbecue|mangal)/, tr: 'mangal', en: 'barbecue' },
   { re: /\bcocktail|\bkokteyl/, tr: 'kokteyl', en: 'cocktails' }, { re: /\b(craft beer|beer|bira)\b/, tr: 'bira', en: 'beer' }, { re: /\b(wine|sarap)\b/, tr: 'şarap', en: 'wine' },
   { re: /\bcoffee|\bkahve/, tr: 'kahve', en: 'coffee' }, { re: /\b(pastr(y|ies)|bakery|patisserie|firin|pastane)/, tr: 'fırın ürünleri', en: 'pastries' }, { re: /\b(sandwich|sandvic)/, tr: 'sandviç', en: 'sandwiches' },
   { re: /\bnoodle/, tr: 'erişte', en: 'noodles' }, { re: /\b(dumpling)/, tr: 'mantı', en: 'dumplings' }, { re: /\b(oyster)/, tr: 'istiridye', en: 'oysters' }, { re: /\b(shawarma)/, tr: 'şavurma', en: 'shawarma' },
 ];
+// trAbl: yemegin onune gelen dogal Turkce niteleme ("taş fırından pide", "odun ateşinde pizza", "kömür ateşinde kebap");
+// kelime kelime ceviri yok ("tüttürülmüş", "ağır ateşten" gibi bicimler 12 Kas 2026'da duzeltildi)
 const METHOD = [
-  { re: /\btas firin/, trAbl: 'taş fırından', en: 'stone-baked' }, { re: /\bodun (atesi|ates|firin)/, trAbl: 'odun ateşinden', en: 'wood-fired' }, { re: /wood[- ]?(fired|oven)/, trAbl: 'odun ateşinden', en: 'wood-fired' },
-  { re: /stone[- ]?(baked|oven)/, trAbl: 'taş fırından', en: 'stone-baked' }, { re: /\b(mangal|komur)/, trAbl: 'mangaldan', en: 'charcoal-grilled' }, { re: /(charcoal|chargrill)/, trAbl: 'mangaldan', en: 'charcoal-grilled' },
-  { re: /\btandir/, trAbl: 'tandırdan', en: 'tandoor-cooked' }, { re: /\b(smoked|smokehouse)/, trAbl: 'tüttürülmüş', en: 'smoked' }, { re: /slow[- ]cook/, trAbl: 'ağır ateşten', en: 'slow-cooked' },
+  { re: /\btas firin/, trAbl: 'taş fırından', en: 'stone-baked' }, { re: /\bodun (atesi|ates|firin)/, trAbl: 'odun ateşinde', en: 'wood-fired' }, { re: /wood[- ]?(fired|oven)/, trAbl: 'odun ateşinde', en: 'wood-fired' },
+  { re: /stone[- ]?(baked|oven)/, trAbl: 'taş fırından', en: 'stone-baked' }, { re: /\b(mangal|komur)/, trAbl: 'kömür ateşinde', en: 'charcoal-grilled' }, { re: /(charcoal|chargrill)/, trAbl: 'kömür ateşinde', en: 'charcoal-grilled' },
+  { re: /\btandir/, trAbl: 'tandırdan', en: 'tandoor-cooked' }, { re: /\b(smoked|smokehouse)/, trAbl: 'tütsülenmiş', en: 'smoked' }, { re: /slow[- ]cook/, trAbl: 'ağır ateşte pişmiş', en: 'slow-cooked' },
 ];
 const DISH_WORDS = new Set(['lahmacun', 'pide', 'kebap', 'kebab', 'doner', 'kofte', 'balik', 'kahvalti', 'baklava', 'kunefe', 'manti', 'pizza', 'burger', 'hamburger', 'taco', 'tacos', 'sushi', 'ramen', 'pasta', 'steak', 'tapas', 'curry', 'bbq', 'cocktail', 'cocktails', 'coffee', 'kahve', 'wine', 'beer', 'brunch', 'noodle', 'noodles']);
 const GENERIC_NAME = new Set(['restaurant', 'restoran', 'bar', 'cafe', 'kafe', 'kitchen', 'grill', 'house', 'bistro', 'pizzeria', 'lounge', 'pub', 'taverna', 'tavern', 'eatery', 'diner', 'bakery', 'steakhouse', 'and', 'the', 'ile', 'lokanta', 'cuisine', 'food', 'foods', 'shawarma', 'mexican', 'laksa', 'fresh', 'drinks', 'cocktails', 'roma']);
@@ -146,12 +148,16 @@ export function adresParcala(text) {
   return { street: street && street.length >= 3 ? street : null, area, city };
 }
 const trLast = (s) => { const v = [...String(s).toLocaleLowerCase('tr')].reverse().find((c) => 'aıoueiöü'.includes(c)); return v || 'a'; };
-// Turkce bulunma eki: Antalya'da, Konyaaltı'nda, Beşiktaş'ta, Kadıköy'de
+// Turkce bulunma eki: Antalya'da, Konyaaltı'nda, Beşiktaş'ta, Kadıköy'de, Kayseri'de, Bağdat Caddesi'nde.
+// Kaynastirma "n" yalniz iyelik ekiyle biten birlesik adlarda gelir (Konyaaltı, Kaleiçi, Beyoğlu, Nişantaşı, ... Caddesi);
+// uzunluga bakmak yanlisti (Kayseri'nde, Denizli'nde, Kastamonu'nda, Bayraklı'nda uretiyordu; 12 Kas 2026 duzeltildi).
+const BIRLESIK_SON = /(altı|üstü|içi|dışı|başı|önü|arası|yolu|burnu|hisarı|pazarı|taşı|sarayı|düzü|oğlu|adası|yatağı|değirmeni|bahçesi|meydanı|çarşısı|iskelesi|limanı|caddesi|sokağı|bulvarı|mahallesi|köprüsü|deresi|tepesi|kapısı|ağzı|yakası|boyu|kıyısı|plajı)$/;
 export function trBulunma(place) {
   const p = clean(place); if (!p) return '';
   const low = p.toLocaleLowerCase('tr'); const lastC = low[low.length - 1]; const back = 'aıou'.includes(trLast(low)); const V = back ? 'a' : 'e';
+  const sonSoz = low.split(/\s+/).pop();
   let suf;
-  if ('aıoueiöü'.includes(lastC)) suf = ('ıiuü'.includes(lastC) && low.length >= 7) ? `n${'d'}${V}` : `d${V}`;
+  if ('aıoueiöü'.includes(lastC)) suf = ('ıiuü'.includes(lastC) && BIRLESIK_SON.test(sonSoz)) ? `n${'d'}${V}` : `d${V}`;
   else if ('çfhkpsşt'.includes(lastC)) suf = `t${V}`;
   else suf = `d${V}`;
   return `${p}’${suf}`;

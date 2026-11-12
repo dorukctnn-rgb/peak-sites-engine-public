@@ -249,7 +249,7 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
     siparis: R.order || null, hediye: R.giftUrl || null, social: R.social || {}, menu: menuG, ek: R.kategoriEk || {}, paragraflar: (R.ek && R.ek.paragraflar) || [],
     veri: {
       t: dil === 'tr' ? { ...t.durum, to: t.to, closedToday: t.closedToday } : t.durum,
-      days: t.days, h: week, h12: dil !== 'tr', tz: E.tz || (bolge === 'AU' ? AU_TZ[String(sehir).toLowerCase()] : null) || TZ[bolge] || null,
+      days: t.daysCumle || t.days, h: week, h12: dil !== 'tr', tz: E.tz || (bolge === 'AU' ? AU_TZ[String(sehir).toLowerCase()] : null) || TZ[bolge] || null,
       imlec: iz ? { src: iz.src, cell: iz.cell, frames: iz.frames, names: iz.names, stack: iz.zincir, gap: null, parts: iz.parcalar, max: 40, yer: AYAR.izYer || null, boy: AYAR.izBoy || null } : AYAR.izKendi ? null : { src: `../../${ORTAK_K}/${kat}-3d.webp?v=${surum}`, cell: atlas.cell, frames: atlas.frames, names: atlas.names, stack: AYAR.zincir, gap: AYAR.zincirAralik || null, parts: AYAR.parcalar, max: 40 },
     },
     esc,

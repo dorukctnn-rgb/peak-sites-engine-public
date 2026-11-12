@@ -1,5 +1,26 @@
 // Kategori sablonlarinin (burger, burrito, pizza) arayuz metinleri.  EN: onayli demolardaki metnin AYNISI (cikti degismez).  TR (11 Kas 2026): tam Turkce
 // karakterlerle; eylem adlari isletmenin GERCEK baglantisina gore (siparis platformu, WhatsApp hatti, rezervasyon, telefon).  Saat 24 saatlik, gunler Turkce.
+
+// Sayi ya da fiyatin ayrilma eki, sayinin okunusuna gore: ₺450'den, ₺1.250'den, ₺90'dan, ₺40'tan, 1963'ten, 1990'dan, 450 TL'den.
+// (12 Kas 2026: "₺450 başlayan fiyatlarla" eksik ekliydi.)
+const EK_BIRLER = { 1: 'den', 2: 'den', 3: 'ten', 4: 'ten', 5: 'ten', 6: 'dan', 7: 'den', 8: 'den', 9: 'dan' };
+const EK_ONLAR = { 1: 'dan', 2: 'den', 3: 'dan', 4: 'tan', 5: 'den', 6: 'tan', 7: 'ten', 8: 'den', 9: 'dan' };
+export function sayiAyrilmaEki(n) {
+  n = Math.floor(Math.abs(Number(n)));
+  if (!Number.isFinite(n) || n === 0) return 'dan';
+  if (n % 10) return EK_BIRLER[n % 10];
+  if (n % 100) return EK_ONLAR[(n % 100) / 10];
+  if (n % 1000) return 'den'; // yüz
+  return n % 1e6 ? 'den' : 'dan'; // bin / milyon
+}
+export function trAyrilma(p) {
+  const s = String(p || '').trim();
+  if (/\bTL$/i.test(s)) return `${s}'den`;
+  const m = /(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?$/.exec(s);
+  if (!m) return s;
+  const kurus = m[2] && +m[2] ? +m[2] : null;
+  return `${s}'${sayiAyrilmaEki(kurus ?? +m[1].replace(/\./g, ''))}`;
+}
 export const KM = {
   en: {
     lang: 'en', order: 'Order online', orderCollect: 'Order for collection', orderShort: 'Order', call: 'Call', callN: (t) => `Call ${t}`, seeMenu: 'See the menu', menu: 'Menu',
@@ -15,6 +36,7 @@ export const KM = {
     closed: 'Closed', closedToday: 'Closed today', to: ' to ', from: (p) => `from ${p}`,
     durum: { open: 'Open now, until {t}', shut: 'Closed, opens {w}', today: 'today at {t}', tomorrow: 'tomorrow at {t}', dayAt: '{d} at {t}' },
     days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    daysCumle: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   },
   tr: {
     lang: 'tr', order: 'Sipariş ver', orderCollect: 'Sipariş ver', orderShort: 'Sipariş', call: 'Ara', callN: (t) => `Arayın: ${t}`, seeMenu: 'Menüye bakın', menu: 'Menü',
@@ -27,9 +49,11 @@ export const KM = {
     draft: (ad, site) => `${ad} için hazırlanmış web sitesi taslağı. Metinler, fiyatlar ve fotoğraflar ${site} adresinden alınmıştır; bu sayfa yayında değildir.`,
     draftOrder: (ad, site) => `${ad} için hazırlanmış web sitesi taslağı. Metinler, fiyatlar ve fotoğraflar ${site} adresinden ve işletmenin sipariş sayfasından alınmıştır; bu sayfa yayında değildir.`,
     title: (ad, sehir) => `${ad}${sehir ? `, ${sehir}` : ''}: web sitesi taslağı`, desc: (ad) => `${ad} için hazırlanmış web sitesi taslağı (yayında değil).`,
-    closed: 'Kapalı', closedToday: 'Bugün kapalı', to: '–', from: (p) => `${p} başlayan fiyatlarla`,
+    closed: 'Kapalı', closedToday: 'Bugün kapalı', to: '–', from: (p) => `${trAyrilma(p)} başlayan fiyatlarla`,
     durum: { open: 'Şimdi açık · kapanış {t}', shut: 'Şu an kapalı · açılış {w}', today: 'bugün {t}', tomorrow: 'yarın {t}', dayAt: '{d} {t}' },
     days: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+    // cumle ici (durum satiri "açılış pazartesi 11:00"): belirli tarih yoksa gun adi kucuk harf; tablo basliklari days'te kalir
+    daysCumle: ['pazar', 'pazartesi', 'salı', 'çarşamba', 'perşembe', 'cuma', 'cumartesi'],
   },
 };
 export const kmOf = (lang) => KM[lang === 'tr' ? 'tr' : 'en'];
