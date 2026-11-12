@@ -185,12 +185,12 @@ export function gerceklikler(R, lang) {
   if (!kindPhrase && lang !== 'tr' && cat && /^[A-Za-z &-]{3,26}$/.test(cat) && !/\b(and|&)\b/i.test(name)) kindPhrase = cat.toLowerCase().replace(/\s*(&|\+|\/)\s*/g, ' and ').replace(/\bcafe\b/, 'café');
   const kind = lead.kind || 'restaurant';
   if (!kindPhrase && sektKind) kindPhrase = sektKind;
-  if (!kindPhrase) kindPhrase = { restaurant: 'restaurant', bar: 'bar', cafe: 'café' }[kind] || 'restaurant';
+  if (!kindPhrase) kindPhrase = { restaurant: 'restaurant', bar: 'bar', cafe: 'café', bakery: 'bakery', 'pastry shop': 'pastry shop', confectionery: 'confectionery', 'ice cream shop': 'ice cream shop', 'kebab house': 'kebab house' }[kind] || 'restaurant';
   return { dish: uniq[0] ? uniq[0].d : null, dish2: uniq[1] ? uniq[1].d : null, method: meth ? meth.m : null, area, city, street: ap.street, kind, kindPhrase, address: ad };
 }
 
 // ---------- sablonlar ----------
-const KIND_TR = { restaurant: 'restoran', bar: 'bar', cafe: 'kafe' };
+const KIND_TR = { restaurant: 'restoran', bar: 'bar', cafe: 'kafe', bakery: 'fırın', 'pastry shop': 'pastane', confectionery: 'tatlıcı', 'ice cream shop': 'dondurmacı', 'kebab house': 'kebapçı' };
 export function sablonlar(f, lang) {
   const out = [];
   const place = f.area || f.city;

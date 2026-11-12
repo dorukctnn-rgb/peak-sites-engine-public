@@ -1,6 +1,7 @@
 // LEAD BULUCU (1/3): OpenStreetMap Overpass'tan ulke x sektor isletme listesi.  Ucretsiz, anahtar yok; Overpass kullanim kurallarina uyulur
 // (tek sorgu akisi, sorgular arasi bekleme, acik user-agent).  Yalniz "website" etiketi olan isletmeler alinir: hedefimiz siteyi YENILEMEK.
 //   node lead/osm.mjs --ulke GB --sektor konaklama [--alan "Cornwall"] [--max 400] [--cikti calisma/lead/GB-konaklama.jsonl]
+// Restoran ailesi (12 Kas 2026): amenity=restaurant|fast_food|bar|pub|cafe|ice_cream ve shop=bakery|pastry|confectionery (lead/sektorler.mjs SEKTORLER.restoran.osm).
 // BUYUK OTEL YOK: tourism=hotel hic alinmaz; zincir (brand / brand:wikidata / bilinen zincir adi) ve oda sayisi 25'ten buyuk olanlar elenir.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -44,7 +45,7 @@ export function leadOf(el, ulke, sektor) {
     rooms: Number(t.rooms || t.beds || 0) || null, stars: Number(t.stars || 0) || null,
     lat: el.lat ?? (el.center && el.center.lat) ?? null, lon: el.lon ?? (el.center && el.center.lon) ?? null,
     elendi: why || null,
-    ...(sektor === 'restoran' ? { mutfak: temiz(t.cuisine), amenity: t.amenity || null } : {}),
+    ...(sektor === 'restoran' ? { mutfak: temiz(t.cuisine), amenity: t.amenity || null, dukkan: t.shop || null } : {}),
   };
 }
 
@@ -57,6 +58,9 @@ export function elenme(t, name, website, sektor) {
   }
   if (sektor === 'guzellik' && /\b(supplies|supplier|wholesale|distribut\w*|academy|school|training|education|college|courses?|tanning|sun ?bed|sun bar|clinic|medical|surgery|dermatolog\w*|aesthetic doctor)\b/i.test(`${name} ${website}`)) return 'salon degil (malzeme, okul, solaryum ya da klinik)';
   if (sektor === 'restoran' && /\b(catering|food truck|caravan|vending|canteen|hospital|university|college|school|airport)\b/i.test(`${name} ${t.operator || ''}`)) return 'restoran degil (kantin, katering, okul, havalimani)';
+  // pastane, firin ve tatlici (12 Kas 2026): toptan satici, fabrika ve malzeme tedarikcisi pastane degildir
+  if (sektor === 'restoran' && /\b(wholesale|wholesaler|suppliers?|supplies|distribut\w*|manufactur\w*|factory)\b/i.test(`${name} ${t.operator || ''}`)) return 'restoran degil (toptan, fabrika, malzeme tedarikcisi)';
+  if (sektor === 'restoran' && /(?<!\p{L})(toptan|fabrika(?:s[ıi])?|imalat[çc][ıi]?)(?!\p{L})/iu.test(`${name} ${t.operator || ''}`)) return 'restoran degil (toptan, fabrika, malzeme tedarikcisi)';
   // TR: yemekhane, kantin, katering, okul/universite/hastane/havalimani; otel ve tatil koyu restoranlari (Doruk 9 Kas: otel yok)
   if (sektor === 'restoran' && /(?<!\p{L})(yemekhane|kantin|katering|okul|[üu]niversite|hastane|havaliman[ıi]|otel|hotel|resort|tatil k[öo]y[üu]|holiday village)(?!\p{L})/iu.test(`${name} ${t.operator || ''} ${website}`)) return 'restoran degil (otel, kantin, katering, okul, havalimani)';
   if (t.disused || t['disused:shop'] || t['disused:tourism'] || /^(yes|true)$/i.test(t.abandoned || '')) return 'kapali';

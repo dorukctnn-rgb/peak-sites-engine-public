@@ -31,6 +31,13 @@ export function planOku(dosya) {
   return { ...p, sira: (p.sira || []).filter(([u, s]) => aktif(s) && ulkeOk(u, s)) };
 }
 
+// Yeme-icme odagi (12 Kas 2026): restoran listesi eski etiketlerle (yalniz restaurant, fast_food, bar, pub) cekildiyse yenileme gunu beklenmeden yeniden cekilir; yeni listede kafe, pastane,
+// firin, dondurma ve tatlici da olur.  Ayirt etme: yeni lead satirlarinda "dukkan" alani vardir (bos olsa da null), eski satirlarda hic yoktur.  Tarama ve uretim sonuclari lead kimligine bagli, kaybolmaz.
+export function listeEtiketEski(dosya, sektor) {
+  if (sektor !== 'restoran') return false;
+  try { const ilk = fs.readFileSync(dosya, 'utf8').split('\n').find(Boolean); return !!ilk && !('dukkan' in JSON.parse(ilk)); } catch { return false; }
+}
+
 // ---- MAKSIMUM HAT (12 Kas 2026) ----
 // HAT_TUR_ADAY: tur basina uretilecek aday sayisi (varsayilan 20; ortam degiskeni, plan.json limitler.uretimHerTur yedek).  Ust sinir 200.
 export const TUR_ADAY_VARSAYILAN = 20;
@@ -109,7 +116,7 @@ export async function dongu({ depo, kutu, po = null, sureDk = 40, parti = `p${Da
   for (const [ulke, sektor] of plan.sira) {
     if (osmKota <= 0 || kalanDk() < 8) break;
     const f = path.join(depo, 'lead', `${ulke}-${sektor}.jsonl`); const yenile = L.leadYenilemeGun ?? 120;
-    const eski = fs.existsSync(f) ? (Date.now() - fs.statSync(f).mtimeMs) / 864e5 : Infinity;
+    const eski = fs.existsSync(f) && !listeEtiketEski(f, sektor) ? (Date.now() - fs.statSync(f).mtimeMs) / 864e5 : Infinity;
     if (eski < yenile) continue;
     osmKota--;
     try {
