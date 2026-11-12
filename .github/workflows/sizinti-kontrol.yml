@@ -31,4 +31,4 @@ jobs:
           SIZINTI_YASAK_TERIMLER: ${{ secrets.SIZINTI_TERIMLER }}
         run: node hat/sizinti-kontrol.mjs
       - name: testler (ozel varlik gerektirmeyenler)
-        run: node --test hat/test/sizinti.test.mjs hat/test/etiket.test.mjs hat/test/sessiz.test.mjs
+        run: node --test hat/test/sizinti.test.mjs hat/test/etiket.test.mjs hat/test/sessiz.test.mjs hat/test/isletme.test.mjs
