@@ -2,7 +2,7 @@
 // Girdi: uret-v5.mjs'in kurdugu model (isletmenin kendi verisi + dilin fontlari + kendi paleti). Dil modeli yok; sablon + kural.
 // Kurallar: buyuk baslik SLOGANDIR; logo orijinal dosyadir, filtre almaz; ana sayfa fotografi hero-secim.json'daki tek karedir ve buyutulmez;
 // eylem baglantilari isletmenin GERCEK baglantilaridir (rezervasyon, telefon, menu sayfasi); demo form yok. Hareket JS olmadan da ayni icerigi duragan gosterir.
-import { T, DAYS } from './metin.mjs';
+import { T, DAYS, DAYS_CUMLE } from './metin.mjs';
 import { netCss } from './logo-netlik.mjs';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -170,7 +170,7 @@ export function sayfaHtmlV5(m) {
   const title = `${m.name}${m.cityLabel ? ' · ' + m.cityLabel : ''}: ${m.lang === 'tr' ? 'web sitesi taslağı' : 'website draft'}`;
   const desc = m.lang === 'tr' ? `${m.name} için hazırlanmış web sitesi taslağı (yayında değil).` : `A website draft prepared for ${m.name} (not live).`;
   const pre = (m.fontPreload || []).map((f) => `<link rel="preload" href="../../${m.ortak || '_uyarla'}/fonts/${f}" as="font" type="font/woff2" crossorigin>`).join('\n');
-  const data = { t: { open: L.open('{t}'), shut: L.shut('{w}'), today: L.whenToday('{t}'), tomorrow: L.whenTomorrow('{t}'), dayAt: L.whenDay('{d}', '{t}') }, days: D, h: m.statusOk ? m.week : null, h12: !!m.h12, tz: m.tz };
+  const data = { t: { open: L.open('{t}'), shut: L.shut('{w}'), today: L.whenToday('{t}'), tomorrow: L.whenTomorrow('{t}'), dayAt: L.whenDay('{d}', '{t}') }, days: DAYS_CUMLE[m.lang] || D, h: m.statusOk ? m.week : null, h12: !!m.h12, tz: m.tz };
   const icon = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="${m.palette.t.accent}"/><text x="16" y="23" font-family="Georgia,serif" font-size="20" font-weight="700" text-anchor="middle" fill="${m.palette.t.accentInk}">${esc((m.name.match(/[\p{L}\p{N}]/u) || ['•'])[0].toUpperCase())}</text></svg>`)}`;
   const topBtn = `<a class="btn ${dil === 'sahil' ? 'btn-ghost' : 'btn-accent'}" href="${esc(main.href)}"${ext(main)}>${esc(main.short2 || main.label)}</a>`;
   const navHtml = `<nav class="nav" aria-label="${esc(L.nav)}">${nav.map(([h, t]) => `<a href="${h}">${esc(t)}</a>`).join('')}</nav>`;

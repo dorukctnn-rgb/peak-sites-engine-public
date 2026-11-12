@@ -1,6 +1,6 @@
 // HTML ve theme.css uretimi ("sahne" duzeni). Girdi: uret.mjs'in kurdugu "model" (isletmenin kendi verisi + secilen font + palet). Dil modeli yok; sablon + kural.
 // Kurallar: buyuk baslik SLOGANDIR (ad degil); logo orijinal dosyadir ve hicbir filtre almaz; hareket katmanlari (WebGL, 3D, acilis) JS/WebGL olmadan da ayni icerigi duragan gosterir.
-import { T, DAYS } from './metin.mjs';
+import { T, DAYS, DAYS_CUMLE } from './metin.mjs';
 import { ORTAK } from './yol.mjs';
 import { netCss } from './logo-netlik.mjs';
 
@@ -295,7 +295,7 @@ export function sayfaHtml(m) {
   const desc = m.lang === 'tr' ? `${m.name} için hazırlanmış web sitesi taslağı (yayında değil).` : `A website draft prepared for ${m.name} (not live).`;
   const pre = (m.fontPreload || []).map((f) => `<link rel="preload" href="../../${ORTAK}/fonts/${f}" as="font" type="font/woff2" crossorigin>`).join('\n');
   const data = { t: { open: L.open('{t}'), shut: L.shut('{w}'), today: L.whenToday('{t}'), tomorrow: L.whenTomorrow('{t}'), dayAt: L.whenDay('{d}', '{t}'), guests: L.guests('{n}'), thanks: L.thanks('{n}').replace(/, \{n\}/, '{n}'), todayLabel: L.today, tomorrowLabel: L.tomorrow, photo: x.photo },
-    days: D, h: m.statusOk ? m.week : null, h12: !!m.h12, tz: m.tz, slots: m.slots, fx: m.fx, glow: rgbTriplet(m.palette.t.accent2).split(',').map((n) => +(n / 255).toFixed(3)) };
+    days: DAYS_CUMLE[m.lang] || D, h: m.statusOk ? m.week : null, h12: !!m.h12, tz: m.tz, slots: m.slots, fx: m.fx, glow: rgbTriplet(m.palette.t.accent2).split(',').map((n) => +(n / 255).toFixed(3)) };
   const icon = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="${m.palette.t.accent}"/><text x="16" y="23" font-family="Georgia,serif" font-size="20" font-weight="700" text-anchor="middle" fill="${m.palette.t.accentInk}">${esc((m.name.match(/[\p{L}\p{N}]/u) || ['•'])[0].toUpperCase())}</text></svg>`)}`;
   const heroLogo = lg && lg.hero && m.variant === 'orta' ? `<img class="hero-logo" src="img/${lg.hero.file}" alt="" width="${lg.hero.w}" height="${lg.hero.h}" decoding="async">` : '';
   const introLogo = lg && !(lg.acilisYazi && !(lg.hero && m.variant === 'orta')) ? (lg.hero && m.variant === 'orta' ? `<img src="img/${lg.hero.file}" alt="" width="${lg.hero.w}" height="${lg.hero.h}">` : `<img src="img/${lg.file}" alt="" width="${lg.w}" height="${lg.h}">`) : `<span class="brand-t">${esc(m.name)}</span>`;

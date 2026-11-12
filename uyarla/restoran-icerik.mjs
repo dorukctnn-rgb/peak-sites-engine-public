@@ -25,6 +25,32 @@ export const FIYAT_TR = /^(?:₺\s?\d{1,3}(?:\.\d{3})*(?:,\d{2})?|\d{1,3}(?:\.\d
 const OVGU_TR = /(?<!\p{L})(en iyi|en lezzetli|meşhur|ünlü|efsane|efsanevi|dünyaca|ödüllü|bir numara|eşsiz|rakipsiz|benzersiz|otantik|kusursuz|mükemmel)(?!\p{L})/giu;
 const OVGU = /\b(best|award[- ]?winning|awards?|#1|number one|famous|finest|world[- ]class|legendary|unbeatable|perfect|ultimate|iconic|renowned|top[- ]rated|must[- ]try|unrivall?ed|authentic)\b/gi;
 const YASAK_KARAKTER = /[—→←✓✔✅!]|\p{Extended_Pictographic}/u;
+// Anadil duzeyinde Turkce (KALICI kural, 12 Kas 2026: "cümleler falan düşük olmasın kelime olarak, düzgün Türkçe kullan sloganlarda ve içeriklerde"):
+// kalip davet, kelime kelime ceviri, tuhaf edilgen, resmi "-mektedir" ve sik yazim hatalari TR kararinda hata sayilir; isletmenin kendi cumlesi
+// bozuksa hafifce duzeltilir ya da kisa, dogru bir cumleyle degistirilir (bilgi uydurulmaz).  Liste canli sayfalarda bulunan orneklerden.
+export const TR_YAPAY = [
+  [/seçkilerimizi keşfedin|lezzetli seçki/iu, 'kalıp davet ("Lezzetli seçkilerimizi keşfedin")'],
+  [/(?<!\p{L})keşfedin(?!\p{L})/iu, 'kalıp davet ("keşfedin")'],
+  [/yola çıkıldı/iu, 'tuhaf edilgen ("köfteden yola çıkıldı")'],
+  [/(?:sayfasındaki|menüsündeki|dosyasındaki|sitesindeki) gibidir/iu, 'resmî kalıp ("... gibidir"); "Fiyatlar ...\'daki menüden alındı." gibi yazılır'],
+  [/(?<!\p{L})\p{L}{2,}(?:mektedir|maktadır)(?!\p{L})/iu, 'resmî "-mektedir/-maktadır" ("Rezervasyon kabul edilmemektedir" yerine "Rezervasyon almıyoruz")'],
+  [/tencereden ızgaraya/iu, 'yapay başlık ("Günlük tencereden ızgaraya")'],
+  [/damak sulandıran/iu, 'çeviri ("mouthwatering")'],
+  [/yerel olarak tedarik/iu, 'çeviri ("locally sourced")'],
+  [/(?<!\p{L})ip lamba/iu, 'çeviri ("string lights"): "asılı ampuller"'],
+  [/(?<!\p{L})derin (?:yeşil|mavi|kırmızı|mor)(?!\p{L})/iu, 'çeviri ("deep green"): "koyu yeşil"'],
+  [/restoran sıralanmış/iu, 'kelime kelime çeviri ("restaurant-lined")'],
+  [/ateşinin karakteri/iu, 'çeviri ("character of the fire")'],
+  [/atmosferi? ile tasarlan/iu, 'çeviri ("designed with a garden atmosphere")'],
+  [/(?<!\p{L})mahsül/iu, 'yazım: "mahsul" ("deniz mahsullü")'],
+  [/(?<!\p{L})yıldönüm/iu, 'yazım: "yıl dönümü"'],
+  [/(?:den|dan|ten|tan) bu güne(?!\p{L})/iu, 'yazım: "bugüne" ("1971\'den bugüne")'],
+  [/kremamsı/iu, 'yazım: "kremsi"'],
+  [/(?<!\p{L})mono adet/iu, 'meslek ağzı: "tek kişilik"'],
+  [/(?<!\p{L})lahana turşu(?!\p{L})/iu, 'eksik ek: "lahana turşusu"'],
+];
+// vurgu yildizlari ("Günlük tencereden *ızgaraya*") denetimden once atilir
+export const trYapay = (t) => { const s = String(t || '').replace(/\*/g, ''); return TR_YAPAY.filter(([re]) => re.test(s)).map(([, neden]) => neden); };
 const KAYNAK_TUR = ['sayfa', 'pdf', 'gorsel', 'siparis-sitesi'];
 
 // karar icindeki butun serbest metinler (yol, metin) listesi
@@ -114,6 +140,7 @@ export function denetle(k, ctx = {}) {
   const site = norm(ctx.metin || '');
   const trMi = k.dil === 'tr' || (ctx.bilgi && ctx.bilgi.bolge === 'TR');
   for (const [yol, t] of [...metinler(ic, 'icerik'), ['gozlem.metin', g.metin || '']]) {
+    if (trMi) for (const neden of trYapay(t)) H.push(`${yol}: düşük Türkçe, ${neden}: ${t.slice(0, 60)}`);
     if (yasakVar('kisaltma', t)) H.push(`${yol}: yasak kisaltma gecemez`);
     if (YASAK_KARAKTER.test(t)) H.push(`${yol}: yasak isaret (uzun tire, ok, unlem, emoji): ${t.slice(0, 50)}`);
     // bizim konumumuz yazilmaz; TR isletmesinin kendi adresi/sehri (Kaleici, Antalya) onun bilgisidir, serbest: yalniz yurt disi sayfalarda yasak
