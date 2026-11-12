@@ -18,6 +18,7 @@ import { KM, kmOf } from './lib/kategori-metin.mjs';
 import { mapsUrl, konumGecerli } from './lib/metin.mjs';
 import { kartFotoPlan, kartKirp, kenarAcik } from './lib/kart-foto.mjs';
 import { fotoUyum, uyumBaglami, yuvaDaralt, yuvaUygun } from './lib/foto-uyum.mjs';
+import { netBoyut, netCss } from './lib/logo-netlik.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const VERI_K = VERI;
@@ -261,8 +262,15 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   const govde = sayfa(D);
 
   /* ---- theme.css ---- */
-  const logoH = AYAR.logoH ? AYAR.logoH(logo) : 44;
-  const css = `/* ${ad}: renkler isletmenin kendi sitesinden (zemin ${bg}, vurgu ${accent}). Fontlar: ${rapor.fontlar.map((f) => `${f.aile} (${f.rol})`).join(', ')}. Logo: orijinal dosya, filtre yok. */\n${faces.map((f) => f.css).join('\n')}\n:root{\n${Object.entries(tema).map(([k, v]) => `--${k}:${v};`).join('\n')}\n${AYAR.temaEk ? AYAR.temaEk(D, logo) : ''}--lg-h:${logoH}px;\n--hero-max:${hero.maxCss}px;\n--hero-ar:${(hero.bw / hero.bh).toFixed(4)};\n}\n`;
+  // LOGO NETLIK (12 Kas, lib/logo-netlik.mjs): baslik ve alt bilgi logosu dogal yuksekligin yarisini gecmez (2x); sablonun CSS'i ne isterse istesin her logo img'si
+  // dogal boyutunun yarisinda durur (netCss).  Acilista sablon genisliginde 2x net olamayacak kadar kucuk logo acilista hic gosterilmez (bitmap buyutulmez).
+  const logoSvg = /\.svg$/i.test(logo.src);
+  const nb = netBoyut({ w: logo.w, h: logo.h, svg: logoSvg }, { baslik: AYAR.logoH ? AYAR.logoH(logo) : 44, baslikMobil: AYAR.logoH ? AYAR.logoH(logo) : 44, acilis: 180, altK: 1.12 });
+  const logoH = nb.baslik;
+  if (nb.baslikYazi) rapor.uyarilar.push(`logo netlik: dosya ${logo.w}x${logo.h}, baslikta 2x icin yalniz ${logoH} px yuksek gosterilebilir`);
+  if (nb.acilisYazi) rapor.uyarilar.push(`logo netlik: dosya ${logo.w}x${logo.h}, acilista 2x net gosterilemez; acilista logo yok`);
+  const netEk = netCss([{ file: logo.src, w: logo.w, h: logo.h, svg: logoSvg }]) + (nb.acilisYazi ? '.intro .intro-in img,.intro .intro-l{display:none}\n' : '');
+  const css = `/* ${ad}: renkler isletmenin kendi sitesinden (zemin ${bg}, vurgu ${accent}). Fontlar: ${rapor.fontlar.map((f) => `${f.aile} (${f.rol})`).join(', ')}. Logo: orijinal dosya, filtre yok. */\n${faces.map((f) => f.css).join('\n')}\n:root{\n${Object.entries(tema).map(([k, v]) => `--${k}:${v};`).join('\n')}\n${AYAR.temaEk ? AYAR.temaEk(D, logo) : ''}--lg-h:${logoH}px;\n--hero-max:${hero.maxCss}px;\n--hero-ar:${(hero.bw / hero.bh).toFixed(4)};\n}\n${netEk}`;
   fs.writeFileSync(path.join(pd, 'theme.css'), css);
 
   /* ---- index.html ---- */
