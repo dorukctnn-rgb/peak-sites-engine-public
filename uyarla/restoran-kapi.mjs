@@ -13,13 +13,15 @@ import { fileURLToPath } from 'node:url';
 import { sharp } from './lib/gorsel.mjs';
 import { KAPI_SURUM } from './lib/surum.mjs';
 import { yasakVar } from './lib/sozluk.mjs';
+import { kalipArg } from './kategori-kapi.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const J = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
 
 // sayfa icinde: buyutulmus gorsel, bos bolum, ilk ekran bilgileri (sablondan bagimsiz secicilerle)
-async function genelDenetim(eylemUrl) {
+async function genelDenetim(arg) {
+  const { eylemUrl, kis } = arg && typeof arg === 'object' ? arg : { eylemUrl: arg, kis: null };
   window.__px = window.__px || {};
   for (const im of document.querySelectorAll('img')) { const u = im.currentSrc || im.src; if (!u || window.__px[u] || !im.complete || !im.naturalWidth) continue; const t = new Image(); t.src = u; try { await t.decode(); window.__px[u] = [t.naturalWidth, t.naturalHeight]; } catch { window.__px[u] = [im.naturalWidth, im.naturalHeight]; } }
   const vw = innerWidth; const vh = innerHeight; const dpr = devicePixelRatio; const S = [];
@@ -34,7 +36,7 @@ async function genelDenetim(eylemUrl) {
   }
   for (const s of document.querySelectorAll('main section, body > section, footer')) { if (!gorunur(s) || s.offsetHeight < 40) continue; const t = s.innerText.replace(/\s+/g, ' ').trim(); if (t.length < 12 && !s.querySelector('img,canvas,video,picture')) S.push(`bos bolum: ${s.id || String(s.className).split(' ')[0] || s.tagName}`); }
   const metin = [document.title, document.body.innerText, ...[...document.querySelectorAll('[alt],[aria-label],[title]')].map((e) => `${e.getAttribute('alt') || ''} ${e.getAttribute('aria-label') || ''} ${e.getAttribute('title') || ''}`)].join(' \n ');
-  if (yasakVar('kisaltmaNoktali', metin)) S.push('metinde yasak kisaltma geciyor');
+  if (!kis) S.push('yasak kisaltma kalibi verilmedi'); else if (new RegExp(kis[0], kis[1]).test(metin)) S.push('metinde yasak kisaltma geciyor');
   // TR sayfasi (lang=tr, 11 Kas): adres ve sehir isletmenin kendisinin (Kadıköy/İstanbul, Lara/Antalya); bizim konumumuz sayfada hic yok, kural yalniz yurt disi sayfalarda
   if (document.documentElement.lang !== 'tr' && /T[uü]rkiye|Turkey|Antalya/i.test(metin)) S.push('metinde yasak yer adi');
   const ilk = (el) => { if (!el || !gorunur(el)) return false; const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.top < vh - 2 && b.bottom > 2; };
@@ -62,10 +64,11 @@ async function tarayiciDenetim(browser, url, eylemUrl, dir) {
     await pg.route('**/*', (r) => { const u = r.request().url(); if (u.startsWith(new URL(url).origin) || u.startsWith('data:')) return r.continue(); return r.abort(); });
     try {
       await pg.goto(`${url}?capture=1`, { waitUntil: 'load', timeout: 45000 }); await pg.evaluate(() => document.fonts.ready); await pg.waitForTimeout(600);
-      const ilk = await pg.evaluate(genelDenetim, eylemUrl);
+      const dArg = { eylemUrl, kis: kalipArg('kisaltmaNoktali') };
+      const ilk = await pg.evaluate(genelDenetim, dArg);
       // tum sayfa: tembel gorseller yuklensin diye ekran ekran in, her ekranda buyutulmus gorsel ve bos bolum denetimi
       const H = await pg.evaluate(() => document.documentElement.scrollHeight); const tum = new Set();
-      for (let y = 0; y < H; y += vp.height * 0.8) { await pg.evaluate((yy) => scrollTo(0, yy), y); await pg.waitForTimeout(160); const a = await pg.evaluate(genelDenetim, eylemUrl); for (const s of a.sorun) if (!s.startsWith('ilk ekranda')) tum.add(s); }
+      for (let y = 0; y < H; y += vp.height * 0.8) { await pg.evaluate((yy) => scrollTo(0, yy), y); await pg.waitForTimeout(160); const a = await pg.evaluate(genelDenetim, dArg); for (const s of a.sorun) if (!s.startsWith('ilk ekranda')) tum.add(s); }
       await pg.evaluate(() => scrollTo(0, 0)); await pg.waitForTimeout(300);
       if (label !== '1920') { const b = await pg.screenshot({ type: 'png', fullPage: true }); const m = await sharp(b).metadata(); const w = label === '390' ? 390 : 720; let im = sharp(b, { limitInputPixels: 400e6 }); if (m.height > 16000) im = im.extract({ left: 0, top: 0, width: m.width, height: 16000 }); await im.resize({ width: w }).jpeg({ quality: 68, mozjpeg: true }).toFile(path.join(dir, `son-${label}-tam.jpg`)); }
       out.olcum[label] = { ilkEkran: ilk.ilkEkran, sw: ilk.sw };
