@@ -18,6 +18,17 @@ export const BEKLET = 'hat: ısınma takvimiyle hat/birak.mjs serbest bırakır'
 export const SAYFA_TABAN = 'https://peakappsstudio.com/web/demo/';
 export const satirId = (lead) => `WH-${lead.ulke}-${String(lead.osm || lead.id).replace(/^(\w)\w*\//, '$1').replace(/[^A-Za-z0-9]/g, '')}`;
 
+// ad adaylari, ilk adin ardindan: sitenin basligi ve og:title'i, secilen logonun alt metni (hat/uygula.mjs adAdaylariOku yazar), OSM adi
+export const adAdaylari = (x, l) => { const a = x.adAdaylari || {}; return [a.baslik, a.ogTitle, a.logoAlt, l && l.name].filter(Boolean); };
+
+// peak-outreach'in kuyruk denetimi: validateRow + checkBody.  checkBody KAMPANYAYLA cagrilir: websites-demo maili Doruk'un birinci tekil sesinde (iki kez "Doruk" + imza) yazilir ve
+// yalniz kampanya adi verilince kabul edilir; kampanyasiz cagri "personal-name" der ve hicbir satir yazilamazdi (12 Kas 2026)
+export function satirGecerliMi(row, { validate, checkBody, config }) {
+  const bad = validate ? validate({ ...row, _held: undefined }, config) : null;
+  const b = checkBody ? checkBody(row.body, row.campaign) : {};
+  return bad || b.error ? `gecersiz:${bad || b.error}` : null;
+}
+
 // ulkenin kuyruk anahtari varsa (TR: TR_KUYRUK) satir yalniz anahtar 'acik' ve onay.json'da ulke kodu onayliyken yazilir
 export function trKuyrukAcik(ulke, onaylanan = new Set(), env = process.env) {
   const U = ULKELER[ulke]; if (!U || !U.kuyrukAnahtari) return true;
@@ -77,7 +88,10 @@ export function satirlarKur({ son, leadsById, po, simdi = new Date(), onaylanan 
     const kim = leadKimligi(l);
     if (parti.adr.has(e) || (!SERBEST.test(e) && parti.alan.has(dom(e))) || parti.isl.bul(kim)) { sk('partide-tekrar'); continue; }
     const sayfa = `${SAYFA_TABAN}${x.page.replace(/\/?$/, '/')}`;
-    const ad = mailAdi(x.ad || l.name);
+    // isletme adi (12 Kas 2026): sitenin gorunur adi, sitenin basligi, logo alt metni, OSM adi sirasiyla; bitisik/kucuk harfli ("alexandermotorinn"), "Home | X" gibi bozuk adlar duzgun
+    // adayla onarilir, emin olunamiyorsa satir atlanir ('ad-belirsiz'; mail/sablon.mjs mailAdi)
+    const ad = mailAdi(x.ad || l.name, adAdaylari(x, l));
+    if (!ad) { sk('ad-belirsiz'); continue; }
     // restoran ailesinin yurt disi mail sablonu motorda yok (v5 sesi peak-outreach'te): sablon yoksa satir atlanir, teslim adimi DUSMEZ (RESTORAN_KUYRUK=acik iken eskiden hata verirdi)
     let m; try { m = mailYaz({ sektor: x.sektor || l.sektor, ad, sayfa, fiyatVar: !!x.fiyatVar }); } catch { sk(`mail-sablon-yok:${x.sektor || l.sektor}`); continue; }
     const sorun = mailDenetle({ ...m, ad, sayfa });
@@ -110,7 +124,7 @@ if (isMain) {
   try { const Q = await import(pathToFileURL(path.join(poDir, 'src', 'queue.mjs')).href); validate = Q.validateRow; checkBody = Q.checkBody; if (!Q.PREVIEW) throw new Error('PREVIEW yok'); } catch (e) { console.log(`UYARI: peak-outreach queue.mjs onizleme desteklemiyor (${e.message}): satir YAZILMAZ`); if (process.argv.includes('--yaz')) process.exit(3); }
   const config = JSON.parse(rd('config.json') || '{"regions":{}}');
   const r = satirlarKur({ son, leadsById, po: { sent: rd('data/sent.jsonl'), queue: rd('data/queue.jsonl'), suppress: rd('suppress.txt'), replied: rd('data/replied.txt') }, onaylanan: new Set(Object.keys(onay).filter((k) => onay[k] && onay[k].onaylandi)), dis });
-  const gecer = r.satirlar.filter((row) => { const bad = validate ? validate({ ...row, _held: undefined }, config) : null; const b = checkBody ? checkBody(row.body) : {}; if (bad || b.error) { r.atla[`gecersiz:${bad || b.error}`] = (r.atla[`gecersiz:${bad || b.error}`] || 0) + 1; return false; } return true; });
+  const gecer = r.satirlar.filter((row) => { const neden = satirGecerliMi(row, { validate, checkBody, config }); if (neden) { r.atla[neden] = (r.atla[neden] || 0) + 1; return false; } return true; });
   console.log(`kuyruk: ${gecer.length} bekletilen satir hazir (${[...new Set(gecer.map((x) => x.segment))].join(', ') || '-'}); atlanan ${JSON.stringify(r.atla)}`);
   if (process.argv.includes('--yaz') && gecer.length) {
     const ok = new Set(gecer.map((x) => x.id));

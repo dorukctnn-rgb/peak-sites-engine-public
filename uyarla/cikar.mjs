@@ -41,6 +41,13 @@ function pickName(html, ld, host, leadName, siteName) {
   return best ? { n: best, via: 'title-guess' } : null;
 }
 const norm = (x) => String(x || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+// bitisik yazilmis ad (12 Kas 2026, hat mail sesi): sitenin adi "alexandermotorinn" gibi bosluksuz ve lead listesi (OSM) adi AYNI harflerle ama bosluklu ("Alexander Motor Inn") ise
+// o kullanilir; sayfadaki ve maildeki ad ayni ve temiz olur.  -> duzeltilmis nm ya da ayni nm
+export function adBitisikDuzelt(nm, leadName) {
+  const lead = String(leadName || '').trim();
+  if (!nm || !lead || /\s/.test(nm.n) || !/\s/.test(lead) || norm(nm.n) !== norm(lead) || nm.n === lead) return nm;
+  return { ...nm, full: nm.n, n: clean(lead, 60), via: `${nm.via} (bitisik ad: lead listesi adi)` };
+}
 
 // ---- gorsel yardimcilari ----
 const stripSize = (u) => u.replace(/-\d{2,4}x\d{2,4}(\.(?:jpe?g|png|webp))(\?|$)/i, '$1$2');
@@ -155,7 +162,7 @@ export async function cikar(lead, { browser, polite, out = VERI, force = false, 
   const kapali = kapaliMi(lines.join(' \n ')); if (kapali) R.kapali = kapali;
 
   // ad ve cumle
-  const nm = pickName(html, ld, host, lead.name, home.meta.siteName);
+  const nm = adBitisikDuzelt(pickName(html, ld, host, lead.name, home.meta.siteName), lead.name);
   if (nm && lead.name && norm(nm.n).startsWith(norm(lead.name)) && norm(lead.name).length >= 4 && nm.n.length > lead.name.length) { nm.full = nm.n; nm.n = clean(lead.name, 60); nm.via += ' (kisa ad: lead listesi)'; }
   // sitenin adres satiri ad diye alinmissa ("23 Main St,") isletmenin kendi (lead listesi) adi kullanilir
   if (nm && lead.name && (/^\d/.test(nm.n) || /,\s*$/.test(nm.n) || /\b(street|st|road|rd|avenue|ave|lane|ln|quay|terrace)\b\.?,?\s*$/i.test(nm.n))) { nm.full = nm.n; nm.n = clean(lead.name, 60); nm.via += ' (adres gibi: lead listesi adi)'; }
@@ -281,6 +288,8 @@ export async function cikar(lead, { browser, polite, out = VERI, force = false, 
   const logoAd = logoAdaylari({ html, base, imgs: home.imgs, svgler: home.svgler });
   const ls = await logoSec({ adaylar: logoAd, getir: (u) => fetchBytes(polite, u, log), onceden: home.imgBodies, imgDir: path.join(dir, 'img'), log });
   R.logo = ls.logo; R.logoRapor = ls.rapor;
+  // secilen logonun img alt metni: isletme adi adayi (hat/kuyruk.mjs mailAdi: sitenin adi, basligi, logo alt metni, OSM adi sirasiyla)
+  R.logoAlt = ((home.imgs || []).find((im) => im.alt && ls.logo && ls.logo.url && (im.url === ls.logo.url || im.ss === ls.logo.url || im.big === ls.logo.url)) || {}).alt || null;
 
   // fotograflar (12 Kas: lib/foto-topla.mjs): srcset/picture/data-src/CSS/og/twitter/JSON-LD + alt sayfalar (galeri, hakkinda, menu; en cok 6) + en buyuk surum + gercek piksel + stok/uretilmis/afis isaretleri
   const fs2 = await fotoTopla({ home, base, sayfalar: sayfalar.slice(), ekImgs, sayfaAl, getir: (u) => fetchBytes(polite, u, log), dir, log });
