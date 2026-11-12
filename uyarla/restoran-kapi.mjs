@@ -98,6 +98,9 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
     if (!U.hoursOk) why.push('çalışma saatleri yok');
     if (U.logo) { const pf = path.join(out, path.dirname(U.page), 'img', U.logo.file); if (!fs.existsSync(pf) || sha(pf) !== R.logo.orig.sha256) why.push('logo dosyası bayt bayt aynı değil (sha256)'); } else why.push('logo yok');
     if (U.variant === 'tam' && U.hero && parseInt(String(U.hero.served).split('x')[0], 10) < 1920) why.push('tam ekran ana fotoğraf 1920 px altında');
+    // foto uyumu (lib/foto-uyum.mjs): uymayan ana fotograf sayfayi gecirmez; daraltilan yuvalar son goze uyari olarak gider
+    if (U.heroUyumsuz) why.push(`ana fotoğraf uyumsuz (${U.heroUyumsuz})`);
+    warn.push(...(U.fotoUyari || []).filter((u) => !/ana fotograf/.test(u)));
   } else {
     const { kategoriKapi } = await import('./kategori-kapi.mjs'); const { pageDir } = await import('./uret-kategori.mjs');
     const rep = await kategoriKapi(slug, { browser, base, veri });
@@ -109,6 +112,8 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
     const pf = path.join(out, pageDir(slug), 'img', `logo${path.extname(R.logo.orig.file).toLowerCase()}`); if (!fs.existsSync(pf) || sha(pf) !== R.logo.orig.sha256) why.push('sayfadaki logo dosyası orijinalle aynı değil (sha256)');
     if (!R2.hours || !R2.hours.week || R2.hours.week.filter(Boolean).length + Object.values(R2.hours.byDay || {}).filter((x) => x === 'closed').length < 7) why.push('"şimdi açık" için 7 günün saati yok');
     for (const u of UK.uyarilar || []) if (/kontrast dusuk|kare yok|font dosyasi yok/.test(u)) why.push(u);
+    if (UK.heroUyumsuz) why.push(`ana fotoğraf uyumsuz (${UK.heroUyumsuz})`);
+    warn.push(...(UK.fotoUyari || []).filter((u) => !/ana fotograf/.test(u)));
   }
   if (menuN < 6) why.push(`fiyatlı menü kalemi az (${menuN}; en az 6)`);
   if (!menuKaynak) why.push('menünün kaynağı kayıtlı değil');

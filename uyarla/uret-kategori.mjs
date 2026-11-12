@@ -14,6 +14,7 @@ import { VERI, DEMO, ORTAK_K, SABLON_FONT } from './lib/yol.mjs';
 import { ONBELLEK } from './lib/font.mjs';
 import { KM, kmOf } from './lib/kategori-metin.mjs';
 import { kartFotoPlan, kartKirp, kenarAcik } from './lib/kart-foto.mjs';
+import { fotoUyum, uyumBaglami, yuvaDaralt, yuvaUygun } from './lib/foto-uyum.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const VERI_K = VERI;
@@ -101,7 +102,17 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   /* ---- fotograflar: kendi kareleri, buyutme yok ---- */
   const P = {};
   async function yaz(buf, ad, w, q = 80) { const o = await sharp(buf).resize({ width: w, withoutEnlargement: true }).webp({ quality: q, effort: 5 }).toBuffer({ resolveWithObject: true }); fs.writeFileSync(path.join(imgDir, ad), o.data); rapor.dosyalar.push({ f: `img/${ad}`, w: o.info.width, h: o.info.height, kb: Math.round(o.data.length / 1024) }); return o.info; }
-  const kullan = [...new Set([...(E.heroKirp ? [] : (E.hero || []).slice(0, 1)), ...(E.kareler ? Object.values(E.kareler).flat() : [])].map(String))].filter((id) => !(E.haric || []).map(String).includes(id));
+  // FOTO UYUMU (12 Kas, lib/foto-uyum.mjs): uymayan kare (logo, harita, ikon, kucuk, bulanik, ture uymayan stok) bolum yuvasina girmez; sablon karesi olmayan
+  // yuvayi gizler (daraltma), uyari son goze gider.  Ana fotograf daraltilmaz: uymuyorsa siki kapi sayfayi gecirmez.
+  const uyum = fotoUyum(R.photos || [], uyumBaglami(R, { sablon: kat }));
+  const heroId = String((E.hero || [])[0] ?? '');
+  const yuvalar = Object.entries(E.kareler || {}).flatMap(([y, ids]) => [].concat(ids || []).map((id, i) => ({ yuva: `kareler.${y}[${i}]`, id: String(id) }))).filter((y) => y.id && y.id !== heroId);
+  const daralt = yuvaDaralt(yuvalar, uyum); const fotoUyari = [...new Set(daralt.uyari)];
+  const heroUy = E.heroKirp && !heroId ? { ok: true } : yuvaUygun(uyum, heroId); const heroUyumsuz = heroUy.ok ? null : `kare ${heroId}: ${heroUy.neden}`;
+  if (heroUyumsuz) fotoUyari.unshift(`foto uyumu: ana fotograf ${heroUyumsuz}`);
+  rapor.uyarilar.push(...fotoUyari); rapor.fotoUyum = { tur: uyum.tur, ozet: uyum.ozet, sira: uyum.sira }; rapor.fotoUyari = fotoUyari; rapor.heroUyumsuz = heroUyumsuz;
+  const yuvaId = new Set(yuvalar.map((y) => y.id));
+  const kullan = [...new Set([...(E.heroKirp ? [] : (E.hero || []).slice(0, 1)), ...(E.kareler ? Object.values(E.kareler).flat() : [])].map(String))].filter((id) => !(E.haric || []).map(String).includes(id)).filter((id) => id === heroId || !yuvaId.has(id) || daralt.gecen.has(id));
   for (const id of kullan) {
     const ph = (R.photos || []).find((p) => p.id === id); if (!ph) { rapor.uyarilar.push(`kare yok: ${id}`); continue; }
     const buf = fs.readFileSync(path.join(dir, ph.file)); const md = await sharp(buf).metadata();
@@ -130,7 +141,7 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   // kart fotograflari (pizza kaydiricisi): her kartta YALNIZ o urunun kendi fotografi (lib/kart-foto.mjs); yoksa kart oldugu gibi kalir.
   // ORAN (5:4) kutusuna kirpilir, 480 ve 960 genislik (kaynaktan buyuk yazilmaz), sablon srcset + loading=lazy ile kullanir.
   const KF = {}; rapor.kartFoto = [];
-  for (const k of kartFotoPlan(E.slider, R.photos || [], { isletme: (R.name && R.name.n) || R.lead.name, haric: E.haric })) {
+  for (const k of kartFotoPlan(E.slider, R.photos || [], { isletme: (R.name && R.name.n) || R.lead.name, haric: [...(E.haric || []), ...uyum.elenen.map((x) => x.id)] })) {
     rapor.kartFoto.push({ ad: k.ad, id: k.id, kaynak: k.kaynak, oto: k.oto, bastirildi: k.bastirildi, aday: k.aday ? k.aday.id : null });
     if (!k.id) continue;
     const ph = R.photos.find((p) => String(p.id) === k.id); const kb = fs.readFileSync(path.join(dir, ph.file)); const md = await sharp(kb).metadata();

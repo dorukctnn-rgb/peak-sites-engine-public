@@ -14,6 +14,7 @@ import path from 'node:path';
 import { sloganDogrula } from './lib/slogan.mjs';
 import { SABLONLAR, KATEGORILER } from './sablon-sec.mjs';
 import { yasakVar } from './lib/sozluk.mjs';
+import { yuvaDenetle } from './lib/foto-uyum.mjs';
 
 const ID = /^\d{2}$/;
 const FIYAT = /^(?:from\s+)?[£€$]\s?\d{1,4}(?:[.,]\d{2})?(?:\s?(?:\/|or|–|-)\s?[£€$]?\s?\d{1,4}(?:[.,]\d{2})?)?$/i;
@@ -51,6 +52,9 @@ export function denetle(k, ctx = {}) {
   else if (ctx.fotoIds && !ctx.fotoIds.includes(String(h.id))) H.push(`hero.id fotograflarda yok: ${h.id}`);
   if (String(h.gerekce || '').length < 25) H.push('hero.gerekce yok ya da cok kisa (neden bu kare: yemek ya da mekan, uzerinde yazi/logo yok, keskin)');
   for (const r of h.reddedilen || []) if (!ID.test(String(r.id || '')) || !r.neden) H.push('hero.reddedilen ogeleri { id, neden } olmali');
+  // 12 Kas FOTO UYUMU (lib/foto-uyum.mjs): her yuvadaki kare paketin foto uyumu listesinde "uygun" olmali (logo, harita, ikon, kucuk, bulanik, ture uymayan stok yok);
+  // uyan kare yoksa yuva bos birakilir (sablon daraltir).  Eski paketlerde (foto_uyum yok) denetim atlanir.
+  if (ctx.bilgi && ctx.bilgi.foto_uyum) H.push(...yuvaDenetle(k, ctx.bilgi.foto_uyum));
   // menu: en az 6 fiyatli kalem, kaynak kayitli ve robots izinli
   const m = k.menu || {}; const kal = Array.isArray(m.kalemler) ? m.kalemler : [];
   if (kal.length < 6) H.push(`fiyatli menu en az 6 kalem olmali (${kal.length})`);
