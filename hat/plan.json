@@ -1,61 +1,23 @@
 {
-  "_not": "Bulut hattinin plani.  sira: [ulke, sektor] ciftleri onceliktir (her turda en cok osmSorguHerTur yeni lead listesi cekilir, havuz hedefin altindaysa siradaki listeden taranir).  Bir sektor ancak aktif=true ve sayfa sablonu (restoran icin uyarla/uret.mjs, digerleri icin uyarla/sektor/<sektor>.mjs) varsa calisir.  Ulkeler: AU, NZ, IE, GB her zaman; TR (11 Kas 2026, yalniz restoran ailesi) ve SG (11 Kas 2026) ancak ulkeler.<kod>.aktif=true iken taranir (hat/dongu.mjs planOku). HK, US, CA, JP, CH bekler (lead/sektorler.mjs BEKLE_ULKE), YASAK_ULKE hic alinmaz.  Aktif olmak GONDERIM demek degildir: her sektorun satirlari koordinator 5 sayfayi gozle onaylayana kadar bekletilir (durum/onay.json).",
+  "_not": "Bulut hattinin plani.  sira: [ulke, sektor] ciftleri onceliktir (her turda en cok osmSorguHerTur yeni lead listesi cekilir, havuz hedefin altindaysa siradaki listeden taranir).  Bir sektor ancak aktif=true ve sayfa sablonu (restoran ailesi icin uyarla/uret.mjs ve uyarla/sablon-sec.mjs, digerleri icin uyarla/sektor/<sektor>.mjs) varsa calisir.  Ulkeler: AU, NZ, IE, GB her zaman; TR (11 Kas 2026, yalniz restoran ailesi) ve SG (11 Kas 2026) ancak ulkeler.<kod>.aktif=true iken taranir (hat/dongu.mjs planOku). HK, US, CA, JP, CH bekler (lead/sektorler.mjs BEKLE_ULKE), YASAK_ULKE hic alinmaz.  Aktif olmak GONDERIM demek degildir: her sektorun satirlari koordinator 5 sayfayi gozle onaylayana kadar bekletilir (durum/onay.json).  12 Kas 2026 YEME-ICME ODAGI: yalniz restoran ailesi (restoran, bar, pub, kafe, pastane, firin, dondurma, tatlici, burger, pizza, burrito/taco, kebap/doner) uretilir; konaklama ve guzellik DURDU (sira listesinin sonunda bekler).",
   "sektorler": {
-    "konaklama": {
-      "aktif": true,
-      "ad": "kucuk konaklama (pansiyon, B&B, apart, tatil evi)"
-    },
-    "guzellik": {
-      "aktif": true,
-      "ad": "kuafor, guzellik salonu, berber"
-    },
     "restoran": {
       "aktif": true,
-      "ad": "restoran ve bar (v5), burgerci, burrito/taco, pizzaci (kategori sablonlari)",
-      "not": "11 Kas: deneme turu icin acik; mail satirlari RESTORAN_KUYRUK=acik ve koordinatorun ilk 5 sayfa onayina kadar yazilmaz. Turda en cok limitler.restoranHerTur isletme hazirlanir."
+      "ad": "yeme-icme ailesi: restoran, bar, pub, kafe, pastane, firin, dondurmaci, tatlici, burgerci, burrito/taco, pizzaci, kebap/doner (v5 ve kategori sablonlari; pastane ve firin icin sablon kancasi)",
+      "not": "11 Kas: deneme turu icin acik; mail satirlari RESTORAN_KUYRUK=acik ve koordinatorun ilk 5 sayfa onayina kadar yazilmaz. Turda en cok limitler.restoranHerTur isletme hazirlanir. 12 Kas: tek odak. OSM etiketleri lead/sektorler.mjs SEKTORLER.restoran.osm (amenity restaurant, fast_food, bar, pub, cafe, ice_cream; shop bakery, pastry, confectionery); zincir elemesi ayni; menu ve fiyat kaynagi yoksa kapi eler."
+    },
+    "konaklama": {
+      "aktif": false,
+      "ad": "kucuk konaklama (pansiyon, B&B, apart, tatil evi)",
+      "not": "12 Kas 2026: DURDU (yonetici karari: yeme-icme odagi, restoran ailesi daha cok isletmeye ve daha net menuye sahip). Tarama, OSM sorgusu ve uretim yok; kod, sablon ve mevcut veri durur. Yeniden acmak icin aktif=true."
+    },
+    "guzellik": {
+      "aktif": false,
+      "ad": "kuafor, guzellik salonu, berber",
+      "not": "12 Kas 2026: DURDU (yonetici karari: yeme-icme odagi). Tarama, OSM sorgusu ve uretim yok; kod, sablon ve mevcut veri durur. Yeniden acmak icin aktif=true."
     }
   },
   "sira": [
-    [
-      "IE",
-      "konaklama"
-    ],
-    [
-      "IE",
-      "guzellik"
-    ],
-    [
-      "NZ",
-      "konaklama"
-    ],
-    [
-      "NZ",
-      "guzellik"
-    ],
-    [
-      "AU",
-      "konaklama"
-    ],
-    [
-      "AU",
-      "guzellik"
-    ],
-    [
-      "GB",
-      "konaklama"
-    ],
-    [
-      "GB",
-      "guzellik"
-    ],
-    [
-      "SG",
-      "konaklama"
-    ],
-    [
-      "SG",
-      "guzellik"
-    ],
     [
       "IE",
       "restoran"
@@ -79,6 +41,46 @@
     [
       "TR",
       "restoran"
+    ],
+    [
+      "IE",
+      "konaklama"
+    ],
+    [
+      "IE",
+      "guzellik"
+    ],
+    [
+      "NZ",
+      "konaklama"
+    ],
+    [
+      "NZ",
+      "guzellik"
+    ],
+    [
+      "AU",
+      "konaklama"
+    ],
+    [
+      "AU",
+      "guzellik"
+    ],
+    [
+      "GB",
+      "konaklama"
+    ],
+    [
+      "GB",
+      "guzellik"
+    ],
+    [
+      "SG",
+      "konaklama"
+    ],
+    [
+      "SG",
+      "guzellik"
     ]
   ],
   "limitler": {
@@ -95,7 +97,7 @@
       "sektorler": [
         "restoran"
       ],
-      "not": "11 Kas: deneme turu icin acik, yalniz restoran ailesi; mail satirlari TR_KUYRUK=acik ve durum/onay.json TR onayina kadar yazilmaz (hat/kuyruk.mjs trKuyrukAcik). Il sirasi lead/sektorler.mjs TR_ILLER."
+      "not": "11 Kas: deneme turu icin acik, yalniz restoran ailesi; mail satirlari TR_KUYRUK=acik ve durum/onay.json TR onayina kadar yazilmaz (hat/kuyruk.mjs trKuyrukAcik). Il sirasi lead/sektorler.mjs TR_ILLER. 12 Kas: \"restoran\" anahtari TR'de de yeme-icme ailesinin tamamidir (restoran, bar, pub, kafe, pastane, firin, dondurma, tatlici; Turk zincirleri TR_ZINCIR ile elenir)."
     },
     "SG": {
       "aktif": true,
