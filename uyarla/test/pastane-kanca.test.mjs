@@ -6,7 +6,7 @@ import { sablonSec, kategoriOf, KATEGORILER, KANCA_KATEGORILER, SABLONLAR } from
 import { gerceklikler, sablonlar } from '../lib/slogan.mjs';
 
 test('pastane sablonu birlesti: KATEGORILER ve SABLONLAR onu icerir, kanca listesi bos', () => {
-  assert.deepEqual(KATEGORILER, ['burger', 'burrito', 'pizza', 'pastane']);
+  assert.deepEqual(KATEGORILER.slice(0, 4), ['burger', 'burrito', 'pizza', 'pastane']);
   assert.deepEqual(KANCA_KATEGORILER, []);
   assert.ok(SABLONLAR.includes('pastane'), 'uretici ve icerik denetimi pastane sablonunu kabul eder');
   assert.ok(!KATEGORILER.some((k) => KANCA_KATEGORILER.includes(k)));
@@ -25,7 +25,8 @@ test('tespit: OSM dukkan turu, cuisine, ad ve site metni pastane der', () => {
   assert.equal(kategoriOf({ metin }).kategori, 'pastane');
   assert.equal(kategoriOf({ metin: 'cake cake cake' }).kategori, null, 'az gecen sozcuk karar vermez');
   // ipucu yoksa kategori yok; kafe, bar, dondurma pastane degildir
-  for (const tur of ['cafe', 'bar', 'restaurant', 'ice cream shop', 'kebab house']) assert.equal(kategoriOf({ tur }).kategori, null, tur);
+  for (const tur of ['cafe', 'bar', 'restaurant', 'ice cream shop']) assert.equal(kategoriOf({ tur }).kategori, null, tur);
+  assert.equal(kategoriOf({ tur: 'kebab house' }).kategori, 'sokak', 'kebapci 12 Kas 2026dan beri sokak sablonunda (test/sokak-kanca.test.mjs)');
   assert.equal(kategoriOf({ cuisine: 'ice_cream' }).kategori, null);
 });
 
@@ -59,7 +60,7 @@ test('sablonSec: pastane ve firin pastane sablonuna gider; digerleri aynen', () 
   const g = sablonSec({ sektor: 'restoran', name: 'Rye Street', kind: 'bakery' }, null, eski);
   assert.equal(g.sablon, 'v5'); assert.equal(g.kategori, 'pastane'); assert.match(g.neden, /pastane.*henuz birlesmedi.*v5/);
   // kafe, bar, restoran, dondurma ve kebap: v5, kancasiz
-  for (const kind of ['cafe', 'bar', 'restaurant', 'ice cream shop', 'kebab house']) { const s = sablonSec({ sektor: 'restoran', name: 'Lina Rooftop', kind }); assert.equal(s.sablon, 'v5', kind); assert.equal(s.kategori, undefined, kind); }
+  for (const kind of ['cafe', 'bar', 'restaurant', 'ice cream shop']) { const s = sablonSec({ sektor: 'restoran', name: 'Lina Rooftop', kind }); assert.equal(s.sablon, 'v5', kind); assert.equal(s.kategori, undefined, kind); }
   // eski kararlar
   assert.equal(sablonSec({ sektor: 'restoran', name: 'Galway Grill', mutfak: 'burger;american', kind: 'burger joint' }).sablon, 'burger');
   assert.equal(sablonSec({ sektor: 'restoran', name: 'Pizza Pomodoro', kind: 'pizzeria' }).sablon, 'pizza');

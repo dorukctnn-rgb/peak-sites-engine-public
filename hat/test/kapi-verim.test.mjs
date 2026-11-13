@@ -186,11 +186,15 @@ test('on hazirlik: kisa liste ulkeler arasi dengeli; OSM ek ve ana sayfa sinyali
   get = 0; await onHazirla({ liste: [l('NZ', 9, { on, saat: null })], depo, adet: 5, polite, osmEk, bitis: Date.now() + 60000 }); assert.equal(get, 1);
 });
 
-test('pizza ve burger onceligi (12 Kas 2026, Doruk): kisa listede ve on eleme sirasinda once pizza+burger, sonra burrito, sonra digerleri; ad Turkce ekle de taninir', async () => {
+test('kategori onceligi (12 Kas 2026, Doruk): kisa listede ve on eleme sirasinda once burger, sonra sokak lezzetleri (burrito, sokak) ve pizza, sonra digerleri; ad Turkce ekle de taninir', async () => {
   const l = (u, n, name, ek = {}) => ({ id: `${u}-n${n}`, osm: `node/${n}`, ulke: u, sektor: 'restoran', name, website: `https://p${n}.example/`, saat: null, ...ek });
   const liste = [l('NZ', 1, 'Harbour Cafe'), l('IE', 2, 'Quay Tacos'), l('TR', 3, 'Burgerci Deneme'), l('NZ', 4, 'Old Mill', { mutfak: 'pizza;italian' }), l('IE', 5, 'Corner Bistro'), l('TR', 6, 'Pizzacı Örnek')];
   assert.deepEqual(liste.map(leadKategori), [null, 'burrito', 'burger', 'pizza', null, 'pizza']);
-  assert.deepEqual(kisaListe(liste, 6).map((x) => x.id), ['TR-n3', 'NZ-n4', 'TR-n6', 'IE-n2', 'NZ-n1', 'IE-n5']);
+  assert.deepEqual(kisaListe(liste, 6).map((x) => x.id), ['TR-n3', 'IE-n2', 'NZ-n4', 'TR-n6', 'NZ-n1', 'IE-n5']);
+  // sokak lezzeti: burgerden sonra, pizza ve burrito ile ayni sirada; oturmali kebapci (amenity=restaurant, adinda sokak sozcugu yok) digerleriyle
+  const s2 = [l('TR', 7, 'Liman Dönerci', { amenity: 'fast_food' }), l('IE', 8, 'Anatolia Grill', { amenity: 'restaurant', mutfak: 'kebab' }), l('NZ', 9, 'Burger Lane'), l('AU', 10, 'Corner Kebabs', { mutfak: 'kebab' })];
+  assert.deepEqual(s2.map(leadKategori), ['sokak', null, 'burger', 'sokak']);
+  assert.deepEqual(kisaListe(s2, 4).map((x) => x.id), ['NZ-n9', 'TR-n7', 'AU-n10', 'IE-n8']);
   assert.equal(leadKategori({ name: 'Plain Kitchen', on: { kategori: 'pizza' } }), 'pizza', 'menu metninden');
   // on eleme: puani dusuk pizzaci, puani yuksek kafeden once
   const depo = gecici('kv-pb-'); const zayif = onSinyal({ html: '<html><body><a href="/menu">Menu</a><p>Pizza $10 Pizza $12 Pizza $14 Pizza $16</p></body></html>', finalUrl: 'https://p6.example/', ulke: 'TR' });
@@ -245,7 +249,7 @@ test('tara: genel havuz dolu olsa da pizza+burger havuzu azsa yalniz pizza+burge
     uretimLead, uretimCalis: async () => ({ sonuc: [] }), hazirlar: () => [], kutuEkle: () => 0, kutuOku: () => [], yazilanlar: () => ({ neden: () => null }),
   };
   const r = await dongu({ depo, kutu: null, sureDk: 30, parti: 'p', planDosya, veri, araclar, log: () => {}, env: {} });
-  assert.deepEqual(taranan, ['NZ-n3', 'NZ-n4'], 'yalniz pizza+burger, tekil, ana liste + hedefli liste');
+  assert.deepEqual(taranan, ['NZ-n4', 'NZ-n3'], 'yalniz pizza+burger, tekil, ana liste + hedefli liste; burger en onde (12 Kas, Doruk)');
   assert.ok(r.tarandi['NZ-restoran-pb']);
 });
 

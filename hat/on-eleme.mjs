@@ -14,12 +14,16 @@ import { osmEk as osmEkVarsayilan, osmEkUygula, osmAdresKur } from '../lead/osm.
 import { SAAT_METIN, ZINCIR_METIN, TR_ZINCIR_METIN, TR_ADRES, TR_TEL, TEL_METIN, FIYAT_SATIR } from '../uyarla/restoran-hazirla.mjs';
 import { kategoriOf, oncelik } from '../uyarla/sablon-sec.mjs';
 
-// lead'in sayfa kategorisi (sablon-sec ile ayni kanit sirasi: OSM cuisine > ad > sitenin metni): pizza ve burger once (12 Kas 2026, Doruk), sonra burrito, sonra digerleri
+// lead'in sayfa kategorisi (sablon-sec ile ayni kanit sirasi: OSM cuisine > ad > sitenin metni).  Oncelik (12 Kas 2026, Doruk): burger en onde, sonra sokak
+// lezzetleri (sokak, burrito/taco) ve pizza, sonra digerleri (uyarla/sablon-sec.mjs ONCELIK)
+const ONCELIKLI = ['pizza', 'burger', 'burrito', 'sokak'];
 export function leadKategori(l = {}) {
-  const k = kategoriOf({ cuisine: l.mutfak || l.cuisine || '', ad: l.name || '', tur: l.tur || '' }).kategori;
-  return ['pizza', 'burger', 'burrito'].includes(k) ? k : (l.on && ['pizza', 'burger', 'burrito'].includes(l.on.kategori) ? l.on.kategori : null);
+  const k = kategoriOf({ cuisine: l.mutfak || l.cuisine || '', ad: l.name || '', tur: l.tur || '', amenity: l.amenity || '' }).kategori;
+  return ONCELIKLI.includes(k) ? k : (l.on && ONCELIKLI.includes(l.on.kategori) ? l.on.kategori : null);
 }
 export const leadOncelik = (l) => oncelik(leadKategori(l));
+// hedefli pizza+burger havuzu (hat/dongu.mjs PB havuzu ve hedefli sorgu): kategori pizza ya da burger (oncelikten bagimsiz)
+export const leadPB = (l) => ['pizza', 'burger'].includes(leadKategori(l));
 
 export const ON_SURUM = 1;
 const ENT = { amp: '&', nbsp: ' ', quot: '"', apos: "'", lt: '<', gt: '>', ndash: '–', mdash: '—', pound: '£', euro: '€' };
@@ -99,7 +103,7 @@ export function onPuan(on, l = {}) {
 const jsonOku = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 export const ON_DOSYA = 'on-kontrol.json';
 
-// ulkeler arasi dengeli kisa liste (her ulkeden sirayla; liste zaten uretimPuani sirali).  12 Kas 2026: once pizza ve burger, sonra burrito, sonra digerleri
+// ulkeler arasi dengeli kisa liste (her ulkeden sirayla; liste zaten uretimPuani sirali).  12 Kas 2026: once burger, sonra sokak lezzetleri ve pizza, sonra digerleri
 export function kisaListe(liste, adet) {
   const out = [];
   for (const p of [0, 1, 2]) {
@@ -114,10 +118,10 @@ export function kisaListe(liste, adet) {
 //   liste: adaylar() ciktisi (uretimPuani sirali).  -> { liste: yeni sira (atlananlar cikarilmis), sayac }
 export async function onHazirla({ liste, depo, adet = 45, bitis = Date.now() + 150000, polite = null, es = 6, osmEk = osmEkVarsayilan, log = () => {}, simdi = new Date() }) {
   const restoran = liste.filter((l) => l.sektor === 'restoran'); const diger = liste.filter((l) => l.sektor !== 'restoran');
-  const sayac = { bakilan: 0, indirilen: 0, osmEk: 0, atla: 0, zincir: 0, menuYok: 0, puanli: 0, pizzaBurger: 0 };
+  const sayac = { bakilan: 0, indirilen: 0, osmEk: 0, atla: 0, zincir: 0, menuYok: 0, puanli: 0, pizzaBurger: 0, sokak: 0 };
   if (!restoran.length) return { liste, sayac };
   const dosya = path.join(depo, 'lead', ON_DOSYA); const ob = jsonOku(dosya, {});
-  const kisa = kisaListe(restoran, adet); sayac.bakilan = kisa.length; sayac.pizzaBurger = kisa.filter((l) => leadOncelik(l) === 0).length;
+  const kisa = kisaListe(restoran, adet); sayac.bakilan = kisa.length; sayac.pizzaBurger = kisa.filter((l) => ['pizza', 'burger'].includes(leadKategori(l))).length; sayac.sokak = kisa.filter((l) => leadKategori(l) === 'sokak').length;
   // 1. OSM ek etiketleri (eski listeler: lead'de `saat` alani hic yok)
   const osmGerek = kisa.filter((l) => !('saat' in l) && !(ob[l.id] && ob[l.id].osm !== undefined) && l.osm);
   if (osmGerek.length && Date.now() < bitis - 30000) {
@@ -170,7 +174,7 @@ export async function onHazirla({ liste, depo, adet = 45, bitis = Date.now() + 1
     if (z.atla) { sayac.atla++; if (/zincir/.test(z.atla)) sayac.zincir++; else if (/fiyat yok/.test(z.atla)) sayac.fiyatYok = (sayac.fiyatYok || 0) + 1; else sayac.menuYok++; continue; }
     if (z.puan === null) puansiz.push(z.l); else { puanli.push(z); sayac.puanli++; }
   }
-  // sira: kategori onceligi (pizza+burger, burrito, digerleri), ayni oncelikte puanli once (puan buyukten), sonra puansiz (uretimPuani sirasi)
+  // sira: kategori onceligi (burger; sokak, burrito, pizza; digerleri), ayni oncelikte puanli once (puan buyukten), sonra puansiz (uretimPuani sirasi)
   const sirali = [...puanli.map((z) => ({ l: z.l, p: z.puan })), ...puansiz.map((x) => ({ l: x, p: null }))].map((x, i) => ({ ...x, i, o: leadOncelik(x.l) }));
   sirali.sort((a, b) => a.o - b.o || (a.p === null) - (b.p === null) || (b.p ?? 0) - (a.p ?? 0) || a.i - b.i);
   return { liste: [...sirali.map((x) => x.l), ...diger], sayac, atlanan: restoran.filter((l) => zengin.get(l.id).atla).map((l) => ({ id: l.id, neden: zengin.get(l.id).atla })) };

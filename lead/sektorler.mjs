@@ -69,8 +69,9 @@ export const SEKTORLER = {
   //   restoran, bar, pub, kafe (amenity=cafe), dondurmaci (amenity=ice_cream), pastane, firin, tatlici (shop=bakery|pastry|confectionery), burger, pizza, burrito/taco, kebap/doner.
   //   Ayni zincir elemesi, ayni son goz kotasi (plan.json limitler.restoranHerTur), ayni kapi (fiyatli menu kaynagi yoksa elenir).  TR'de de ayni aile (ULKELER.TR.yalnizSektor).
   //   Pastane ve firin (shop=bakery|pastry|confectionery) icin ayri sablon uyarla/sablon-sec.mjs "pastane" kancasindan secilir; sablon birlesene kadar v5.
+  //   Sokak lezzeti (doner, kebap, durum, pide-lahmacun, tost, kumpir, tavuk, kokorec, cig kofte, shawarma): "sokak" sablonu (burger sablonunun varyanti); desenler yukarida (SOKAK_*).
   restoran: {
-    ad: 'bağımsız yeme-içme: restoran, bar, pub, kafe, pastane, fırın, tatlıcı, burgerci, burrito/taco, pizzacı, kebap/döner (v5 ve kategori şablonları)',
+    ad: 'bağımsız yeme-içme: restoran, bar, pub, kafe, pastane, fırın, tatlıcı, burgerci, burrito/taco, pizzacı, kebap/döner ve sokak lezzetleri (v5 ve kategori şablonları)',
     osm: ['["amenity"~"^(restaurant|fast_food|bar|pub|cafe|ice_cream)$"]', '["shop"~"^(bakery|pastry|confectionery)$"]'],
     tur: (t) => {
       // dukkan etiketi once (pastane, firin, tatlici); sonra mutfak ve ad; sonra amenity
@@ -86,6 +87,17 @@ export const SEKTORLER = {
     anahtar: { fiyat: /([£€$₺]\s?\d+(?:[.,]\d\d)?|\b\d{2,5}(?:[.,]\d{2})?\s?(?:₺|TL|TRY)(?!\p{L}))/u, menu: /\b(?:menus?|menü)(?!\p{L})/iu },
   },
 };
+
+// SOKAK LEZZETI (12 Kas 2026, yonetici karari: her isletmeye tek demo, stil turune gore): rahat ya da hizli yeme-icme (doner, kebap, durum, pide ve lahmacun,
+// tost, kumpir, tavuk, kokorec, cig kofte, shawarma, gyros, falafel) burger sablonunun "sokak" varyantina gider (uyarla/sablon-sec.mjs: imlec izi isletmenin kendi
+// urunleri, renk ve font isletmenin kendi markasi).  Burger, pizza ve burrito/taco kendi sablonlarinda kalir.  Oturmali restoran, ocakbasi, meyhane, balik ve
+// fine dining v5'te kalir: adinda oturmali isareti olan ya da OSM'de amenity=restaurant olup adinda sokak sozcugu olmayan kebapci v5'e gider.
+// Tek kaynak: sablon secici (kategori), on eleme (oncelik) ve testler bu uc deseni okur.
+export const SOKAK_MUTFAK = /^(kebab|kebabs|kebap|doner|döner|doner_kebab|döner_kebap|shawarma|shawerma|gyros|gyro|souvlaki|falafel|lahmacun|pide|turkish_pizza|dürüm|wrap|wraps|kokoreç|kokorec|cig_kofte|çiğ_köfte|kumpir|tost|fried_chicken|chicken|kofte|köfte|street_food)$/;
+export const SOKAK_AD = /(?<!\p{L})(?:kebab(?:s|ish|[çc][ıi]\p{L}*)?|kebap\p{L}*|d[öo]ner\p{L}*|dürüm\p{L}*|durumcu\p{L}*|durum ?evi|lahmacun\p{L}*|pide(?:ci\p{L}*|si|evi|salonu)?|tost(?:[çc]u\p{L}*|evi)?|kumpir\p{L}*|kokore[çc]\p{L}*|[çc]i[ğg] ?k[öo]fte\p{L}*|shawarma|shawerma|shwarma|gyros|souvlaki|falafel|tavuk[çc]u\p{L}*|k[öo]fteci\p{L}*)(?!\p{L})/iu;
+export const OTURMALI_AD = /(?<!\p{L})(?:restoran\p{L}*|restaurant\p{L}*|ristorante|lokanta\p{L}*|ocakba[şs][ıi]\p{L}*|meyhane\p{L}*|brasserie|bistro|fine dining|steak ?house|bal[ıi]k(?:[çc][ıi]\p{L}*|evi)?|seafood|fish)(?!\p{L})/iu;
+// metinde sokak lezzeti sozcukleri (en az 6 kez ve oteki turlerin iki katindan fazla gecerse karar verir)
+export const SOKAK_METIN = /(?<!\p{L})(?:kebabs?|kebap\p{L}*|d[öo]ner\p{L}*|dürüm\p{L}*|lahmacun\p{L}*|pide\p{L}*|shawarma|gyros|souvlaki|falafel|kokore[çc]\p{L}*|kumpir\p{L}*|[çc]i[ğg] ?k[öo]fte\p{L}*|gözleme\p{L}*|gozleme|hsp|snack ?packs?)(?!\p{L})/giu;
 
 // Zincir / franchise adlari (restoran ailesi, guzellik, dis, spor): bunlarin sitesi merkezden yonetilir, sube karar vermez.
 // 12 Kas 2026: restoran ailesine kafe, firin, pastane, dondurma ve pub eklenince bu kategorilerin bilinen zincirleri de listeye girdi (eski adlar degismedi, yalniz eklendi).
