@@ -1,0 +1,45 @@
+name: kesme-kontrol
+
+# Imlec izi kesim tezgahi (uyarla/py/kesme.py, iz-atlas.py; klasik GrabCut) GitHub Actions ortaminda gercekten calisiyor mu: surumleri sabit opencv-python-headless kurulur,
+# sentetik tabaklar kesilir, kalite olculeri (kenara degme, doluluk, kenar kontrasti) ve atlas denetlenir.  KESME_ZORUNLU=1: python/opencv yoksa test HATA verir (atlanmaz).
+# Ozel varlik ya da sir kullanmaz; yalniz tezgahla ilgili dosyalar degisince calisir.
+on:
+  pull_request:
+    paths:
+      - 'uyarla/py/**'
+      - 'uyarla/lib/kesme-v5.mjs'
+      - 'uyarla/test/kesme-v5.test.mjs'
+      - '.github/workflows/kesme-kontrol.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kesme-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kesme:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: bagimliliklar
+        run: npm ci --no-audit --no-fund
+      - name: python kesim tezgahi (opencv)
+        run: |
+          python3 -m venv .pyenv
+          .pyenv/bin/pip install --no-input --disable-pip-version-check --only-binary=:all: -r uyarla/py/gereksinim.txt
+          .pyenv/bin/python -I -c "import cv2, numpy, PIL; print('opencv', cv2.__version__)"
+      - name: kesme testleri (python zorunlu)
+        env:
+          PEAK_PYTHON: ${{ github.workspace }}/.pyenv/bin/python
+          KESME_ZORUNLU: '1'
+        run: node --test uyarla/test/kesme-v5.test.mjs

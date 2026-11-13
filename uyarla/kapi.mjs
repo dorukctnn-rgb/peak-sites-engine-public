@@ -131,7 +131,7 @@ async function olcVePoz(browser, base, rel, { mobile, dir, tag, out, wide = fals
     await pg.waitForTimeout(500);
     const m = await pg.evaluate(olc);
     // gizli sekmedeki ya da srcset'li gorsellerde naturalWidth 0 gorunebilir: gercekten bozuk mu, dosyayi ayri yukleyerek dogrula
-    m.broken = await pg.evaluate(async () => { const bad = []; for (const i of document.images) { if (i.complete && i.naturalWidth > 0) continue; const u = i.currentSrc || i.src; if (!u) { bad.push('(src yok)'); continue; } const ok = await new Promise((r) => { const t = new Image(); t.onload = () => r(t.naturalWidth > 0); t.onerror = () => r(false); t.src = u; setTimeout(() => r(false), 8000); }); if (!ok) bad.push((i.getAttribute('src') || '').slice(0, 60)); } return bad; });
+    m.broken = await pg.evaluate(async () => { const bad = []; for (const i of document.images) { if (i.complete && i.naturalWidth > 0) continue; const u = i.currentSrc || i.src; if (!u) { if (i.hasAttribute('data-src')) continue; bad.push('(src yok)'); continue; } /* data-src: dokununca ya da yaklasinca yuklenen tembel gorsel; yuklenince ust katman kapisi kirik mi diye bakar */ const ok = await new Promise((r) => { const t = new Image(); t.onload = () => r(t.naturalWidth > 0); t.onerror = () => r(false); t.src = u; setTimeout(() => r(false), 8000); }); if (!ok) bad.push((i.getAttribute('src') || '').slice(0, 60)); } return bad; });
     Object.assign(res, m);
     res.firstScreen = r0.firstScreen; res.logo = r0.logo; res.gl = r0.gl; // ilk ekran olculeri kaydirmadan ONCE alinir
     const full = path.join(dir, mobile ? 'sonra-390-tam.jpg' : wide ? 'sonra-1920-tam.jpg' : 'sonra-1440-tam.jpg');

@@ -11,6 +11,7 @@ import crypto from 'node:crypto';
 import { sharp } from './lib/gorsel.mjs';
 import { denetle, kayitKur, baglam } from './restoran-icerik.mjs';
 import { heroDosyalari } from './lib/hero-sec.mjs';
+import { sahneDosyalari } from './lib/ust-v5.mjs';
 import { restoranKapi } from './restoran-kapi.mjs';
 
 const J = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
@@ -54,6 +55,8 @@ export async function icerikUygula(slug, k, { veri, out, browser, base, getir = 
   const HA = J(path.join(dir, 'hero-adaylar.json'), { adaylar: [] });
   if (k.sablon === 'v5') await heroDosyalari({ ...R, slug }, { dir, id: k.hero.id, getir, adaylar: HA.adaylar, inceleme: { inceleyen: k.inceleyen, gerekce: k.hero.gerekce, reddedilen: k.hero.reddedilen || [] }, log });
   else W(path.join(dir, 'hero-secim.json'), { slug, adaylar: HA.adaylar, secilen: { id: String(k.hero.id), gozle: `${k.inceleyen} secti: ${k.hero.gerekce}`, reddedilen: k.hero.reddedilen || [], puanlayicininIlki: HA.adaylar[0] ? HA.adaylar[0].id : null }, duzen: 'cerceve (kategori sablonu)', at: new Date().toISOString() });
+  const ustS = k.sablon === 'v5' && k.icerik && k.icerik.ust && k.icerik.ust.sahne;
+  if (ustS && ustS.foto) { const sr = await sahneDosyalari({ ...R, slug }, { dir, id: ustS.foto, getir, log }); log(`   sahne ${ustS.foto}: ${sr.ok ? `${sr.w}x${sr.h}` : `yok (${sr.neden}); ince ayirici`}`); }
   try {
     if (k.sablon === 'v5') { const { uretV5 } = await import('./uret-v5.mjs'); const r = await uretV5(slug, { veri, out, log }); if (r.status !== 'uretildi') return { slug, durum: 'gozden-gecir', neden: `uretim: ${(r.reasons || []).join('; ')}` }; }
     else { const { tamamla } = await import('./kategori-tamamla.mjs'); const { uretKategori } = await import('./uret-kategori.mjs'); tamamla(slug, { veri }); await uretKategori(slug, { veri, out, log }); }
