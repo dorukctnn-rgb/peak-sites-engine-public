@@ -173,6 +173,16 @@ jobs:
       - name: chromium
         run: npx playwright-core install --with-deps chromium
 
+      # imlec izi icin kesim tezgahi (uyarla/py, klasik GrabCut): opencv-python-headless + numpy + pillow, surumler sabit (uyarla/py/gereksinim.txt).
+      # Kurulamazsa is DURMAZ: PEAK_PYTHON yazilmaz, sayfalar imlec izsiz uretilir (uyarla/lib/kesme-v5.mjs 'python-yok' raporlar).
+      - name: python kesim tezgahi (opencv)
+        continue-on-error: true
+        run: |
+          python3 -m venv .pyenv
+          .pyenv/bin/pip install --no-input --disable-pip-version-check --only-binary=:all: -r uyarla/py/gereksinim.txt
+          .pyenv/bin/python -I -c "import cv2, numpy, PIL; print('opencv', cv2.__version__)"
+          echo "PEAK_PYTHON=${GITHUB_WORKSPACE}/.pyenv/bin/python" >> "$GITHUB_ENV"
+
       - name: ozel varliklar (ozel veri deposu, main/motor)
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:

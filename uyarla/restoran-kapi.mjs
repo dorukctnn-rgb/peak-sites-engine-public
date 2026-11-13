@@ -17,6 +17,7 @@ import { KAPI_SURUM } from './lib/surum.mjs';
 import { yasakVar } from './lib/sozluk.mjs';
 import { kalipArg } from './kategori-kapi.mjs';
 import { logoNetlikTara, bosTuval } from './lib/logo-netlik.mjs';
+import { ustDosyaDenetimi, ustTarayiciDenetimi } from './lib/ust-kapi.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const J = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
@@ -93,7 +94,7 @@ export function lintCopy(file) {
 
 export async function restoranKapi(slug, { browser, base, out, veri, sablon, log = () => {} }) {
   const dir = path.join(veri, slug); const R = J(path.join(dir, 'cikarici.json')); const ik = J(path.join(dir, 'icerik.json'), {});
-  const why = []; const warn = []; let page = null; let eylemUrl = null; let menuN = 0; let menuKaynak = null; let base0 = null; let logoNet = null;
+  const why = []; const warn = []; let page = null; let eylemUrl = null; let menuN = 0; let menuKaynak = null; let base0 = null; let logoNet = null; let ustOlcum = null;
   if (sablon === 'v5') {
     const { kapi } = await import('./kapi.mjs');
     base0 = await kapi(slug, { browser, base, out, veri, log });
@@ -139,13 +140,19 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
     why.push(...td.sorunlar);
     const ln = await logoNetlikTara(browser, `${base}/${page}`, { dir });
     why.push(...ln.sorunlar); logoNet = { sorun: ln.sorunlar.length, ekran: ln.dosyalar.map((x) => path.basename(x)) };
+    if (sablon === 'v5') {
+      const UD = await ustDosyaDenetimi({ sayfaDir: path.join(out, path.dirname(page)), html: fs.readFileSync(html, 'utf8'), U: J(path.join(dir, 'uret.json'), {}) });
+      const UT = await ustTarayiciDenetimi(browser, `${base}/${page}`, { U: J(path.join(dir, 'uret.json'), {}) });
+      why.push(...UD.sorunlar, ...UT.sorunlar); warn.push(...UD.uyarilar, ...UT.uyarilar);
+      ustOlcum = { dosya: UD.olcum, tarayici: UT.olcum, sorun: UD.sorunlar.length + UT.sorunlar.length };
+    }
     const imgD = path.join(out, path.dirname(page), 'img');
     for (const f of (fs.existsSync(imgD) ? fs.readdirSync(imgD) : []).filter((x) => /^logo.(png|jpe?g|webp|avif)$/i.test(x))) {
       const bt = await bosTuval(fs.readFileSync(path.join(imgD, f)));
       if (bt && bt.bos) warn.push(`logo dosyasinda bos tuval: img/${f} icerik %${Math.round(bt.icerik * 100)} (gorunen logo kutudan kucuk)`);
     }
   }
-  const k = { ...(base0 || {}), surum: KAPI_SURUM, slug, name: R.name && R.name.n, site: R.lead.site, region: R.lead.region, sektor: 'restoran', sablon, at: new Date().toISOString(), status: why.length ? 'gozden-gecir' : 'hazir', reasons: [...new Set(why)], warnings: [...new Set(warn)], page: page ? path.dirname(page) : null, eylem: eylemUrl, menuKalem: menuN, menuKaynak, siki: true, ...(logoNet ? { logoNetlik: logoNet } : {}) };
+  const k = { ...(base0 || {}), surum: KAPI_SURUM, slug, name: R.name && R.name.n, site: R.lead.site, region: R.lead.region, sektor: 'restoran', sablon, at: new Date().toISOString(), status: why.length ? 'gozden-gecir' : 'hazir', reasons: [...new Set(why)], warnings: [...new Set(warn)], page: page ? path.dirname(page) : null, eylem: eylemUrl, menuKalem: menuN, menuKaynak, siki: true, ...(logoNet ? { logoNetlik: logoNet } : {}), ...(ustOlcum ? { ust: ustOlcum } : {}) };
   fs.writeFileSync(path.join(dir, 'kapi.json'), JSON.stringify(k, null, 1));
   return k;
 }

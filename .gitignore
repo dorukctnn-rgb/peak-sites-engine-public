@@ -28,3 +28,4 @@ inceleme/ROUTINE*.md
 inceleme/ornek/
 hat/ozel-sozluk.json
 **/test/ozel-*.test.mjs
+.pyenv/

@@ -14,8 +14,9 @@ import path from 'node:path';
 import { sloganDogrula } from './lib/slogan.mjs';
 import { SABLONLAR, KATEGORILER } from './sablon-sec.mjs';
 import { yasakVar } from './lib/sozluk.mjs';
-import { yuvaDenetle } from './lib/foto-uyum.mjs';
+import { yuvaDenetle, sade as sadeAd } from './lib/foto-uyum.mjs';
 import { telEylemEtiket } from './lib/metin.mjs';
+import { kesimGecerli } from './lib/kesme-v5.mjs';
 
 const ID = /^\d{2}$/;
 const FIYAT = /^(?:from\s+)?[£€$]\s?\d{1,4}(?:[.,]\d{2})?(?:\s?(?:\/|or|–|-)\s?[£€$]?\s?\d{1,4}(?:[.,]\d{2})?)?$/i;
@@ -58,12 +59,30 @@ export function metinler(o, yol = '') {
   const out = [];
   if (typeof o === 'string') out.push([yol, o]);
   else if (Array.isArray(o)) o.forEach((x, i) => out.push(...metinler(x, `${yol}[${i}]`)));
-  else if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) { if (/^(url|link|kaynak|dosya|pic|id|sprite|renk|hud|tema|tema2|odak|heroOdak|tz|kategori|sablon|neden|foto_not|heroNeden|gerekce|kanit|cat|sayfa|foto|kareler|hero|haric|rez|isaret|order|sec|hedef|heroKirp|dil|palet)$/i.test(k)) continue; out.push(...metinler(v, yol ? `${yol}.${k}` : k)); }
+  else if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) { if (/^(url|link|kaynak|dosya|pic|id|sprite|renk|hud|tema|tema2|odak|heroOdak|tz|kategori|sablon|neden|foto_not|heroNeden|gerekce|kanit|cat|sayfa|foto|kareler|hero|haric|rez|isaret|order|sec|hedef|heroKirp|dil|palet|menuFoto|sekmeFoto|kesimler|kutu)$/i.test(k)) continue; out.push(...metinler(v, yol ? `${yol}.${k}` : k)); }
   return out;
 }
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ');
 
+// icerik.ust: { sahne: { foto, yemek, alt, fx, fy }, menuFoto: { "<kalem adi>": "09" }, sekmeFoto: { "<bolum adi>": "06" }, galeri: { foto: [...], kicker, h2, p }, iz: { kesimler: [{ ad, foto, kutu, elips }] } }
+export function ustDenetle(u, ctx = {}, kalemler = []) {
+  const H = []; const var_ = (id) => !ctx.fotoIds || ctx.fotoIds.includes(String(id));
+  if (!u || typeof u !== 'object' || Array.isArray(u)) return ['icerik.ust nesne olmali'];
+  const adlar = new Set(kalemler.map((x) => sadeAd(x && x.n))); const bolumler = new Set(kalemler.map((x) => sadeAd(x && x.cat)).filter(Boolean));
+  const S = u.sahne; if (S != null) {
+    if (!ID.test(String(S.foto || '')) || !var_(S.foto)) H.push(`ust.sahne.foto fotograflarda yok: ${S.foto}`);
+    if (!adlar.has(sadeAd(S.yemek))) H.push(`ust.sahne.yemek menude yok (kalem adi aynen): ${S.yemek}`);
+    for (const a of ['fx', 'fy']) if (S[a] != null && !(typeof S[a] === 'number' && S[a] >= 0 && S[a] <= 1)) H.push(`ust.sahne.${a} 0..1 olmali`);
+  }
+  for (const [ad, id] of Object.entries(u.menuFoto || {})) { if (!adlar.has(sadeAd(ad))) H.push(`ust.menuFoto: "${ad}" menude yok`); if (!ID.test(String(id)) || !var_(id)) H.push(`ust.menuFoto: fotograf yok ${id}`); }
+  for (const [ad, id] of Object.entries(u.sekmeFoto || {})) { if (!bolumler.has(sadeAd(ad))) H.push(`ust.sekmeFoto: bolum yok "${ad}" (kalemlerin cat alani)`); if (!ID.test(String(id)) || !var_(id)) H.push(`ust.sekmeFoto: fotograf yok ${id}`); }
+  if (u.galeri && u.galeri.foto != null) { if (!Array.isArray(u.galeri.foto)) H.push('ust.galeri.foto liste olmali'); else for (const id of u.galeri.foto) if (!ID.test(String(id)) || !var_(id)) H.push(`ust.galeri.foto yok: ${id}`); }
+  const kes = (u.iz && u.iz.kesimler) || [];
+  if (u.iz && !Array.isArray(kes)) H.push('ust.iz.kesimler liste olmali');
+  else for (const [i, c] of kes.entries()) { const r = kesimGecerli(c); if (r) H.push(`ust.iz.kesimler[${i}]: ${r}`); else if (!var_(c.foto)) H.push(`ust.iz.kesimler[${i}].foto yok: ${c.foto}`); }
+  return H;
+}
 // k: karar; ctx: { ad, fotoIds, metin (metin.txt), kaynakDosya: (rel) => icerik|null, kaynaklar (bilgi.menu_kaynaklari), adaylar (hero_adaylari) }
 export function denetle(k, ctx = {}) {
   const H = [];
@@ -82,6 +101,8 @@ export function denetle(k, ctx = {}) {
   // 12 Kas FOTO UYUMU (lib/foto-uyum.mjs): her yuvadaki kare paketin foto uyumu listesinde "uygun" olmali (logo, harita, ikon, kucuk, bulanik, ture uymayan stok yok);
   // uyan kare yoksa yuva bos birakilir (sablon daraltir).  Eski paketlerde (foto_uyum yok) denetim atlanir.
   if (ctx.bilgi && ctx.bilgi.foto_uyum) H.push(...yuvaDenetle(k, ctx.bilgi.foto_uyum));
+  // 12 Kas UST KATMAN (lib/ust-v5.mjs; yalniz v5): isteye bagli icerik.ust blogu.  Kimlikler paketteki fotograflarda olmali, kesim kutulari 0..1; gecmeyen ogeyi uretici sessizce atlamaz, burada hata olur.
+  if (k.sablon === 'v5' && k.icerik && k.icerik.ust != null) H.push(...ustDenetle(k.icerik.ust, ctx, (k.menu && k.menu.kalemler) || []));
   // menu: en az 6 fiyatli kalem, kaynak kayitli ve robots izinli
   const m = k.menu || {}; const kal = Array.isArray(m.kalemler) ? m.kalemler : [];
   if (kal.length < 6) H.push(`fiyatli menu en az 6 kalem olmali (${kal.length})`);
@@ -170,7 +191,7 @@ export function kayitKur(k) {
   const kaynakYazi = `${k.menu.kaynak.tur}: ${k.menu.kaynak.url || k.menu.kaynak.dosya}${k.menu.kaynak.sayfa ? ` (sayfa ${k.menu.kaynak.sayfa})` : ''}; aktaran ${k.inceleyen}`;
   if (k.sablon === 'v5') {
     ic.foto = { ...(ic.foto || {}), hero: String(k.hero.id) };
-    ic.menu = { ...(ic.menu || {}), items: kal.map(({ n, d, p }) => ({ n, d, p })), kaynak: kaynakYazi };
+    ic.menu = { ...(ic.menu || {}), items: kal.map(({ n, d, p, cat }) => ({ n, d, p, ...(cat ? { cat } : {}) })), kaynak: kaynakYazi };
     // telefon eylemi: etiket karardan (bilgi.json eylem.etiket/kisa), yoksa dile gore lib/metin.mjs telEylemEtiket (EN genel: etiket yok, sablon "Call <numara>" yazar)
     const te = telEylemEtiket(k.dil === 'tr' ? 'tr' : 'en', { rezervasyon: !!k.eylem.rezervasyonSozu });
     ic.cta = k.eylem.tur === 'telefon'
