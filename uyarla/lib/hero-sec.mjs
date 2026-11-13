@@ -186,7 +186,9 @@ export async function heroDosyalari(R, { dir, id, getir = null, adaylar = [], in
   const imgDir = path.join(dir, 'hero'); fs.mkdirSync(imgDir, { recursive: true });
   for (const f of fs.readdirSync(imgDir)) if (/^hero-\d+\.webp$/.test(f)) fs.rmSync(path.join(imgDir, f));
   const files = {};
-  for (const [k, w, q] of [['3200', 3200, 70], ['2400', 2400, 74], ['1600', 1600, 76], ['960', 960, 72]]) {
+  // 1920-2159 px kaynak: 2400 dosyasi yok, 1600'e kucultmek tam ekran duzenini bozar; kaynagin kendi genisligi (buyutmeden) ayrica yazilir
+  const yerli = W >= HERO_MIN && W < 2160 ? [[String(W), W, 76]] : [];
+  for (const [k, w, q] of [['3200', 3200, 70], ['2400', 2400, 74], ...yerli, ['1600', 1600, 76], ['960', 960, 72]]) {
     if (W < w * 0.9 && k !== '960' && !(k === '1600' && !Object.keys(files).length)) continue;
     const o = await sharp(buf, { limitInputPixels: 150e6 }).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: q, effort: 5 }).toBuffer({ resolveWithObject: true });
     fs.writeFileSync(path.join(imgDir, `hero-${k}.webp`), o.data); files[k] = { file: `hero-${k}.webp`, w: o.info.width, h: o.info.height, kb: Math.round(o.data.length / 1024) };

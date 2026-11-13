@@ -4,7 +4,9 @@
 // Kurallar (Doruk, 10 Kas): buyuk baslik bir slogandir (isim degil); logo dosyasi bayt bayt aynen; ana fotograf hero-secim.json'daki tek ve en iyi karedir ve
 // kendi boyutunun ustune buyutulmez (1920 px altindaysa "cerceve" duzeni); ilk ekranda saat, adres, telefon, simdi acik ve tek ana eylem; fiyatli menu.
 // Elle kayitlar: data/v5-elle.json (yalniz bu uretici okur; eski uret.mjs'in data/elle klasorune girmez).
-// Cikti: <out>/r/<slug>-<kodV5>/{index.html, theme.css, img/}  +  ortak <out>/<ORTAK_V5>/{v5.css, v5.js, fonts/} (varsayilan _hat1v5).  Eski uret.mjs ve sayfalari degismez.
+// Cikti: <out>/r/<slug>-<kodV5>/{index.html, theme.css, img/}  +  ortak <out>/<ORTAK_V5>/{v5.css, v5.js, ust.css, ust.js, iz.js, fonts/} (varsayilan _hat1v5).  Eski uret.mjs ve sayfalari degismez.
+// UST KATMAN (12 Kas, lib/ust-v5.mjs): sinematik ilk ekran, yemek sahnesi (kayan yazi seridi YOK, kalici), sekmeli ve fotografi acilan menu, galeri seridi, imlec izi.
+// NETLIK KAPISI (12 Kas, lib/netlik.mjs, kalici "flu goruntu olmasin hic"): kahraman, sahne ve buyuk yuvalardaki her fotograf netlik ve cozunurluk olcusunden gecer.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -24,6 +26,8 @@ import { DILLER, dilSec, dilFontlari } from './lib/dil-v5.mjs';
 import { themeCssV5, sayfaHtmlV5 } from './lib/sayfa-v5.mjs';
 import { yasakVar } from './lib/sozluk.mjs';
 import { fotoUyum, uyumBaglami, yuvaDaralt, yuvaUygun } from './lib/foto-uyum.mjs';
+import { netlikOlc, netlikGecer } from './lib/netlik.mjs';
+import { ustHazirla, ustUygula, heroTelefon, UST_DOSYALAR } from './lib/ust-v5.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // sayfa kodu: bulutta gizli tuz (SAYFA_TUZU) ile 10 hane; tuz yoksa (yerel) el yapimi v5 demolarinin kurali (6 hane).  Tuz DEGISMEMELI.
@@ -157,6 +161,8 @@ async function picKur(id, R, dir, imgDir, alt) {
   return { id: p.id, name: `p${p.id}`, w: big.w, h: big.h, w960: sm.w, kb: big.kb, focus: p.focus || { x: 0.5, y: 0.5 }, alt: clean(alt || '') };
 }
 
+const USTVAR = UST_DOSYALAR.every((f) => fs.existsSync(path.join(HERE, 'sablon', f)));
+
 export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, log = console.log, yazRapor = true } = {}) {
   const dir = path.join(veri, slug);
   const ik = icerikOku(veri, slug); const E = E0 || (ik ? { [slug]: ik } : elleV5());
@@ -194,6 +200,9 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   const alt = e.alt || {};
   const hero = { id: sec.id, w: biggest.w, h: biggest.h, files, focus: { x: sec.focus ? sec.focus.x : 0.5, y: sec.focus ? sec.focus.y : 0.5 }, alt: clean(alt[sec.id] || ''), orig: sec.gercekPiksel || `${sec.w}x${sec.h}`, kaynak: sec.url };
   if (variant === 'tam' && biggest.w < 1920) warn.push(`tam ekran hero ${biggest.w} px (1920 altinda)`);
+  // NETLIK: kahraman yumusaksa sayfa kapidan gecmez (kucuk yerlesim yumusakligi gizlemez); cozunurluk zaten tam / cerceve duzenini belirler
+  const heroNet = await netlikOlc(heroBuf); const heroNetSonuc = netlikGecer(heroNet, 'siki');
+  if (!heroNetSonuc.ok) warn.push(`ana fotograf netlik: ${heroNetSonuc.neden}`);
 
   // ---- fotograflar (bolumler) ----
   const F = e.foto || {}; const pics = {};
@@ -206,7 +215,16 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   if (heroUyumsuz) fotoUyari.unshift(`foto uyumu: ana fotograf ${heroUyumsuz}`);
   warn.push(...fotoUyari);
   const ids = [F.menu, F.quiet, F.story, F.contact, ...(F.cards || [])].filter(Boolean).filter((id) => daralt.gecen.has(String(id)));
-  for (const id of new Set(ids)) { if (String(id) === String(sec.id)) continue; const p = await picKur(id, R, dir, imgDir, alt[id]); if (p) pics[id] = p; else warn.push(`foto yok: ${id}`); }
+  const netlikElenen = [];
+  for (const id of new Set(ids)) {
+    if (String(id) === String(sec.id)) continue;
+    const p = await picKur(id, R, dir, imgDir, alt[id]);
+    if (!p) { warn.push(`foto yok: ${id}`); continue; }
+    // buyuk yuva netlik kapisi: yumusak kare yuvaya girmez (yuva daralir)
+    const nk = netlikGecer(await netlikOlc(fs.readFileSync(path.join(imgDir, `p${p.id}-1600.webp`))), 'buyuk');
+    if (!nk.ok) { warn.push(`foto ${id} netlik: ${nk.neden}; yuva daraltildi`); netlikElenen.push({ id, neden: nk.neden }); for (const f of [`p${p.id}-1600.webp`, `p${p.id}-960.webp`]) fs.rmSync(path.join(imgDir, f), { force: true }); continue; }
+    pics[id] = p;
+  }
   const P = (id) => (id ? pics[id] || null : null);
 
   // ---- logo: orijinal dosya aynen ----
@@ -294,9 +312,9 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   const parts = (s) => sloganParcalari(String(s || ''));
   const mE = e.menu; let menu = null; let menuItems = 0;
   if (mE && Array.isArray(mE.items) && mE.items.length) {
-    menu = { pic: P(F.menu), kicker: mE.kicker || L.menu, h2: parts(mE.h2 || L.menu), p: mE.p || '', items: mE.items.map((it) => ({ n: clean(it.n), d: clean(it.d), p: clean(it.p) })), legend: mE.legend || '', link: mE.link || (R.menu && R.menu.pageUrl) || null };
+    menu = { pic: P(F.menu), kicker: mE.kicker || L.menu, h2: parts(mE.h2 || L.menu), p: mE.p || '', items: mE.items.map((it) => ({ n: clean(it.n), d: clean(it.d), p: clean(it.p), ...(clean(it.cat) ? { cat: clean(it.cat) } : {}) })), legend: mE.legend || '', link: mE.link || (R.menu && R.menu.pageUrl) || null };
     menuItems = menu.items.filter((x) => x.p).length;
-    if (!menu.pic) { warn.push('menu fotografi yok'); menu = null; menuItems = 0; }
+    if (!menu.pic) { warn.push('menu fotografi yok'); if (!USTVAR) { menu = null; menuItems = 0; } }
   }
   const second = menu ? { href: '#menu', label: L.seeMenu } : null;
   const cards = e.cards && e.cards.items ? { kicker: e.cards.kicker, h2: parts(e.cards.h2), p: e.cards.p || '', items: e.cards.items.map((it) => ({ pic: P(it.pic), t: it.t, sub: it.sub || '' })).filter((x) => x.pic) } : null;
@@ -306,7 +324,6 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   let quiet = e.quiet && P(F.quiet) ? { pic: P(F.quiet), kicker: e.quiet.kicker || '', h2: parts(e.quiet.h2), p: e.quiet.p || '' } : null;
   if (quiet && quiet.pic.w / quiet.pic.h < 1.3) { warn.push(`sessiz bolum fotografi dik (${quiet.pic.id}); bolum gosterilmedi`); quiet = null; }
   const contact = { kicker: (e.contact && e.contact.kicker) || L.visit, h2: parts((e.contact && e.contact.h2) || L.visitH.join(' ')), notes: (e.contact && e.contact.notes) || [], pic: P(F.contact) };
-  const marquee = Array.isArray(e.marquee) && e.marquee.length >= 4 ? e.marquee : null;
 
   // ---- yuzeyler ----
   const panel = { bg: t.accent, ink: t.accentInk }; panel.muted = ikincil(panel.ink, panel.bg);
@@ -334,18 +351,30 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
     slogan, eyebrow: e.eyebrow || '', lede: e.lede || '', tags: e.tags || [],
     cta: { main, second }, statusOk, hoursOk, hoursSummary, hoursTable, week: hrs ? hrs.week : null, h12, tz,
     address, phone, tel, mapsUrl: maps, social: R.social || {}, also: e.also || [],
-    marquee, menu, cards: cards && cards.items.length >= 3 ? cards : null, story, quiet, contact,
+    menu, cards: cards && cards.items.length >= 3 ? cards : null, story, quiet, contact,
     order: ((o) => (o.includes('contact') ? o : o.concat('contact')))(Array.isArray(e.order) && e.order.length ? e.order : ['menu', 'story', 'contact']),
   };
 
   // ---- yaz ----
   const css = themeCssV5(model) + `@media (max-width:899px){:root{--wm-size:clamp(24px,${Math.min(15, 90 / (wmLen * wmW)).toFixed(2)}vw,96px)}}\n`;
   fs.writeFileSync(path.join(pdir, 'theme.css'), css);
-  const html = sayfaHtmlV5(model);
+  let html = sayfaHtmlV5(model);
+  // ---- UST KATMAN: sinematik ilk ekran, sahne, sekmeli menu, galeri, iz (yalniz sablon dosyalari yerindeyse; yoksa kapi sayfayi gecirmez) ----
+  let ust = null;
+  if (USTVAR && menu) {
+    const ayrik = new Set([F.menu, F.quiet, F.story, F.contact, ...(F.cards || [])].filter(Boolean).map(String));
+    ust = await ustHazirla({ dir, imgDir, R, e, lang, items: menu.items, heroId: sec.id, uyum, ayrik, log });
+    // tam ekran kahraman (xl) + telefon icin ayni fotografin dik kesiti (dik ekran yatay fotografi buyutmeden dolduramaz; kesit kendi pikseliyle, kucuk dosya)
+    ust.spec.hero = null;
+    if (variant === 'tam' && biggest.w >= 1920 && heroNetSonuc.ok) ust.spec.hero = { xl: { src: `img/${biggest.file}`, w: biggest.w, h: biggest.h }, m: await heroTelefon({ buf: fs.readFileSync(path.join(imgDir, biggest.file)), focus: hero.focus, imgDir }) };
+    html = ustUygula(html, ust.spec); warn.push(...ust.uyari);
+    // kullanilmayan bolum karesi (varsayilan menu karesi ust menusunde yeniden kurulur) dosyada kalmaz
+    for (const f of fs.readdirSync(imgDir)) if (/^p\d+-(?:960|1600)\.webp$/.test(f) && !html.includes(`img/${f}`)) fs.rmSync(path.join(imgDir, f), { force: true });
+  } else if (!USTVAR) warn.push('ust katman dosyalari yok (uyarla/sablon/ust.css, ust.js, iz.js)');
   if (yasakVar('kisaltma', html.replace(/<script[\s\S]*?<\/script>/g, ''))) warn.push('sayfa metninde yasak kisaltma geciyor');
   fs.writeFileSync(path.join(pdir, 'index.html'), html);
   const shared = path.join(out, ORTAK_V5); fs.mkdirSync(shared, { recursive: true });
-  for (const x of ['v5.css', 'v5.js']) fs.copyFileSync(path.join(HERE, 'sablon', x), path.join(shared, x));
+  for (const x of ['v5.css', 'v5.js', ...(USTVAR ? UST_DOSYALAR : [])]) fs.copyFileSync(path.join(HERE, 'sablon', x), path.join(shared, x));
   const lic = [...new Set([fe.display, fe.text, fe.script].filter(Boolean).map((x) => `${x.family}: ${x.license} (fontsource / Google Fonts)`))];
   const licF = path.join(shared, 'fonts', 'LICENSES.txt');
   const have = fs.existsSync(licF) ? fs.readFileSync(licF, 'utf8').split('\n').filter(Boolean) : [];
@@ -361,6 +390,9 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
     heroContrast, shadeA, shadeM, photos: Object.keys(pics).length + 1, menuItems, menuLink: !!(menu && menu.link), menuKaynak: mE ? mE.kaynak || null : null,
     hoursOk, hoursIssue: sd.issue, statusOk, tz, sections: model.order.filter((k) => model[k]), notes, warn, size: size.h1,
     fotoUyum: { tur: uyum.tur, ozet: uyum.ozet, sira: uyum.sira }, fotoUyari, heroUyumsuz,
+    // NETLIK ve UST KATMAN (kapi okur): kahraman netligi, sahne, sekmeli menu, galeri, iz; kayan yazi seridi yok
+    heroNetlik: { ok: heroNetSonuc.ok, neden: heroNetSonuc.ok ? null : heroNetSonuc.neden, olcu: heroNet.hata ? null : { w: heroNet.w, h: heroNet.h, p75: heroNet.p75, p90: heroNet.p90 } }, netlikElenen,
+    ust: ust ? { var: true, sahne: !!ust.spec.sahne, sahneNetlik: ust.rapor.sahne, ayirac: !ust.spec.sahne, menuFoto: Object.keys(ust.spec.menu.fotolar).length, menuYalin: !!ust.spec.menu.yalin, sekme: ust.spec.menu.tabs.length, galeri: ust.spec.galeri ? ust.spec.galeri.items.length : 0, kaydirici: ust.spec.kaydir ? ust.spec.kaydir.items.length : 0, iz: ust.spec.iz ? ust.spec.iz.n : 0, izRapor: ust.rapor.iz, elenenFoto: ust.rapor.elenen, hero: ust.spec.hero ? 'xl' : 'standart', heroTelefon: ust.spec.hero && ust.spec.hero.m ? { w: ust.spec.hero.m.w, h: ust.spec.hero.m.h, src: ust.spec.hero.m.src } : null } : { var: false },
   };
   if (yazRapor) fs.writeFileSync(path.join(dir, 'uret.json'), JSON.stringify(report, null, 1));
   log(`uretildi (v5): ${rel}  (${dil}/${D.referans}, ${variant}, slogan "${slogan.text}", font ${fe.display.id}/${fe.text.id}, ${pal.mode}, hero ${hero.w}x${hero.h} (orijinal ${hero.orig}), menu ${menuItems}, saat ${hoursOk ? 'var' : 'yok'}${statusOk ? ' + simdi acik' : ''}${warn.length ? ', UYARI: ' + warn.join('; ') : ''})`);

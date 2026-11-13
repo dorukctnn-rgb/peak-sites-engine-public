@@ -101,15 +101,12 @@ export function sayfaHtmlV5(m) {
 
   // ---- bolumler ----
   const S = {};
-  if (m.marquee && m.marquee.length >= 4) {
-    const run = m.marquee.map((s) => `<span>${esc(s)}</span>`).join('');
-    S.marquee = `<div class="marquee" aria-label="${esc(m.marquee.join(', '))}"><div class="marquee-in" aria-hidden="true">${run}${run}</div></div>`;
-  }
+  // kayan yazi seridi (marquee) YOK: hicbir v5 sayfasinda cizilmez (Doruk 12 Kas, kalici: "ucuz kaciyor").  Kahramandan sonra lib/ust-v5.mjs yemek sahnesi ya da ince ayirici koyar.
   if (m.menu) {
     const mn = m.menu;
     const rows = mn.items.map((it) => `<li class="dish"><h3>${it.href ? `<a class="ul" href="${esc(it.href)}" rel="noopener">${esc(it.n)}</a>` : esc(it.n)}</h3>${it.p ? `<span class="pr">${esc(it.p)}</span>` : ''}${it.d ? `<p class="dd">${esc(it.d)}</p>` : ''}</li>`).join('');
     S.menu = `<section class="split${dil === 'mekan' ? ' rev' : ''}" id="menu" aria-labelledby="menu-h" data-par>
-  <div class="split-pic" style="--fx:${pct(mn.pic.focus.x)};--fy:${pct(mn.pic.focus.y)}">${pic(mn.pic, { sizes: '(max-width: 899px) 100vw, 50vw', alt: mn.pic.alt, kutu: 0.75 })}</div>
+  ${mn.pic ? `<div class="split-pic" style="--fx:${pct(mn.pic.focus.x)};--fy:${pct(mn.pic.focus.y)}">${pic(mn.pic, { sizes: '(max-width: 899px) 100vw, 50vw', alt: mn.pic.alt, kutu: 0.75 })}</div>` : ''}
   <div class="split-panel">
     <span class="kicker rv">${esc(mn.kicker)}</span>
     <h2 class="h2 wr" id="menu-h">${wordsHtml(mn.h2)}</h2>
