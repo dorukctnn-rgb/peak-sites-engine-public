@@ -147,7 +147,7 @@ export async function cikar(lead, { browser, polite, out = VERI, force = false, 
   fs.mkdirSync(path.join(dir, 'img'), { recursive: true });
   const t0 = Date.now(); const startReq = polite.count;
   const SM = profil(lead);
-  const R = { v: 2, slug: lead.slug, lead: { id: lead.id, sektor: lead.sektor || null, mutfak: lead.mutfak || null, name: lead.name, site: lead.site, kind: lead.kind, category: lead.category, lang: lead.lang, region: lead.region, city: lead.city, rating: lead.rating, reviews: lead.reviews }, fetchedAt: new Date().toISOString(), pages: [], notes: [] };
+  const R = { v: 2, slug: lead.slug, lead: { id: lead.id, sektor: lead.sektor || null, mutfak: lead.mutfak || null, name: lead.name, site: lead.site, kind: lead.kind, category: lead.category, lang: lead.lang, region: lead.region, city: lead.city, rating: lead.rating, reviews: lead.reviews, ...(lead.tz ? { tz: lead.tz } : {}) }, fetchedAt: new Date().toISOString(), pages: [], notes: [] };
   const finish = () => { R.requests = polite.count - startReq; R.seconds = Math.round((Date.now() - t0) / 1000); fs.writeFileSync(jf, JSON.stringify(R, null, 1)); return R; };
 
   log(`>> ${lead.slug} ${lead.site}`);

@@ -17,8 +17,10 @@ export const ZINCIR = /\b(premier inn|travelodge|holiday inn|best western|ibis|m
 
 // sorgu metni: ulke alani (ISO), istege bagli alt alan (ad), sektorun etiket filtreleri; yalniz website etiketi olanlar
 // kutu: [guney, bati, kuzey, dogu] (12 Kas 2026, parcali sorgu): ulke alaninin yalniz bu dikdortgendeki kismi; zaman: sunucu tarafi sure siniri (sn)
-export function sorgu(ulke, sektor, { alan, kutu = null, zaman = 180 } = {}) {
+// alansiz (15 Kas 2026, metro kutulari): kutu tamamen ulkenin icindeyse ulke alani sorgulanmaz (yalniz dikdortgen; Overpass'ta cok daha hafif)
+export function sorgu(ulke, sektor, { alan, kutu = null, zaman = 180, alansiz = false } = {}) {
   const S = SEKTORLER[sektor]; if (!S) throw new Error(`bilinmeyen sektor: ${sektor}`);
+  if (alansiz && kutu) { const bb = `(${kutu.map((x) => +Number(x).toFixed(4)).join(',')})`; return `[out:json][timeout:${Math.round(zaman)}];(${S.osm.map((f) => `nwr${f}["website"]${bb};`).join('')});out center tags;`; }
   // alan: il/eyalet kodu (ISO3166-2, ornek TR-07 Antalya) ya da ad
   const area = alan && /^[A-Z]{2}-[0-9A-Z]{1,3}$/.test(alan)
     ? `area["ISO3166-2"="${alan}"]->.a;`
@@ -32,11 +34,12 @@ export function sorgu(ulke, sektor, { alan, kutu = null, zaman = 180 } = {}) {
 
 // HEDEFLI PIZZA + BURGER SORGUSU (12 Kas 2026, Doruk: "pizzacı ve hamburgercilere çok ağırlık ver"): amenity=restaurant|fast_food ve (cuisine~pizza|burger ya da adinda
 // pizz/burger), website YA DA contact:website (ana sorgu yalniz website etiketini aliyordu).  Hafif sorgu; buyuk ulkede yine parcali (bulParcali hedef 'pizza-burger').
-export function sorguPB(ulke, { kutu = null, zaman = 100 } = {}) {
-  const area = `area["ISO3166-1"="${ulke}"][admin_level=2]->.a;`;
+export function sorguPB(ulke, { kutu = null, zaman = 100, alansiz = false } = {}) {
+  const yalnizKutu = alansiz && kutu;
+  const area = yalnizKutu ? '' : `area["ISO3166-1"="${ulke}"][admin_level=2]->.a;`;
   const bb = kutu ? `(${kutu.map((x) => +Number(x).toFixed(4)).join(',')})` : '';
   const A = '["amenity"~"^(restaurant|fast_food)$"]';
-  const parts = ['["cuisine"~"pizza|burger",i]', '["name"~"pizz|burger",i]'].flatMap((f) => ['["website"]', '["contact:website"]'].map((w) => `nwr${A}${f}${w}(area.a)${bb};`)).join('');
+  const parts = ['["cuisine"~"pizza|burger",i]', '["name"~"pizz|burger",i]'].flatMap((f) => ['["website"]', '["contact:website"]'].map((w) => `nwr${A}${f}${w}${yalnizKutu ? '' : '(area.a)'}${bb};`)).join('');
   return `[out:json][timeout:${Math.round(zaman)}];${area}(${parts});out center tags;`;
 }
 // hedefli sorgunun izgarasi: sorgu hafif, parca az (TR yine bolunur)
@@ -156,6 +159,42 @@ export function izgara([s, w, n, e], [sat, sut]) {
 }
 export const bolunur = ([s, w, n, e]) => n - s > 0.5 || e - w > 0.5;
 const PARCA_SURUM = 1;
+
+// METRO KUTULARI (15 Kas 2026).  AU ve GB ulke izgarasi 12 Kas'tan beri bitmedi: ulke alani + buyuk dikdortgen Overpass'ta yavas, BOS okyanus parcalari bile zaman asimina
+// dusup bolundu (AU 3 gunde 39/64 parca, 0 lead; GB 18/36).  Bu iki ulkede liste yalniz buyuk kentlerin dikdortgenlerinden, ulke alani OLMADAN sorulur (sorgu alansiz):
+// hafif, birkac turda biter, isletmelerin cogu zaten bu kentlerde.  AU'da yalniz Sydney, Melbourne ve Brisbane: v5 "simdi acik" saat dilimini bunlar icin bilir
+// (metroTz; baska AU kentinde rozet gosterilemez, siki kapi duserdi).  Ilerleme dosyasinda plan 'metro-1' yoksa eski izgara ilerlemesi atilir (yalniz bu iki ulke).
+export const METRO_PLAN = 'metro-1';
+export const METRO = {
+  AU: [
+    { ad: 'Sydney', tz: 'Australia/Sydney', kutu: [-34.12, 150.75, -33.6, 151.35] },
+    { ad: 'Melbourne', tz: 'Australia/Melbourne', kutu: [-38.1, 144.7, -37.6, 145.3] },
+    { ad: 'Brisbane', tz: 'Australia/Brisbane', kutu: [-27.7, 152.8, -27.25, 153.2] },
+  ],
+  GB: [
+    { ad: 'London', kutu: [51.3, -0.5, 51.69, 0.28] },
+    { ad: 'Manchester', kutu: [53.38, -2.38, 53.56, -2.12] },
+    { ad: 'Birmingham', kutu: [52.39, -2.02, 52.58, -1.73] },
+    { ad: 'Leeds', kutu: [53.74, -1.68, 53.87, -1.44] },
+    { ad: 'Liverpool', kutu: [53.34, -3.03, 53.48, -2.84] },
+    { ad: 'Bristol', kutu: [51.41, -2.7, 51.52, -2.51] },
+    { ad: 'Glasgow', kutu: [55.8, -4.4, 55.92, -4.12] },
+    { ad: 'Edinburgh', kutu: [55.89, -3.32, 55.99, -3.08] },
+    { ad: 'Newcastle', kutu: [54.94, -1.72, 55.03, -1.53] },
+    { ad: 'Sheffield', kutu: [53.33, -1.55, 53.43, -1.39] },
+    { ad: 'Nottingham', kutu: [52.9, -1.24, 53.0, -1.08] },
+    { ad: 'Cardiff', kutu: [51.44, -3.26, 51.54, -3.12] },
+    { ad: 'Brighton', kutu: [50.81, -0.25, 50.87, -0.05] },
+  ],
+};
+const kutuIcinde = ([s, w, n, e], lat, lon) => lat >= s && lat <= n && lon >= w && lon <= e;
+// lead koordinati -> metro kaydi ({ ad, tz? }) ya da null
+export function metroOf(ulke, lat, lon) {
+  const L = METRO[ulke]; if (!L || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return null;
+  return L.find((m) => kutuIcinde(m.kutu, Number(lat), Number(lon))) || null;
+}
+// AU metro lead'inin saat dilimi (uretimLead -> cikarici lead.tz -> v5 ve kategori sablonu "simdi acik"); baska ulke ya da kutu disi: null (eski kural: sehir adi)
+export const metroTz = (l = {}) => { const m = metroOf(l.ulke || l.region, l.lat, l.lon); return (m && m.tz) || null; };
 const jsonOku = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 export function tekille(leadler) {
   const seen = new Set(); const out = [];
@@ -166,11 +205,14 @@ export function tekille(leadler) {
 // hedef: null (butun restoran ailesi, sorgu()) | 'pizza-burger' (sorguPB, PB_IZGARA)
 export async function bulParcali(ulke, sektor, { ilerleme = null, bitis = Infinity, log = () => {}, sorgula = overpass, bekleMs = 3000, parcaMs = 130000, simdi = () => Date.now(), hedef = null } = {}) {
   if (!ULKELER[ulke] || kapaliUlke(ulke)) throw new Error(`ulke hedefte degil: ${ulke}`);
-  const pb = hedef === 'pizza-burger'; const kur = pb ? (u, _s, o) => sorguPB(u, o) : sorgu;
-  const K0 = KUTU[ulke]; if (!K0 && !pb) return { tamam: true, leads: await bul(ulke, sektor, { log }), parca: '1/1' };
+  const metro = METRO[ulke] || null; // AU, GB: yalniz kent dikdortgenleri, ulke alani yok (15 Kas 2026)
+  const pb = hedef === 'pizza-burger'; const kur0 = pb ? (u, _s, o) => sorguPB(u, o) : sorgu; const kur = metro ? (u, s, o) => kur0(u, s, { ...o, alansiz: true }) : kur0;
+  const K0 = KUTU[ulke]; if (!K0 && !pb && !metro) return { tamam: true, leads: await bul(ulke, sektor, { log }), parca: '1/1' };
   const K = K0 ? { kutu: K0.kutu, izgara: pb ? PB_IZGARA[ulke] || [1, 1] : K0.izgara } : { kutu: [-90, -180, 90, 180], izgara: [1, 1] };
+  const ilk = () => (metro ? metro.map((m) => m.kutu.slice()) : izgara(K.kutu, K.izgara));
+  const bol = metro ? ([s, w, n, e]) => n - s > 0.08 || e - w > 0.08 : bolunur; // kent kutusu kucuk: yogun merkez daha ince bolunebilir
   let P = ilerleme ? jsonOku(ilerleme, null) : null;
-  if (!P || P.surum !== PARCA_SURUM || !Array.isArray(P.bekleyen)) P = { surum: PARCA_SURUM, ulke, sektor, basla: new Date(simdi()).toISOString(), bekleyen: izgara(K.kutu, K.izgara), biten: 0, bolunen: 0, oge: {} };
+  if (!P || P.surum !== PARCA_SURUM || !Array.isArray(P.bekleyen) || (metro && P.plan !== METRO_PLAN)) P = { surum: PARCA_SURUM, ...(metro ? { plan: METRO_PLAN } : {}), ulke, sektor, basla: new Date(simdi()).toISOString(), bekleyen: ilk(), biten: 0, bolunen: 0, oge: {} };
   const kaydet = () => { if (ilerleme) { fs.mkdirSync(path.dirname(ilerleme), { recursive: true }); fs.writeFileSync(ilerleme, JSON.stringify(P)); } };
   // her deneme tek sunucu, en cok parcaMs (sure butcesi asilmaz); yanit vermeyen sunucuda siradaki sunucu denenir, 3 basarisiz denemede tur biter (parca sonraki turda)
   let hata = null; let sira = 0; let basarisiz = 0;
@@ -182,7 +224,7 @@ export async function bulParcali(ulke, sektor, { ilerleme = null, bitis = Infini
       for (const el of j.elements || []) { const l = leadOf(el, ulke, sektor); if (l) P.oge[l.id] = l; }
       P.bekleyen.shift(); P.biten++; basarisiz = 0;
     } catch (e) {
-      if ((e.agir || e.yavas) && bolunur(k)) { P.bekleyen.shift(); P.bekleyen.unshift(...izgara(k, [2, 2])); P.bolunen++; log(`osm ${ulke}-${sektor}: parca bolundu (${e.agir ? 'agir' : 'yavas'}) ${k.join(',')}`); }
+      if ((e.agir || e.yavas) && bol(k)) { P.bekleyen.shift(); P.bekleyen.unshift(...izgara(k, [2, 2])); P.bolunen++; log(`osm ${ulke}-${sektor}: parca bolundu (${e.agir ? 'agir' : 'yavas'}) ${k.join(',')}`); }
       else if (e.agir) { P.bekleyen.shift(); P.biten++; P.atlanan = [...(P.atlanan || []), k]; log(`osm ${ulke}-${sektor}: en kucuk parca da agir, atlandi ${k.join(',')}`); }
       else if (++basarisiz >= 3) { hata = String(e.message).slice(0, 80); kaydet(); break; }
     }
