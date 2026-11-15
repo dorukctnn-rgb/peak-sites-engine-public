@@ -34,7 +34,7 @@ test('AU parcali liste: yalniz uc kent kutusu, eski okyanus izgarasi ilerlemesi 
 
 test('GB metro: yavas kent kutusu bolunur (0,08 dereceye kadar), plan kaydi tutulur; TR ilerlemesi plansiz da korunur', async () => {
   const d = gecici('metro-gb-'); const ilerleme = path.join(d, 'GB-restoran.parca.json'); let n = 0; let saat = 0;
-  const sorgula = async () => { n++; saat += 130000; if (n === 1) { const e = new Error('overpass yanit vermedi (504)'); e.yavas = true; throw e; } return { elements: [] }; };
+  const sorgula = async () => { n++; saat += 130000; if (n <= 2) { const e = new Error('overpass yanit vermedi (504)'); e.yavas = true; throw e; } return { elements: [] }; };
   const r = await bulParcali('GB', 'restoran', { ilerleme, sorgula, bekleMs: 0, simdi: () => saat, bitis: 130000 * 3 + 1000 });
   assert.equal(r.tamam, false, 'sure butcesi: uc parca'); const P = JSON.parse(fs.readFileSync(ilerleme, 'utf8'));
   assert.equal(P.plan, METRO_PLAN); assert.equal(P.bolunen, 1, 'London dorde bolundu'); assert.equal(P.biten + P.bekleyen.length, METRO.GB.length - 1 + 4);
@@ -54,4 +54,12 @@ test('metroTz: AU kent kutusu saat dilimi, kutu disi ve GB null; uretimLead tz t
   const u = uretimLead({ id: 'AU-n1', osm: 'node/1', ulke: 'AU', sektor: 'restoran', name: 'Deneme Burger', website: 'https://d1.example/', lat: -37.8, lon: 144.97 });
   assert.equal(u.tz, 'Australia/Melbourne');
   assert.equal(uretimLead({ id: 'NZ-n2', osm: 'node/2', ulke: 'NZ', sektor: 'restoran', name: 'Deneme', website: 'https://d2.example/', lat: -36.8, lon: 174.7 }).tz, null);
+});
+
+test('sunucu secimi: yavas sunucu parcayi bolmez, parca baska sunucuda denenir; calisan sunucu korunur (15 Kas)', async () => {
+  const ilkler = [];
+  const sorgula = async (q, { ilk }) => { ilkler.push(ilk); if (ilk % 4 === 0) { const e = new Error('overpass yanit vermedi (TimeoutError)'); e.yavas = true; throw e; } return { elements: [] }; };
+  const r = await bulParcali('AU', 'restoran', { ilerleme: null, sorgula, bekleMs: 0 });
+  assert.equal(r.tamam, true); assert.equal(r.parca, '3/3', 'hic bolunmedi');
+  assert.deepEqual(ilkler, [0, 1, 1, 1], 'ilk sunucu yavas: ikinci sunucu; sonra hep calisan sunucu');
 });

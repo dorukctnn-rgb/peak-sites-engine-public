@@ -215,17 +215,22 @@ export async function bulParcali(ulke, sektor, { ilerleme = null, bitis = Infini
   if (!P || P.surum !== PARCA_SURUM || !Array.isArray(P.bekleyen) || (metro && P.plan !== METRO_PLAN)) P = { surum: PARCA_SURUM, ...(metro ? { plan: METRO_PLAN } : {}), ulke, sektor, basla: new Date(simdi()).toISOString(), bekleyen: ilk(), biten: 0, bolunen: 0, oge: {} };
   const kaydet = () => { if (ilerleme) { fs.mkdirSync(path.dirname(ilerleme), { recursive: true }); fs.writeFileSync(ilerleme, JSON.stringify(P)); } };
   // her deneme tek sunucu, en cok parcaMs (sure butcesi asilmaz); yanit vermeyen sunucuda siradaki sunucu denenir, 3 basarisiz denemede tur biter (parca sonraki turda)
-  let hata = null; let sira = 0; let basarisiz = 0;
+  // SUNUCU SECIMI (15 Kas 2026): calisan sunucu (son basarili) korunur.  Yavas yanit (zaman asimi, 504) sunucunun sorunu olabilir: parca once BASKA sunucuda denenir,
+  // iki farkli sunucuda yavas kalirsa bolunur.  15 Kas olcumu: overpass-api.de 502, kumi ve private.coffee zaman asimi, maps.mail.ru 20 sn'de yanit verirken parcalar
+  // her yavas sunucuda bos yere dorde bolunuyordu (AU 3 gunde 64 parcaya cikti, 0 lead).  Sunucunun "agir sorgu" uyarisi (e.agir) eskisi gibi hemen boler.
+  let hata = null; let sira = 0; let basarisiz = 0; let iyi = null; let yavasParca = 0;
   while (P.bekleyen.length) {
     if (simdi() + parcaMs > bitis) break;
-    const k = P.bekleyen[0];
+    const k = P.bekleyen[0]; const sunucu = iyi ?? sira;
     try {
-      const j = await sorgula(kur(ulke, sektor, { kutu: k, zaman: 100 }), { tries: 1, zamanMs: parcaMs - 5000, ilk: sira++, log });
+      const j = await sorgula(kur(ulke, sektor, { kutu: k, zaman: 100 }), { tries: 1, zamanMs: parcaMs - 5000, ilk: sunucu, log });
       for (const el of j.elements || []) { const l = leadOf(el, ulke, sektor); if (l) P.oge[l.id] = l; }
-      P.bekleyen.shift(); P.biten++; basarisiz = 0;
+      P.bekleyen.shift(); P.biten++; basarisiz = 0; iyi = sunucu; yavasParca = 0;
     } catch (e) {
-      if ((e.agir || e.yavas) && bol(k)) { P.bekleyen.shift(); P.bekleyen.unshift(...izgara(k, [2, 2])); P.bolunen++; log(`osm ${ulke}-${sektor}: parca bolundu (${e.agir ? 'agir' : 'yavas'}) ${k.join(',')}`); }
-      else if (e.agir) { P.bekleyen.shift(); P.biten++; P.atlanan = [...(P.atlanan || []), k]; log(`osm ${ulke}-${sektor}: en kucuk parca da agir, atlandi ${k.join(',')}`); }
+      iyi = null; sira = sunucu + 1;
+      if (e.yavas && !e.agir && ++yavasParca < 2) log(`osm ${ulke}-${sektor}: yavas sunucu, parca baska sunucuda denenecek ${k.join(',')}`);
+      else if ((e.agir || e.yavas) && bol(k)) { P.bekleyen.shift(); P.bekleyen.unshift(...izgara(k, [2, 2])); P.bolunen++; yavasParca = 0; log(`osm ${ulke}-${sektor}: parca bolundu (${e.agir ? 'agir' : 'yavas'}) ${k.join(',')}`); }
+      else if (e.agir) { P.bekleyen.shift(); P.biten++; P.atlanan = [...(P.atlanan || []), k]; yavasParca = 0; log(`osm ${ulke}-${sektor}: en kucuk parca da agir, atlandi ${k.join(',')}`); }
       else if (++basarisiz >= 3) { hata = String(e.message).slice(0, 80); kaydet(); break; }
     }
     kaydet();
