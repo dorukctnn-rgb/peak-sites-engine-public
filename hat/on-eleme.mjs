@@ -102,6 +102,25 @@ export function onPuan(on, l = {}) {
 
 const jsonOku = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 export const ON_DOSYA = 'on-kontrol.json';
+export const onKontrolOku = (depo) => jsonOku(path.join(depo, 'lead', ON_DOSYA), {});
+
+// onbellek kaydi (ob[l.id]) + lead -> { l: OSM ekiyle zenginlesmis lead, on: sinyaller (menu sayfasi dahil) ya da null }.  onHazirla ve onAtla AYNI kurali kullanir.
+function onZengin(l, c = {}) {
+  let x = c.osm !== undefined && !('saat' in l) ? osmEkUygula(l, c.osm) : l;
+  const on0 = (l.on && l.on.v === ON_SURUM ? l.on : null) || c.on || null;
+  const on = on0 && c.menuSayfa ? { ...on0, menuSayfa: c.menuSayfa } : on0;
+  if (on) x = { ...x, on };
+  return { l: x, on };
+}
+
+// HAVUZ TIKANMASI (15 Kas 2026): onbellekteki on bakisa gore bu restoran adayi atlanir mi (ag yok).  hat/dongu.mjs havuz sayiminda kullanir: on elemede atlanan aday
+// (zincir, menu izi yok, menu sayfasinda fiyat yok) uretilemez, havuz hedefini DOLDURMAZ.  Yoksa havuz atlanan adaylarla dolu kalir, tarama hic baslamaz, uretim 0 olur
+// (14 Kas 19:00 - 15 Kas: 52 adayin 52'si atlandi, IE/NZ/TR havuzu hedefin ustunde sayildi, 1.500'den cok taranmamis lead varken 25 tur bos dondu).
+export function onAtla(l, ob = {}) {
+  if (!l || l.sektor !== 'restoran') return null;
+  const { l: x, on } = onZengin(l, ob[l.id] || {});
+  return onPuan(on, x).atla;
+}
 
 // ulkeler arasi dengeli kisa liste (her ulkeden sirayla; liste zaten uretimPuani sirali).  12 Kas 2026: once burger, sonra sokak lezzetleri ve pizza, sonra digerleri
 export function kisaListe(liste, adet) {
@@ -121,7 +140,8 @@ export async function onHazirla({ liste, depo, adet = 45, bitis = Date.now() + 1
   const sayac = { bakilan: 0, indirilen: 0, osmEk: 0, atla: 0, zincir: 0, menuYok: 0, puanli: 0, pizzaBurger: 0, sokak: 0 };
   if (!restoran.length) return { liste, sayac };
   const dosya = path.join(depo, 'lead', ON_DOSYA); const ob = jsonOku(dosya, {});
-  const kisa = kisaListe(restoran, adet); sayac.bakilan = kisa.length; sayac.pizzaBurger = kisa.filter((l) => ['pizza', 'burger'].includes(leadKategori(l))).length; sayac.sokak = kisa.filter((l) => leadKategori(l) === 'sokak').length;
+  // kisa liste onbellekte zaten ATLA olanlari almaz (15 Kas 2026): yoksa hep ayni atlanan pizza/burger adaylari listeyi doldurur, yeni adaylara hic bakilmaz
+  const kisa = kisaListe(restoran.filter((l) => !onAtla(l, ob)), adet); sayac.bakilan = kisa.length; sayac.pizzaBurger = kisa.filter((l) => ['pizza', 'burger'].includes(leadKategori(l))).length; sayac.sokak = kisa.filter((l) => leadKategori(l) === 'sokak').length;
   // 1. OSM ek etiketleri (eski listeler: lead'de `saat` alani hic yok)
   const osmGerek = kisa.filter((l) => !('saat' in l) && !(ob[l.id] && ob[l.id].osm !== undefined) && l.osm);
   if (osmGerek.length && Date.now() < bitis - 30000) {
@@ -161,11 +181,7 @@ export async function onHazirla({ liste, depo, adet = 45, bitis = Date.now() + 1
   try { fs.mkdirSync(path.dirname(dosya), { recursive: true }); fs.writeFileSync(dosya, JSON.stringify(ob)); } catch { /* onbellek yazilamadiysa tur bozulmaz */ }
   const zengin = new Map();
   for (const l of restoran) {
-    const c = ob[l.id] || {};
-    let x = c.osm !== undefined && !('saat' in l) ? osmEkUygula(l, c.osm) : l;
-    const on0 = (l.on && l.on.v === ON_SURUM ? l.on : null) || c.on || null;
-    const on = on0 && c.menuSayfa ? { ...on0, menuSayfa: c.menuSayfa } : on0;
-    if (on) x = { ...x, on };
+    const { l: x, on } = onZengin(l, ob[l.id] || {});
     zengin.set(l.id, { l: x, ...onPuan(on, x) });
   }
   const puanli = []; const puansiz = [];
