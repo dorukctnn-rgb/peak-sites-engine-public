@@ -255,9 +255,9 @@ test('tara: genel havuz dolu olsa da pizza+burger havuzu azsa yalniz pizza+burge
 
 test('Overpass parcasi: gecit zaman asimi (504 / ag zaman asimi) de parcayi boler; hedefli pizza+burger sorgusu website ve contact:website', async () => {
   const d = gecici('kv-yavas-'); const ilerleme = path.join(d, 'pb.json'); let n = 0; const sorgular = [];
-  const sorgula = async (q) => { sorgular.push(q); n++; if (n === 1) { const e = new Error('overpass yanit vermedi (504)'); e.yavas = true; throw e; } return { elements: [] }; };
+  const sorgula = async (q) => { sorgular.push(q); n++; if (n <= 2) { const e = new Error('overpass yanit vermedi (504)'); e.yavas = true; throw e; } return { elements: [] }; };
   const r = await bulParcali('TR', 'restoran', { ilerleme, hedef: 'pizza-burger', sorgula, bekleMs: 0 });
-  assert.equal(r.tamam, true); assert.equal(n, 1 + 4 + 3, 'TR hedefli izgara 2x2; ilk parca 4e bolundu');
+  assert.equal(r.tamam, true); assert.equal(n, 2 + 4 + 3, 'TR hedefli izgara 2x2; ilk parca iki sunucuda yavas kaldi, 4e bolundu (15 Kas: tek yavas sunucu bolmez)');
   assert.match(sorgular[0], /\["cuisine"~"pizza\|burger",i\]\["website"\]/); assert.match(sorgular[0], /\["name"~"pizz\|burger",i\]\["contact:website"\]/);
   assert.match(sorgular[0], /\["amenity"~"\^\(restaurant\|fast_food\)\$"\]/);
 });
