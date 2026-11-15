@@ -372,6 +372,10 @@ jobs:
         env:
           HAT_PAT: ${{ secrets.HAT_PAT }}
           GH_TOKEN: ${{ secrets.HAT_PAT }}
+          # 15 Kas 2026: koordinatorun depo degiskenleri (restoran ve TR mail satiri anahtarlari) hat/kuyruk.mjs'ye hic ulasmiyordu: degisken ortama kendiliginden girmez.
+          # Satirlar yine BEKLETILMIS yazilir; serbest birakma birak.yml (isinma takvimi) ve onay.json ile.
+          RESTORAN_KUYRUK: ${{ vars.RESTORAN_KUYRUK }}
+          TR_KUYRUK: ${{ vars.TR_KUYRUK }}
         run: |
           set -e
           git config --global user.name 'peak-hat[bot]'; git config --global user.email 'hat@peakappsstudio.com'
