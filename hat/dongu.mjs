@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { kapiBitti } from '../uyarla/lib/surum.mjs';
 import { uretimPuani } from '../lead/puan.mjs';
 import { ULKELER, TEMEL_ULKE, kapaliUlke } from '../lead/sektorler.mjs';
-import { leadKategori, leadOncelik, leadPB } from './on-eleme.mjs';
+import { leadKategori, leadOncelik, leadPB, onAtla, onKontrolOku } from './on-eleme.mjs';
 
 const jsonOku = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const jsonYaz = (f, o) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, 1)); };
@@ -188,7 +188,11 @@ export async function dongu({ depo, kutu, po = null, sureDk = 40, parti = `p${Da
   // pizza ve burger (12 Kas 2026): ulkenin genel havuzu dolu olsa da pizza+burger havuzu PB_HAVUZ'un altindaysa yalniz pizza/burger lead'leri taranir;
   // restoran listesi taranirken pizza/burger lead'leri once (hedefli liste <ULKE>-restoran.pb.jsonl de girdi).
   const PBH = L.pizzaBurgerHavuz ?? PB_HAVUZ; const pbBitti = new Set();
-  const havuz = () => { const m = {}; const pb = {}; for (const l of adaylar({ depo, plan, veri, yazilan, uretimLead: A.uretimLead })) { m[l.ulke] = (m[l.ulke] || 0) + 1; if (l.sektor === 'restoran' && leadPB(l)) pb[l.ulke] = (pb[l.ulke] || 0) + 1; } return { m, pb }; };
+  // HAVUZ TIKANMASI (15 Kas 2026): on elemenin onbellekte ATLA dedigi aday (zincir, menu izi yok, menu sayfasinda fiyat yok) havuzu doldurmaz (hat/on-eleme.mjs onAtla).
+  // Once sayiliyordu: 52 adayin 52'si atlanirken IE/NZ/TR havuzu hedefin ustunde gorundu, tarama 25 tur hic baslamadi, uretim 0 kaldi.
+  const onOb = onKontrolOku(depo); const kullanilir = (l) => !onAtla(l, onOb);
+  const havuz = () => { const m = {}; const pb = {}; let atlanan = 0; for (const l of adaylar({ depo, plan, veri, yazilan, uretimLead: A.uretimLead })) { if (!kullanilir(l)) { atlanan++; continue; } m[l.ulke] = (m[l.ulke] || 0) + 1; if (l.sektor === 'restoran' && leadPB(l)) pb[l.ulke] = (pb[l.ulke] || 0) + 1; } return { m, pb, atlanan }; };
+  { const h0 = havuz(); sonuc.havuzKullanilir = h0.m; sonuc.havuzAtlanan = h0.atlanan; log(`havuz (on elemede atlananlar haric): ${JSON.stringify(h0.m)}, atlanan ${h0.atlanan}, ulke hedefi ${ulkeHedef}`); }
   let polite = null; let browser = null;
   for (const [ulke, sektor] of plan.sira) {
     if (Date.now() > taraBitis - 30000) break;
