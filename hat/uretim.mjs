@@ -19,7 +19,7 @@ import { kapiBitti, yenidenHazirlik } from '../uyarla/lib/surum.mjs';
 import { restoranHazirla } from '../uyarla/restoran-hazirla.mjs';
 import { sablonSec } from '../uyarla/sablon-sec.mjs';
 import { ULKELER } from '../lead/sektorler.mjs';
-import { osmAdresKur } from '../lead/osm.mjs';
+import { osmAdresKur, metroTz } from '../lead/osm.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jsonOku = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
@@ -32,6 +32,7 @@ export function uretimLead(l) {
   return {
     id: l.id, slug: `${slugOf(l.name).slice(0, 34)}-${String(l.ulke).toLowerCase()}${tail}`, name: l.name, site: l.finalUrl || l.website, kind: l.tur, category: l.tur, lang: (ULKELER[l.ulke] && ULKELER[l.ulke].dil) || 'en', region: l.ulke, city: l.city, phone: l.phone || '', sektor: l.sektor, mutfak: l.mutfak || null, bulgular: l.bulgular || [],
     osm: l.osm || null, osmAdres: adr ? adr.text : null, osmAdresKaynak: adr ? adr.kaynak : null, osmKonum: adr ? adr.konum : null, osmSaat: l.saat || null, osmSaatTarih: l.saatTarih || null,
+    tz: metroTz(l), // AU metro kutusu: Sydney/Melbourne/Brisbane saat dilimi koordinattan (15 Kas 2026); diger ulkelerde null, eski kural
     rating: null, reviews: null,
   };
 }
