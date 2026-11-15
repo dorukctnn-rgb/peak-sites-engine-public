@@ -353,3 +353,15 @@ test('olcum araci: menuKaynakVar ve once/sonra ozeti', () => {
   const o = ozetle([{ slug: 'a', once: { gecer: false, reasons: ['logo yok (x)', 'adres yok'] }, sonra: { gecer: true, reasons: [] } }, { slug: 'b', once: { gecer: false, reasons: ['adres yok'] }, sonra: { gecer: false, reasons: ['adres yok'] } }]);
   assert.equal(o.once.gecen, 0); assert.equal(o.sonra.gecen, 1); assert.deepEqual(o.yeniGecen, ['a']); assert.equal(o.once.nedenler['adres yok'], 2); assert.equal(o.sonra.nedenler['adres yok'], 1);
 });
+
+test('logoAdaylari: TripAdvisor kisa adli rozet (TA_logo), Trustpilot ve Yelp logo sayilmaz (15 Kas 2026)', () => {
+  const imgs = [
+    { url: 'https://images.cdn.example/content/v1/1/TA_logo_primary.png?format=2500w', via: 'img', vis: true, inHeader: false, inFooter: false, rw: 160, rh: 24, top: 1200, alt: '', cls: '' },
+    { url: 'https://x.nz/img/trustpilot-logo.png', via: 'img', vis: true, inHeader: false, inFooter: false, rw: 120, rh: 30, top: 1500, alt: 'logo', cls: '' },
+    { url: 'https://x.nz/img/yelp_logo.png', via: 'img', vis: true, inHeader: false, inFooter: false, rw: 120, rh: 30, top: 1600, alt: '', cls: '' },
+    { url: 'https://x.nz/img/data-logo.png', via: 'img', vis: true, inHeader: false, inFooter: false, rw: 120, rh: 30, top: 900, alt: '', cls: '' },
+  ];
+  const urls = logoAdaylari({ html: '<html><body></body></html>', base: 'https://x.nz/', imgs, svgler: [] }).map((x) => x.url || 'SVG');
+  assert.ok(!urls.some((u) => /TA_logo|trustpilot|yelp/i.test(u)), urls.join(' '));
+  assert.ok(urls.includes('https://x.nz/img/data-logo.png'), 'kendi logosu (adinda "ta" gecse de) kalir');
+});

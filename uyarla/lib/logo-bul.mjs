@@ -13,7 +13,9 @@ import { asilBoyutAdaylari, asilUygun } from './logo-netlik.mjs';
 
 const abs = (u, base) => { try { const x = new URL(decode(String(u).trim()), base); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
 // logo olmayan ama adinda "logo" gecen gorseller: sosyal, odeme, platform, odul, ortak, siparis siteleri
-const KOTU = /facebook|instagram|twitter|tiktok|youtube|whatsapp|linkedin|pinterest|payment|visa|mastercard|paypal|tripadvisor|trip-?advisor|google|partner|sponsor|award|accolade|rosette|certificate|recommended|badge|(?:^|[^a-z])(?:wix|squarespace|godaddy|weebly|shopify|wordpress|webflow|jimdo)(?:[^a-z]|$)|powered|made-?with|platform|deliveroo|uber-?eats|just-?eat|opentable|menulog|doordash|resdiary|sevenrooms|quandoo|thefork|flipdish|order-?yoyo|supplier|member|assoc|affiliat/i;
+const KOTU = /facebook|instagram|twitter|tiktok|youtube|whatsapp|linkedin|pinterest|payment|visa|mastercard|paypal|tripadvisor|trip-?advisor|google|partner|sponsor|award|accolade|rosette|certificate|recommended|badge|(?:^|[^a-z])(?:wix|squarespace|godaddy|weebly|shopify|wordpress|webflow|jimdo)(?:[^a-z]|$)|powered|made-?with|platform|deliveroo|uber-?eats|just-?eat|opentable|menulog|doordash|resdiary|sevenrooms|quandoo|thefork|flipdish|order-?yoyo|supplier|member|assoc|affiliat|(?:^|[^a-z])ta[_-]logo|trustpilot|yelp(?:[^a-z]|$)/i; // 15 Kas 2026: TA_logo_primary.png (TripAdvisor kisa adi) bir v5 sayfasinin logosu olmustu
+// ucuncu taraf degerlendirme rozetleri: dosya adresi boyleyse alt yazisi 'logo' olsa da logo degildir (15 Kas 2026: TA_logo_primary.png bir v5 sayfasinin logosu olmustu)
+const UCUNCU_ROZET = /(?:^|[^a-z])ta[_-]logo|trip-?advisor|trustpilot|yelp(?:[^a-z]|$)/i;
 const IKON_KOTU = /(icon|hamburger|burger-?menu|menu-?toggle|arrow|chevron|search|cart|bag|close|social|facebook|instagram|twitter|youtube|tiktok|whatsapp|phone|mail|user|account|play|pause|star|heart|check|plus|minus|caret|share|download|pin|map|globe|lang)/i;
 const LOGO_AD = /logo|brand|wordmark|site-?title|site-?name|masthead|navbar-?brand|header-?mark/i;
 
@@ -42,6 +44,7 @@ export function logoAdaylari({ html = '', base, imgs = [], svgler = [] }) {
     if (im.via !== 'img' && im.via !== 'bg') continue;
     const blob = `${im.url} ${im.alt || ''} ${im.cls || ''} ${im.id || ''}`; const ad = LOGO_AD.test(blob);
     if (KOTU.test(blob) && !(/logo/i.test(im.alt || '') && !KOTU.test(im.alt || ''))) continue;
+    if (UCUNCU_ROZET.test(im.url || '') || UCUNCU_ROZET.test(im.ss || '')) continue;
     if (im.inFooter && !ad) continue;
     const url = im.ss || im.url; if (!url || /^data:/.test(url)) continue;
     let puan = 0; let via = '';
