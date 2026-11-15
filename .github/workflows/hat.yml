@@ -125,6 +125,24 @@ jobs:
           ref: inceleme-kutusu
           path: calisma/kutu
 
+      # 15 Kas 2026: daha once yazilmis, kuyrukta bekleyen, susturulmus ya da cevap vermis isletme (adres, alan adi, isletme kimligi: hat/kuyruk.mjs yazilanlar) yeniden URETILMEZ.
+      # Once --po verilmiyordu: kuyrukta satiri olan isletmeler bulutta yeniden uretilip icerik ve son goz kutusunu dolduruyordu.  Cekilemezse tur eskisi gibi surer.
+      - name: peak-outreach kayitlari (yazilan isletmeler uretilmez; ozel)
+        if: steps.butce.outputs.calis == 'true'
+        continue-on-error: true
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: dorukctnn-rgb/peak-outreach
+          token: ${{ secrets.HAT_PAT }}
+          path: calisma/po
+          sparse-checkout: |
+            data/sent.jsonl
+            data/queue.jsonl
+            data/replied.txt
+            suppress.txt
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
       - name: testler (hat bozuksa uretmez; tuzsuz)
         if: steps.butce.outputs.calis == 'true'
         run: bash hat/sessiz.sh testler npm test
@@ -138,7 +156,9 @@ jobs:
           SAYFA_TUZU: ${{ secrets.SAYFA_TUZU }}
           HAT_TUR_ADAY: ${{ vars.HAT_TUR_ADAY }}
           HAT_ULKELER: ${{ vars.HAT_ULKELER }}
-        run: bash hat/sessiz.sh dongu node hat/dongu.mjs --depo calisma/veri-depo --kutu calisma/kutu --sure "$SURE" --parti "c${GITHUB_RUN_ID}"
+        run: |
+          PO=""; [ -f calisma/po/data/queue.jsonl ] && PO="--po calisma/po"
+          bash hat/sessiz.sh dongu node hat/dongu.mjs --depo calisma/veri-depo --kutu calisma/kutu --sure "$SURE" --parti "c${GITHUB_RUN_ID}" $PO
 
       - name: durum dalini yaz (ozel veri deposu)
         if: always() && steps.butce.outputs.calis == 'true'
