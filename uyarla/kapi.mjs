@@ -156,11 +156,15 @@ export function eyebrowNotr(themeFile) {
   const css = fs.readFileSync(themeFile, 'utf8'); if (css.includes('/*eyebrow-notr*/')) return false;
   fs.writeFileSync(themeFile, css + '\n/*eyebrow-notr*/.hero .eyebrow{color:var(--hero-ink)}\n'); return true;
 }
-function golgeArtir(themeFile) {
+export function golgeArtir(themeFile) {
   let css = fs.readFileSync(themeFile, 'utf8');
   const g = (n) => { const m = new RegExp('--' + n + ':([0-9.]+);').exec(css); return m ? +m[1] : null; };
   const mm = Math.min(0.95, (g('shade-m') || 0.72) + 0.09); const aa = Math.min(0.99, Math.max(g('shade-a') || 0.94, mm + 0.03));
   css = css.replace(/--shade-m:[0-9.]+;/, '--shade-m:' + mm.toFixed(3) + ';').replace(/--shade-a:[0-9.]+;/, '--shade-a:' + aa.toFixed(3) + ';');
+  // 17 Kas 2026: ust etiket (eyebrow) ve baslik kahramanin ortasindadir, alt gradyan oraya ulasmaz (d-mekan: orta bant sabit .14); sayfaya ozel koyu bant (her adimda +.12, en cok .62)
+  const bm = /bant-u:([0-9.]+)/.exec(css); const bu = Math.min(0.62, bm ? +bm[1] + 0.12 : 0.26);
+  const band = `/*bant-u:${bu.toFixed(2)}*/.hero-shade::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(var(--shade-rgb),0) 6%,rgba(var(--shade-rgb),${bu.toFixed(2)}) 20%,rgba(var(--shade-rgb),${bu.toFixed(2)}) 56%,rgba(var(--shade-rgb),0) 80%)}`;
+  css = css.split(String.fromCharCode(10)).filter((l) => !l.startsWith('/*bant-u:')).join(String.fromCharCode(10)) + String.fromCharCode(10) + band + String.fromCharCode(10);
   fs.writeFileSync(themeFile, css);
 }
 // h1 tasarsa theme.css'te boyutu kucult
@@ -192,30 +196,30 @@ export async function kapi(slug, { browser, base, out = DEMO, veri = VERI, log =
   const themeFile = path.join(out, path.dirname(ur.page), 'theme.css');
   const fixes = [];
   let d; let m;
-  for (let t = 0; t < 4; t++) {
+  for (let t = 0; t < 6; t++) {
     d = await olcVePoz(browser, base, path.dirname(ur.page), { mobile: false, dir, out });
     // ilk ekran butun olmali: slogan + ana eylem + bilgi satiri.  Sigmıyorsa once baslik kuculur (en cok 3 kez), golge sonra
     const fsBad = d.firstScreen && (!d.firstScreen.cta || !d.firstScreen.h1 || (d.firstScreen.factsTotal && d.firstScreen.facts < d.firstScreen.factsTotal));
     const bad = d.h1 && (!d.h1.wordFits || d.h1.right > d.innerW - 8 || d.h1.lines > 4 || fsBad);
     if (bad && t < 3) { h1Kucult(themeFile, false); fixes.push(`h1 (masaustu) kucultuldu x${t + 1}${fsBad ? ' (ilk ekran sigmadi)' : ''}`); continue; }
     if (d.heroContrast && !d.heroContrast.ok && t >= 1 && /^\.eyebrow\b/.test(d.heroContrast.which) && eyebrowNotr(themeFile)) { fixes.push('ust etiket rengi yazi rengine cekildi (masaustu)'); continue; }
-    if (d.heroContrast && !d.heroContrast.ok && t < 3) { golgeArtir(themeFile); fixes.push(`hero golgesi artirildi (masaustu) x${t + 1}`); continue; }
+    if (d.heroContrast && !d.heroContrast.ok && t < 5) { golgeArtir(themeFile); fixes.push(`hero golgesi artirildi (masaustu) x${t + 1}`); continue; }
     break;
   }
-  for (let t = 0; t < 4; t++) {
+  for (let t = 0; t < 6; t++) {
     m = await olcVePoz(browser, base, path.dirname(ur.page), { mobile: true, dir, out });
     const fsBad = m.firstScreen && (!m.firstScreen.cta || !m.firstScreen.h1 || (m.firstScreen.factsTotal && m.firstScreen.facts < m.firstScreen.factsTotal));
     const bad = m.h1 && (!m.h1.wordFits || m.h1.right > m.innerW - 8 || m.h1.lines > 4 || fsBad);
     if (bad && t < 3) { h1Kucult(themeFile, true); fixes.push(`h1 (telefon) kucultuldu x${t + 1}${fsBad ? ' (ilk ekran sigmadi)' : ''}`); continue; }
     if (m.heroContrast && !m.heroContrast.ok && t >= 1 && /^\.eyebrow\b/.test(m.heroContrast.which) && eyebrowNotr(themeFile)) { fixes.push('ust etiket rengi yazi rengine cekildi (telefon)'); continue; }
-    if (m.heroContrast && !m.heroContrast.ok && t < 3) { golgeArtir(themeFile); fixes.push(`hero golgesi artirildi (telefon) x${t + 1}`); continue; }
+    if (m.heroContrast && !m.heroContrast.ok && t < 5) { golgeArtir(themeFile); fixes.push(`hero golgesi artirildi (telefon) x${t + 1}`); continue; }
     break;
   }
   let x19;
-  for (let t = 0; t < 3; t++) {
+  for (let t = 0; t < 5; t++) {
     x19 = await olcVePoz(browser, base, path.dirname(ur.page), { mobile: false, wide: true, dir, out });
     if (x19.heroContrast && !x19.heroContrast.ok && t >= 1 && /^\.eyebrow\b/.test(x19.heroContrast.which) && eyebrowNotr(themeFile)) { fixes.push('ust etiket rengi yazi rengine cekildi (1920)'); continue; }
-    if (x19.heroContrast && !x19.heroContrast.ok && t < 2) { golgeArtir(themeFile); fixes.push(`hero golgesi artirildi (1920) x${t + 1}`); continue; }
+    if (x19.heroContrast && !x19.heroContrast.ok && t < 4) { golgeArtir(themeFile); fixes.push(`hero golgesi artirildi (1920) x${t + 1}`); continue; }
     break;
   }
   const slim = (x) => { const { heroRects, shots, ...r } = x; return r; };
