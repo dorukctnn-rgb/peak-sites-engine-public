@@ -105,7 +105,7 @@ export async function sonUygula(slug, k, { veri, out, browser, base, getir = nul
   const on = await telefonOnizleme(path.join(dir, 'sonra-390.jpg'), path.join(onizDir, `${slug}.jpg`));
   if (!on) return { slug, durum: 'gozden-gecir', neden: 'telefon onizlemesi uretilemedi' };
   const ik = J(path.join(dir, 'icerik.json'), {});
-  return { slug, leadId: R.lead && R.lead.id, ad: R.name && R.name.n, durum: 'hazir', sonGoz: true, page: sayfaKlasoru(kk.page), sektor: 'restoran', sablon: kk.sablon, fiyatVar: (kk.menuKalem || 0) >= 6, onizleme: on.file, onizlemeKb: on.kb, gozlem: g.metin, gozlemKanit: g.kanit || '', konuOzel: k.konuOzel || null, slogan: ik.v5 ? ik.v5.slogan && ik.v5.slogan.text : ik.kategori && ik.kategori.aday && (ik.kategori.aday[ik.kategori.sec || 0] || {}).text, neden: String(k.neden || '').slice(0, 200) };
+  return { slug, leadId: R.lead && R.lead.id, ad: R.name && R.name.n, durum: 'hazir', sonGoz: true, page: sayfaKlasoru(kk.page), sektor: 'restoran', sablon: kk.sablon, fiyatVar: (kk.menuKalem || 0) >= 6 && !kk.fiyatsiz, ...(kk.fiyatsiz ? { fiyatsiz: true } : {}), onizleme: on.file, onizlemeKb: on.kb, gozlem: g.metin, gozlemKanit: g.kanit || '', konuOzel: k.konuOzel || null, slogan: ik.v5 ? ik.v5.slogan && ik.v5.slogan.text : ik.kategori && ik.kategori.aday && (ik.kategori.aday[ik.kategori.sec || 0] || {}).text, neden: String(k.neden || '').slice(0, 200) };
 }
 
 // onaylanmis icerik kaydindan (icerik.json ve kahraman dosyalari; ikisi de veri dalinda) sayfayi yeniden kurar; ag yok

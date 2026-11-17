@@ -26,7 +26,7 @@ function kur({ atlananlar = true } = {}) {
     yaz(path.join(depo, 'lead', ON_DOSYA), {
       'NZ-n7': { on: on({ zincir: 'franchise' }), at: simdi },
       'NZ-n8': { on: on({ menu: false, fiyat: 0 }), at: simdi },
-      'NZ-n9': { on: on({ menuUrl: 'https://t9.example/menu', fiyat: 0 }), menuSayfa: { fiyat: 0, pdf: false, gorsel: false, uzunluk: 900 }, at: simdi },
+      'NZ-n9': { on: on({ zincir: 'branches' }), at: simdi },
     });
   }
   return { depo, veri, planDosya };
@@ -41,11 +41,11 @@ function araclar(taranan, uretilen) {
   };
 }
 
-test('onAtla: onbellekteki zincir, menu izi yok ve menu sayfasinda fiyat yok adaylari atlar; bilinmeyen ve restoran disi aday atlanmaz', () => {
+test('onAtla: onbellekteki zincir ve menu izi yok adaylari atlar; bilinmeyen ve restoran disi aday atlanmaz', () => {
   const { depo } = kur(); const ob = onKontrolOku(depo);
   assert.match(onAtla(satir(7, 'Old Mill'), ob), /zincir/);
   assert.match(onAtla(satir(8, 'Quay Kitchen'), ob), /menü izi yok/);
-  assert.match(onAtla(satir(9, 'Hill Diner'), ob), /fiyat yok/);
+  assert.match(onAtla(satir(9, 'Hill Diner'), ob), /zincir/);
   assert.equal(onAtla(satir(1, 'Harbour Cafe'), ob), null, 'onbellekte yok: atlanmaz');
   assert.equal(onAtla({ ...satir(7, 'Old Mill'), sektor: 'konaklama' }, ob), null, 'restoran disi sektor');
   assert.deepEqual(onKontrolOku(gecici('havuz-bos-')), {}, 'onbellek dosyasi yoksa bos');

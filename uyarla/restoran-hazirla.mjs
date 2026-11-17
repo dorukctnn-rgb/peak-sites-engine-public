@@ -21,6 +21,7 @@ import { sharp, sniff } from './lib/gorsel.mjs';
 import { heroSec } from './lib/hero-sec.mjs';
 import { sablonSec } from './sablon-sec.mjs';
 import { menuFromText } from './lib/menu.mjs';
+import { varlikCoz as decodeV2 } from './lib/varlik.mjs';
 import { KAPI_SURUM } from './lib/surum.mjs';
 import { VERI } from './lib/yol.mjs';
 import { platformOf } from './lib/siparis.mjs';
@@ -96,6 +97,29 @@ export function gozlemAdaylari({ bulgular = [], R, homeText = '' }) {
   return out;
 }
 
+// FIYATSIZ MENU KAYNAGI (17 Kas 2026, koordinator karari: isletme fiyat yayimlamiyorsa menu fiyatsiz gosterilebilir; fiyat uydurulmaz).  Hicbir fiyatli kaynak (sayfa satirlari, PDF,
+// menu gorseli, siparis sitesi) yokken sitenin menu sayfalarinin metni yemek adlari icin kaynak olur.  _sayfalar.txt bloklari "## <adres>" ile baslar; menu benzeri adresli ve en az 8 kisa
+// satirli bloklar alinir.  Tum bloklarda ya da ana sayfada gecen satirlar (gezinti, alt bilgi) atilir.  Cikti metni HTML varliklarindan arinmistir.
+const MENU_ADRES = /menu|men[uü]|yemek|carta|food|dishes|dining|lunch|dinner|brunch|breakfast|kahvalt|lokanta|i[cç]ecek|drinks/i;
+export function fiyatsizMenuMetni(dir, R = {}) {
+  const oku = (f) => { try { return fs.readFileSync(path.join(dir, f), 'utf8'); } catch { return ''; } };
+  const bloklar = []; let cur = null;
+  for (const l of oku('_sayfalar.txt').split('\n')) { const m = /^## (https?:\/\/\S+)/.exec(l); if (m) { cur = { url: m[1], satir: [] }; bloklar.push(cur); } else if (cur) cur.satir.push(decodeVarlik(l).replace(/\s+/g, ' ').trim()); }
+  const ortak = new Map(); const say = (arr) => { for (const s of new Set(arr)) if (s) ortak.set(s, (ortak.get(s) || 0) + 1); };
+  for (const b of bloklar) say(b.satir);
+  const ana = new Set(oku('_home.txt').split('\n').map((l) => decodeVarlik(l).replace(/\s+/g, ' ').trim()).filter(Boolean));
+  const secilen = []; const urls = []; let n = 0;
+  for (const b of bloklar) {
+    let yol = ''; try { yol = decodeURIComponent(new URL(b.url).pathname); } catch { yol = b.url; }
+    if (!MENU_ADRES.test(yol)) continue;
+    const satir = b.satir.filter((s) => s.length >= 3 && s.length <= 90 && /\p{L}{3}/u.test(s) && !(ortak.get(s) > 1) && !ana.has(s) && !FIYAT_SATIR.test(s));
+    if (satir.length < 8) continue;
+    secilen.push(`## ${b.url}\n${satir.join('\n')}`); urls.push(b.url); n += satir.length;
+  }
+  return n >= 8 ? { metin: secilen.join('\n\n') + '\n', urls, n } : null;
+}
+const decodeVarlik = (s) => decodeV2(String(s || ''));
+
 // fiyatli menu kaynaklari: sayfa (cikaricinin okudugu satirlar), PDF, menu gorseli, siparis sitesi.  Indirilen her dosya robots.txt izniyle.
 async function menuKaynaklari(R, { pdir, polite, log }) {
   const out = []; const md = path.join(pdir, 'menu-kaynak'); fs.mkdirSync(md, { recursive: true });
@@ -144,6 +168,11 @@ async function menuKaynaklari(R, { pdir, polite, log }) {
       out.push({ tur: 'siparis-sitesi', url: o, dosya: rows.length ? 'menu-kaynak/siparis.txt' : null, kalem: rows.length, robots: 'izinli', not: rows.length ? '' : 'sayfa betikle ciziliyor; fiyatli satir okunamadi' });
     } else out.push({ tur: 'siparis-sitesi', url: o, dosya: null, robots: /robots/.test(r.why || '') ? 'yasak' : `alinamadi (${r.why})` });
   }
+  // hicbir okunur kaynak yoksa: fiyat yayimlamayan isletmenin menu sayfasi (fiyatsiz menu); mevcut paketler etkilenmez
+  if (!out.some((x) => x.dosya)) {
+    const fz = fiyatsizMenuMetni(path.dirname(pdir), R);
+    if (fz) { fs.writeFileSync(path.join(md, 'sayfa-fiyatsiz.txt'), fz.metin); out.push({ tur: 'sayfa', url: fz.urls[0], dosya: 'menu-kaynak/sayfa-fiyatsiz.txt', kalem: fz.n, fiyatsiz: true, robots: 'izinli (cikarici okudu)', not: 'sitenin menu sayfasinin metni; sitede fiyat yok (menu fiyatsiz gosterilir, fiyat yazilmaz)' }); }
+  }
   return out;
 }
 
@@ -161,7 +190,7 @@ export async function temasSayfasi(files, { cols, tw, th, etiketler, hedef, q = 
 
 // ON KAPI SURUMU (12 Kas 2026, kapi verimi): 2 = saat OSM opening_hours'tan, adres OSM addr + koordinattan, yalniz telefon butun ulkelerde eylem.  Bu surumden ONCE
 // yalniz bu uc nedenle elenmis restoranlar (lib/surum.mjs yenidenHazirlik) bir kez, saklanan cikarici verisiyle (yeni tarama yok) yeniden hazirliktan gecer.
-export const ON_KAPI_SURUM = 2;
+export const ON_KAPI_SURUM = 3;
 
 // ON KAPI (veri; ag yok): cikarici verisi + sitenin metni -> { why[], eksik[], eylem, fotolar, osmAdres }.  Hazirlik ve olcum ayni islevi kullanir (uyarla/olcum-cikarici.mjs).
 // 12 Kas (cikarici guclendirme): stok ve uretilmis gorsel (adres/metadata/dosya adi ile kesin olanlar) ISLETMENIN kendi fotografi sayilmaz; olu siparis baglantisi eylem sayilmaz.
@@ -279,7 +308,7 @@ export async function restoranHazirla(lead, { veri = VERI, polite = null, log = 
     fotograflar: (() => { const ph = new Map((R.photos || []).map((p) => [String(p.id), p])); const b = (id) => { const p = ph.get(id) || {}; return { id, w: p.w, h: p.h, alt: p.alt || '' }; }; return [...uyum.uygun.map((u) => ({ ...b(u.id), uyum: 'uygun', kaynak: u.kaynak, konu: u.konu, puan: u.puan, ...(u.yalnizKart ? { yalnizKart: true } : {}) })), ...uyum.elenen.map((e) => ({ ...b(e.id), uyum: 'elendi', neden: e.neden }))]; })(),
     foto_uyum: { tur: uyum.tur, dil: uyum.dil, sira: uyum.sira, uygun: uyum.uygun, elenen: uyum.elenen, ozet: uyum.ozet, kural: 'Yuvalara yalnız uygun kareler girer (sıra en iyi önce; işletmenin kendi kareleri stoktan önce; stok yalnız türle ya da menüyle eşleşirse). Uyan kare yoksa yuva boş bırakılır, şablon bölümü daraltır; uymayan kare seçilirse içerik denetimi HATA verir. Ana fotoğraf işletmenin kendi karesidir.' },
     hero_adaylari: hs.adaylar.map((a) => ({ id: a.id, px: `${a.w}x${a.h}`, puan: a.puan, neden: a.neden, onizleme: a.onizleme ? `hero-aday/${a.onizleme}` : null })),
-    menu_kaynaklari: kaynak, menu_cikarici: { via: R.menu && R.menu.via, kalem: ((R.menu && R.menu.items) || []).length, sayfa: R.menu && R.menu.pageUrl },
+    menu_kaynaklari: kaynak, menu_fiyatsiz: kaynak.some((x) => x.fiyatsiz) && !kaynak.some((x) => x.dosya && !x.fiyatsiz), menu_cikarici: { via: R.menu && R.menu.via, kalem: ((R.menu && R.menu.items) || []).length, sayfa: R.menu && R.menu.pageUrl },
     eksik, eski_site_bulgulari: tarama, gozlem_adaylari: gozlemAdaylari({ bulgular: tarama, R, homeText: ham0 }),
     // uretilmis gorsel izi (deneme turu: Sofia Burwood'un butun kareleri 1376x768 uretilmis gorseldi): yalniz uyari; karar gozle verilir
     gorsel_uyari: (() => { const G = new Set(['1024x1024', '1344x768', '768x1344', '1376x768', '768x1376', '1536x1024', '1024x1536', '1792x1024', '1024x1792', '1216x832', '832x1216', '1152x896', '896x1152', '896x1195', '1456x816', '1248x832', '832x1248']); const n = (R.photos || []).filter((p) => G.has(`${p.w}x${p.h}`)).length; return n ? `${n}/${(R.photos || []).length} kare uretilmis gorsel olcusunde (1376x768, 1024x1024 ...): gercek fotograf mi, gozle bak` : null; })(),

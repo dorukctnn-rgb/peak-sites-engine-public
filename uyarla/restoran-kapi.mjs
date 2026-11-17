@@ -122,7 +122,8 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
     if (UK.heroUyumsuz) why.push(`ana fotoğraf uyumsuz (${UK.heroUyumsuz})`);
     warn.push(...(UK.fotoUyari || []).filter((u) => !/ana fotograf/.test(u)));
   }
-  if (menuN < 6) why.push(`fiyatlı menü kalemi az (${menuN}; en az 6)`);
+  const fiyatsiz = !!(ik.v5 && ik.v5.menu && ik.v5.menu.fiyatsiz === true); // fiyatsiz menu (17 Kas 2026): isletme fiyat yayimlamiyor; kalem sayisi adli kalemler
+  if (menuN < 6) why.push(`${fiyatsiz ? 'menü' : 'fiyatlı menü'} kalemi az (${menuN}; en az 6)`);
   if (!menuKaynak) why.push('menünün kaynağı kayıtlı değil');
   const html = page ? path.join(out, page) : null;
   // telefon eylemi (TR devam-3; 12 Kas 2026 butun ulkeler): kararda eylem 'telefon' ise ana eylem sayfanin ilk tel: baglantisidir (isletmenin kendi numarasi, uluslararasi bicim);
@@ -152,7 +153,7 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
       if (bt && bt.bos) warn.push(`logo dosyasinda bos tuval: img/${f} icerik %${Math.round(bt.icerik * 100)} (gorunen logo kutudan kucuk)`);
     }
   }
-  const k = { ...(base0 || {}), surum: KAPI_SURUM, slug, name: R.name && R.name.n, site: R.lead.site, region: R.lead.region, sektor: 'restoran', sablon, at: new Date().toISOString(), status: why.length ? 'gozden-gecir' : 'hazir', reasons: [...new Set(why)], warnings: [...new Set(warn)], page: page ? path.dirname(page) : null, eylem: eylemUrl, menuKalem: menuN, menuKaynak, siki: true, ...(logoNet ? { logoNetlik: logoNet } : {}), ...(ustOlcum ? { ust: ustOlcum } : {}) };
+  const k = { ...(base0 || {}), surum: KAPI_SURUM, slug, name: R.name && R.name.n, site: R.lead.site, region: R.lead.region, sektor: 'restoran', sablon, at: new Date().toISOString(), status: why.length ? 'gozden-gecir' : 'hazir', reasons: [...new Set(why)], warnings: [...new Set(warn)], page: page ? path.dirname(page) : null, eylem: eylemUrl, menuKalem: menuN, menuKaynak, ...(fiyatsiz ? { fiyatsiz: true } : {}), siki: true, ...(logoNet ? { logoNetlik: logoNet } : {}), ...(ustOlcum ? { ust: ustOlcum } : {}) };
   fs.writeFileSync(path.join(dir, 'kapi.json'), JSON.stringify(k, null, 1));
   return k;
 }

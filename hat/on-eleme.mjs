@@ -89,7 +89,8 @@ export function onPuan(on, l = {}) {
   // menu sayfasi okundu, metni dolu (betikle cizilen bos sayfa degil) ama fiyat, PDF ya da menu gorseli yok: hazirlik "fiyatli menu kaynagi yok" diye elerdi
   // (12 Kas olcumu: saat/adres/telefon duzeltmesinden sonra hazirligi gecen 15 adayin 12'si bu nedenle dustu)
   const ms = on.menuSayfa;
-  if (ms && ms.uzunluk >= 400 && ms.fiyat < 2 && !ms.pdf && !ms.gorsel && !on.menuPdf && !on.siparis && on.fiyat < 4) return { atla: 'menü sayfasında fiyat yok (fiyatlı satır, menü PDF\'i ya da menü görseli yok)', puan: 0 };
+  // 17 Kas 2026 (koordinator karari): fiyat yayimlamayan isletmenin menusu fiyatsiz gosterilebilir (restoran-hazirla fiyatsizMenuMetni); menu sayfasinda fiyat olmamasi artik ATLAMA nedeni degil, yalniz siralamada geriye iter
+  const fiyatsizMenu = !!(ms && ms.uzunluk >= 400 && ms.fiyat < 2 && !ms.pdf && !ms.gorsel && !on.menuPdf && !on.siparis && on.fiyat < 4);
   const osmSaat = !!(l.saat && String(l.saat).trim());
   const osmAdres = !!osmAdresKur(l);
   let p = 0;
@@ -97,6 +98,7 @@ export function onPuan(on, l = {}) {
   p += on.menu || on.menuPdf ? 2 : 0; p += on.fiyat >= 4 || (ms && ms.fiyat >= 4) ? 1.5 : 0; p += on.siparis ? 0.5 : 0;
   p += Math.min(on.foto || 0, 12) / 6 + (on.galeri ? 0.7 : 0); // fotograf: ana sayfa HTML'inde sayilan (JS ile yuklenenler gorunmez; zayif sinyal)
   p += on.tel ? 0.8 : 0; p += on.adres || osmAdres ? 0.8 : 0; p += on.logo ? 0.4 : 0;
+  if (fiyatsizMenu) p = Math.max(0, p - 1);
   return { atla: null, puan: +p.toFixed(2) };
 }
 

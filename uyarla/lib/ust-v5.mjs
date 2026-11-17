@@ -41,7 +41,7 @@ async function webp(buf, file, w, q = 78) {
 
 // ---- 1. HAZIRLIK ----
 // girdi: { dir (<veri>/<slug>), imgDir (sayfa img klasoru), R, e (isletmenin v5 kaydi), lang, items [{n,d,p,cat}], heroId, F (foto yuvalari), uyum, log }
-export async function ustHazirla({ dir, imgDir, R, e = {}, lang, items = [], heroId = null, uyum = null, ayrik = new Set(), log = () => {} }) {
+export async function ustHazirla({ dir, imgDir, R, e = {}, lang, items = [], fiyatsiz = false, heroId = null, uyum = null, ayrik = new Set(), log = () => {} }) {
   const Y = YAZI[lang === 'tr' ? 'tr' : 'en']; const U0 = e.ust || {}; const uyari = []; const rapor = { sahne: null, menuFoto: [], galeri: [], iz: null, elenen: [] };
   const foto = (id) => (R.photos || []).find((p) => String(p.id) === String(id));
   const dosya = (id) => { const p = foto(id); const f = p && path.join(dir, p.file); return f && fs.existsSync(f) ? f : null; };
@@ -49,10 +49,10 @@ export async function ustHazirla({ dir, imgDir, R, e = {}, lang, items = [], her
   const spec = { lang: lang === 'tr' ? 'tr' : 'en', hero: null, menu: null, sahne: null, galeri: null, kaydir: null, iz: null, yazi: Y };
 
   // -- menu: bolumler (kalemlerin cat alani), fotografli yemekler --
-  const fiyatli = items.filter((x) => clean(x.p));
+  const fiyatli = fiyatsiz ? items.filter((x) => clean(x.n)) : items.filter((x) => clean(x.p)); // fiyatsiz menu (17 Kas 2026): adli her kalem; fiyat yazilmaz
   const adlar = new Map(fiyatli.map((x) => [sade(x.n), x]));
   const gruplar = []; const gi = new Map();
-  for (const x of fiyatli) { const ad = clean(x.cat) || Y.menuGenel; if (!gi.has(ad)) { gi.set(ad, gruplar.length); gruplar.push({ ad, items: [] }); } gruplar[gi.get(ad)].items.push({ n: clean(x.n), d: clean(x.d), p: clean(x.p) }); }
+  for (const x of fiyatli) { const ad = clean(x.cat) || Y.menuGenel; if (!gi.has(ad)) { gi.set(ad, gruplar.length); gruplar.push({ ad, items: [] }); } gruplar[gi.get(ad)].items.push({ n: clean(x.n), d: clean(x.d), p: fiyatsiz ? '' : clean(x.p) }); }
   // fotograf atamalari: karar (menuFoto) + kendiliginden yalniz KESIN ad eslesmesi (fotografin kendi alt yazisi kalem adinin aynisi)
   const menuFoto = new Map();
   for (const [ad, id] of Object.entries(U0.menuFoto || {})) { const it = adlar.get(sade(ad)); if (!it) uyari.push(`ust.menuFoto: "${ad}" menüde yok, yok sayıldı`); else if (!/^\d{2}$/.test(String(id)) || !foto(id)) uyari.push(`ust.menuFoto: fotoğraf ${id} yok`); else menuFoto.set(sade(it.n), String(id)); }
@@ -98,7 +98,7 @@ export async function ustHazirla({ dir, imgDir, R, e = {}, lang, items = [], her
   }
   // varsayilan foto: sekmelerin ilk fotografli yemegi ya da sekme fotografi; hicbiri gecmediyse menu yalniz metin
   const ilk = Object.values(fotolar)[0] || null;
-  spec.menu = { tabs: sekmeler, fotolar, varsayilan: ilk ? { ...ilk } : null, yalin: !ilk, tek: sekmeler.length <= 1 };
+  spec.menu = { tabs: sekmeler, fotolar, varsayilan: ilk ? { ...ilk } : null, yalin: !ilk, tek: sekmeler.length <= 1, fiyatsiz: !!fiyatsiz };
   if (!ilk) uyari.push('menüde netlik kapısından geçen kendi fotoğrafı yok; menü yalnız metin');
 
   // -- yemek kaydiricisi: en az 4 fotografli, fiyatli yemek --
@@ -204,7 +204,7 @@ export function ustUygula(h, S) {
   const kicker = al(/<span class="kicker rv">([\s\S]*?)<\/span>/); const h2 = al(/(<h2 class="h2 wr" id="menu-h">[\s\S]*?<\/h2>)/); const para = al(/(<p class="p rv">[\s\S]*?<\/p>)/);
   const legend = al(/(<p class="legend rv">[\s\S]*?<\/p>)/).replace('class="legend rv"', 'class="mx-legend rv"'); const btn = al(/(<a class="btn btn-ghost rv"[\s\S]*?<\/a>)/);
   must(h2, 'menu basligi okunamadi'); const M = S.menu; must(M && M.tabs && M.tabs.length, 'menu sekmeleri bos');
-  for (const t of M.tabs) for (const it of t.items) must(it.p && String(it.p).trim(), `fiyatsiz satir: ${it.n}`);
+  if (!M.fiyatsiz) for (const t of M.tabs) for (const it of t.items) must(it.p && String(it.p).trim(), `fiyatsiz satir: ${it.n}`);
   const F = M.fotolar || {}; const figs = [];
   if (M.varsayilan) { const v = M.varsayilan; figs.push(`<figure class="mx-fig on" data-k="0" style="--fx:${v.fx || '50%'};--fy:${v.fy || '50%'}${v.fit === 'contain' ? `;--nw:${v.w}px;--nh:${v.h}px` : ''}"${v.fit === 'contain' ? ' data-fit="contain"' : ''}><img src="${esc(v.src)}"${v.srcset ? ` srcset="${esc(v.srcset)}" sizes="${panelSizes(v.w, v.h)}"` : ''} alt="" width="${v.w}" height="${v.h}" decoding="async"></figure>`); }
   for (const [k, f] of Object.entries(F)) {
@@ -218,7 +218,7 @@ export function ustUygula(h, S) {
       const thumb = has && F[it.k].thumb ? `<img class="mx-thumb" src="${esc(F[it.k].thumb)}" alt="" width="58" height="58" loading="lazy" decoding="async">` : '';
       const big = has ? `<figure class="mx-big"><img data-src="${esc(F[it.k].mobil || F[it.k].src)}" alt="${esc(F[it.k].alt || it.n)}" width="${F[it.k].w}" height="${F[it.k].h}" decoding="async"></figure>` : '';
       const hit = has ? `<button class="mx-hit" type="button" aria-expanded="false" aria-label="${esc(Y.foto + it.n)}"></button>` : '';
-      return `<li class="mx-dish"${has ? ` data-k="${esc(it.k)}"` : ''}>${thumb}<h3>${esc(it.n)}</h3><span class="pr">${esc(it.p)}</span>${it.d ? `<p class="dd">${esc(it.d)}</p>` : ''}${hit}${big}</li>`;
+      return `<li class="mx-dish"${has ? ` data-k="${esc(it.k)}"` : ''}>${thumb}<h3>${esc(it.n)}</h3>${it.p ? `<span class="pr">${esc(it.p)}</span>` : ''}${it.d ? `<p class="dd">${esc(it.d)}</p>` : ''}${hit}${big}</li>`;
     }).join('');
     return `<div class="mx-panel" role="tabpanel" id="mxp-${i}" aria-labelledby="mxt-${i}"${i ? ' hidden' : ''}><ul class="mx-list">${lis}</ul></div>`;
   }).join(NL + '      ');
@@ -228,7 +228,7 @@ export function ustUygula(h, S) {
   if (S.kaydir && S.kaydir.items && S.kaydir.items.length >= 4) {
     const K = S.kaydir; const kw = String(K.h2).split(/\s+/).map((w, i) => `<span class="w" style="--i:${i}"><span>${esc(w)}</span></span>`).join(' ');
     const ok = (y, l) => `<button class="kd-btn" type="button" data-yon="${y}" aria-label="${esc(l)}" aria-controls="kd-list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${y < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'}"/></svg></button>`;
-    const cards = K.items.map((c, i) => `<li class="kd-card" style="--i:${i}"><figure><img src="${esc(c.src)}" alt="${esc(c.alt)}" width="${c.w}" height="${c.h}" loading="lazy" decoding="async" draggable="false"></figure><h3>${esc(c.n)}</h3><span class="pr">${esc(c.p)}</span>${c.d ? `<p>${esc(c.d)}</p>` : ''}</li>`).join('');
+    const cards = K.items.map((c, i) => `<li class="kd-card" style="--i:${i}"><figure><img src="${esc(c.src)}" alt="${esc(c.alt)}" width="${c.w}" height="${c.h}" loading="lazy" decoding="async" draggable="false"></figure><h3>${esc(c.n)}</h3>${c.p ? `<span class="pr">${esc(c.p)}</span>` : ''}${c.d ? `<p>${esc(c.d)}</p>` : ''}</li>`).join('');
     kd = [`<section class="kd" aria-labelledby="kd-h">`, `  <div class="kd-h"><div>${K.kicker ? `<span class="kicker rv">${esc(K.kicker)}</span>` : ''}<h2 class="h2 wr" id="kd-h">${kw}</h2></div><div class="kd-ok">${ok(-1, K.onceki)}${ok(1, K.sonraki)}</div></div>`, `  <ul class="kd-list" id="kd-list" tabindex="0" aria-label="${esc(K.h2)}">${cards}</ul>`, `</section>`, '', ''].join(NL);
   }
   h = h.slice(0, mS) + kd + yeni + h.slice(mE);
