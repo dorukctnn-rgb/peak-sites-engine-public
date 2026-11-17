@@ -9,7 +9,7 @@ const GROUPS = { daily: [0, 1, 2, 3, 4, 5, 6], everyday: [0, 1, 2, 3, 4, 5, 6], 
 // kapali gun: Turkce "kapalı" ı ile biter ve \b orada calismaz (11 Kas TR denemesi: "Pazar kapalı" bilinmeyen gun sayiliyordu), harf bakisi + u bayragi
 const CLOSED = /(?<!\p{L})(closed|kapali|kapalı|tatil|off)(?!\p{L})/iu;
 const GROUP_RE = new RegExp(`(${Object.keys(GROUPS).sort((a, b) => b.length - a.length).map((k) => k.replace(/ /g, '\\s+')).join('|')})`, 'i');
-const DAY_RE = /\b(monday|mon|tuesday|tues|tue|wednesday|weds|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun|pazartesi|pzt|sal[ıi]|sal|[çc]ar[şs]amba|[çc]ar|per[şs]embe|per|cumartesi|cmt|cuma|cum|pazar|paz)\b\.?/gi;
+const DAY_RE = /(?<![\p{L}\p{N}])(monday|mon|tuesday|tues|tue|wednesday|weds|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun|pazartes[iİ]|pzt|sal[ıiI]|sal|[çc]ar[şs]amba|[çc]ar|per[şs]embe|per|cumartes[iİ]|cmt|cuma|cum|pazar|paz)(?![\p{L}\p{N}])\.?/giu;
 const T = '(?:2[0-4]|[01]?\\d)(?:[:.][0-5]\\d)?\\s?(?:am|pm|a\\.m\\.|p\\.m\\.)?';
 const RANGE_RE = new RegExp(`(${T})\\s?(?:-|–|—|to|until|till|ile|/|~)\\s?(${T}|late|close|midnight|gece)`, 'gi');
 

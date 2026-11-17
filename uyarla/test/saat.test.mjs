@@ -55,3 +55,12 @@ test('kayitli saat denetimi: ust uste binen aralik ve cakisan satir tabloyu gizl
   const ok = { week: [[540, 1440], [540, 1440], [540, 1440], [540, 1440], [540, 1440], [420, 1440], [420, 1440]], rows: [{ d: [1, 2, 3, 4], t: '09:00–00:00' }, { d: [5, 6, 0], t: '07:00–00:00' }, { d: [1, 2, 3, 4], t: '09:00–11:00' }], byDay: [], known: 7, tableOk: true };
   assert.equal(saatDenetle(ok).issue, null); assert.ok(saatDenetle(ok).hours);
 });
+test('Turkce gun adlari bas harfi Ç ile (Çarşamba) ve buyuk harfle taninir', () => {
+  const r = parseSaatler(['Pazartesi - Cumartesi 08:00 - 23:00', 'Pazar kapalı']);
+  assert.deepEqual(r.week[3], [M(8), M(23)]); assert.equal(r.week[0], null);
+  const r2 = parseSaatler(['PAZARTESİ 09:00 - 18:00', 'SALI 09:00 - 18:00', 'ÇARŞAMBA 09:00 - 18:00', 'PERŞEMBE 09:00 - 18:00', 'CUMA 09:00 - 18:00', 'CUMARTESİ kapalı', 'PAZAR kapalı']);
+  assert.deepEqual(r2.week[3], [M(9), M(18)]); assert.equal(r2.week[6], null);
+  const r3 = parseSaatler(['Çarşamba 10:00 - 22:00']);
+  assert.deepEqual(r3.week[3], [M(10), M(22)]);
+  assert.deepEqual(r2.week[1], [M(9), M(18)]);
+});
