@@ -33,12 +33,12 @@ export function tamamla(slug, { veri = VERI_K } = {}) {
   if (E.hediye) R.giftUrl = E.hediye;
   if (E.menu && E.menu.length) {
     const items = E.menu.map((it) => ({ n: it.n, d: it.d || '', p: it.p, cat: it.cat, page: R.lead.site, ek: 'elle' }));
-    R.menu = { ...(R.menu || {}), via: 'elle (sitenin kendi menü metni)', items, groups: groupMenu(items).map((g) => ({ name: g.name, n: g.items.length })), pageUrl: R.lead.site.replace(/\/$/, '') + '/#menu', pdfs: [], skipped: [] };
+    R.menu = { ...(R.menu || {}), via: 'elle (sitenin kendi menü metni)', fiyatsiz: E.menuFiyatsiz === true, items, groups: groupMenu(items).map((g) => ({ name: g.name, n: g.items.length })), pageUrl: R.lead.site.replace(/\/$/, '') + '/#menu', pdfs: [], skipped: [] };
     yapilan.push(`menü ${items.length}`);
   }
   if (E.paragraflar && E.paragraflar.length) { R.ek = { ...(R.ek || {}), paragraflar: E.paragraflar, kaynak: 'elle (sitenin kendi metni)' }; yapilan.push('paragraflar'); }
   if (E.saatSatirlar && E.saatSatirlar.length) { const p = parseSaatler(E.saatSatirlar); if (p && p.tableOk) { R.hours = p; yapilan.push('saat'); } }
-  R.kategoriEk = { at: new Date().toISOString(), kurulus: E.kurulus || null, kurulusMetni: E.kurulusMetni || null, sahipler: E.sahipler || null, motto: E.motto || null, hikaye: E.hikaye || null, menuNot: E.menuNot || null };
+  R.kategoriEk = { at: new Date().toISOString(), kurulus: E.kurulus || null, kurulusMetni: E.kurulusMetni || null, sahipler: E.sahipler || null, motto: E.motto || null, hikaye: E.hikaye || null, menuNot: E.menuNot || null, menuFiyatsiz: E.menuFiyatsiz === true };
   fs.writeFileSync(jf, JSON.stringify(R, null, 1));
   return { slug, durum: 'tamam', yapilan };
 }

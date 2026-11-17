@@ -30,7 +30,8 @@ test('fiyatsiz menu denetimi: gecerli karar gecer; fiyat, kategori sablonu, kayn
   assert.deepEqual(denetle(karar(), ctx()), []);
   const bozuk = (f, c = ctx()) => { const k = karar(); f(k); return denetle(k, c).join(' | '); };
   assert.match(bozuk((k) => { k.menu.kalemler[1].p = '€21'; }), /fiyatsiz menude fiyat yazilmaz/);
-  assert.match(bozuk((k) => { k.sablon = 'burger'; k.icerik = { kategori: 'burger', sec: 0, aday: [{ text: 'Cooked over *charcoal.*', kaynak: 'x' }] }; }), /yalniz v5/);
+  // 17 Kas 2026: kategori sablonlari da fiyatsiz menu kabul eder (ayrintili test: ozel-kategori-fiyatsiz.test.mjs); v5 siniri kalkti
+  for (const kat of ['burger', 'pizza', 'burrito', 'pastane', 'sokak']) assert.doesNotMatch(bozuk((k) => { k.sablon = kat; k.icerik = { kategori: kat, sec: 0, aday: [{ text: 'Cooked over *charcoal.*', kaynak: 'x' }] }; }), /yalniz v5/, kat);
   assert.match(bozuk((k) => { k.menu.kalemler[2].n = 'Pizza Napoli'; }), /yemek adi kaynakta yok: Pizza Napoli/);
   assert.match(bozuk((k) => { k.menu.kalemler = k.menu.kalemler.slice(0, 5); }), /en az 6 kalem/);
   assert.match(bozuk((k) => { k.icerik.menu.legend = 'Prices are taken from the site.'; }), /fiyatsiz menude fiyat sozu gecmez/);
@@ -49,6 +50,16 @@ test('kayit bicimi: fiyatsiz bayragi v5 menu kaydina gecer, bos fiyat "undefined
   const k = karar(); k.menu.kalemler[0].p = undefined;
   const v = kayitKur(k); assert.equal(v.v5.menu.fiyatsiz, true); assert.equal(v.v5.menu.items.length, 6); assert.ok(v.v5.menu.items.every((x) => x.p === ''));
   const f = kayitKur({ ...karar(), menu: { ...karar().menu, fiyatsiz: undefined, kalemler: kalemler().map((x) => ({ ...x, p: '€5' })) } }); assert.equal(f.v5.menu.fiyatsiz, undefined);
+});
+
+test('kayit bicimi: kategori kaydi menuFiyatsiz bayragini tasir, fiyatli kayit tasimaz; kategori taslak notu fiyat demez', async () => {
+  for (const kat of ['burger', 'pizza', 'burrito', 'pastane', 'sokak']) for (const eylem of [{ url: 'https://x.orderyoyo.ie/', tur: 'siparis', platform: 'Order YoYo' }, { tur: 'telefon', kisa: 'Call' }]) {
+    const k = { ...karar(), sablon: kat, eylem, icerik: { kategori: kat, sec: 0, aday: [{ text: 'Cooked over *charcoal.*', kaynak: 'x' }], kategoriEk: { adres: '1 Fixture Street, Galway' } } };
+    const v = kayitKur(k); assert.equal(v.kategori.kategoriEk.menuFiyatsiz, true, kat); assert.equal(v.kategori.kategoriEk.menu.length, 6); assert.ok(v.kategori.kategoriEk.menu.every((x) => x.p === ''), kat);
+    const f = kayitKur({ ...k, menu: { ...k.menu, fiyatsiz: undefined, kalemler: kalemler().map((x) => ({ ...x, p: '€5' })) } }); assert.equal(f.kategori.kategoriEk.menuFiyatsiz, undefined, kat);
+  }
+  const { KM } = await import('../lib/kategori-metin.mjs');
+  for (const d of [KM.en.draftFiyatsiz, KM.en.draftOrderFiyatsiz, KM.tr.draftFiyatsiz, KM.tr.draftOrderFiyatsiz]) assert.doesNotMatch(d('X', 'x.example'), /prices|fiyat/i);
 });
 
 test('fiyatsizMenuMetni: menu sayfasinin ozgun satirlari (gezinti ve ana sayfa satirlari atilir, HTML varliklari cozulur); menu adresi olmayan ya da az satirli sayfa null', () => {

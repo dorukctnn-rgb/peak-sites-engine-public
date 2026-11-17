@@ -94,7 +94,7 @@ export function lintCopy(file) {
 
 export async function restoranKapi(slug, { browser, base, out, veri, sablon, log = () => {} }) {
   const dir = path.join(veri, slug); const R = J(path.join(dir, 'cikarici.json')); const ik = J(path.join(dir, 'icerik.json'), {});
-  const why = []; const warn = []; let page = null; let eylemUrl = null; let menuN = 0; let menuKaynak = null; let base0 = null; let logoNet = null; let ustOlcum = null;
+  const why = []; const warn = []; let page = null; let eylemUrl = null; let menuN = 0; let menuKaynak = null; let katFz = false; let base0 = null; let logoNet = null; let ustOlcum = null;
   if (sablon === 'v5') {
     const { kapi } = await import('./kapi.mjs');
     base0 = await kapi(slug, { browser, base, out, veri, log });
@@ -114,7 +114,8 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
     why.push(...rep.sorunlar);
     const UK = J(path.join(dir, 'uret-kategori.json'), {});
     page = `${pageDir(slug)}/index.html`; const R2 = J(path.join(dir, 'cikarici.json'));
-    menuN = ((R2.menu && R2.menu.items) || []).filter((x) => x.p).length; menuKaynak = ik.kategori && ik.kategori.menuKaynak; eylemUrl = R2.order && R2.order.url;
+    katFz = !!(R2.menu && R2.menu.fiyatsiz === true); // fiyatsiz menu (17 Kas 2026): kalem sayisi adli kalemler
+    menuN = ((R2.menu && R2.menu.items) || []).filter((x) => (katFz ? x.n : x.p)).length; menuKaynak = ik.kategori && ik.kategori.menuKaynak; eylemUrl = R2.order && R2.order.url;
     if (!UK.logo || !UK.logo.ayni) why.push('logo dosyası bayt bayt aynı değil (sha256)');
     const pf = path.join(out, pageDir(slug), 'img', `logo${path.extname(R.logo.orig.file).toLowerCase()}`); if (!fs.existsSync(pf) || sha(pf) !== R.logo.orig.sha256) why.push('sayfadaki logo dosyası orijinalle aynı değil (sha256)');
     if (!R2.hours || !R2.hours.week || R2.hours.week.filter(Boolean).length + Object.values(R2.hours.byDay || {}).filter((x) => x === 'closed').length < 7) why.push('"şimdi açık" için 7 günün saati yok');
@@ -122,7 +123,7 @@ export async function restoranKapi(slug, { browser, base, out, veri, sablon, log
     if (UK.heroUyumsuz) why.push(`ana fotoğraf uyumsuz (${UK.heroUyumsuz})`);
     warn.push(...(UK.fotoUyari || []).filter((u) => !/ana fotograf/.test(u)));
   }
-  const fiyatsiz = !!(ik.v5 && ik.v5.menu && ik.v5.menu.fiyatsiz === true); // fiyatsiz menu (17 Kas 2026): isletme fiyat yayimlamiyor; kalem sayisi adli kalemler
+  const fiyatsiz = katFz || !!(ik.v5 && ik.v5.menu && ik.v5.menu.fiyatsiz === true); // fiyatsiz menu (17 Kas 2026): isletme fiyat yayimlamiyor; kalem sayisi adli kalemler
   if (menuN < 6) why.push(`${fiyatsiz ? 'menü' : 'fiyatlı menü'} kalemi az (${menuN}; en az 6)`);
   if (!menuKaynak) why.push('menünün kaynağı kayıtlı değil');
   const html = page ? path.join(out, page) : null;
