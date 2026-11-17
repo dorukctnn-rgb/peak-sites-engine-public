@@ -41,3 +41,17 @@ test('kentBul: ilk denenecek ayna ve zaman siniri sorguya iletilir, her kent bit
   assert.deepEqual(biten, [['Cambridge', 1], ['Oxford', 1]]); assert.equal(r.leads.length, 2);
   await kentBul('GB', kentler('GB', 'ek').slice(0, 1), { sorgula, bekleMs: 0, ilk: 0 }); assert.equal(secenekler.at(-1).ilk, 0);
 });
+
+test('hafif sorgu: yalniz kafe / fast_food / dondurma / firin-pastane etiketleri (restoran, bar, pub yok); onceBol kenti bastan dorde boler', async () => {
+  const { sorguHafif } = await import('../kent.mjs');
+  const q = sorguHafif([52.17, 0.07, 52.24, 0.2]);
+  assert.match(q, /\["amenity"~"\^\(fast_food\|cafe\|ice_cream\)\$"\]\["website"\]\(52\.17,0\.07,52\.24,0\.2\)/); assert.match(q, /\["shop"~"\^\(bakery\|pastry\|confectionery\)\$"\]/); assert.doesNotMatch(q, /restaurant|\bpub\b|bar\b/); assert.match(q, /\[timeout:60\]/);
+  const sorgular = []; const sorgula = async (s) => { sorgular.push(s); return { elements: [] }; };
+  await kentBul('GB', kentler('GB', 'ek').slice(0, 1), { sorgula, bekleMs: 0, hafif: true, onceBol: true });
+  assert.equal(sorgular.length, 4); assert.ok(sorgular.every((s) => /fast_food\|cafe\|ice_cream/.test(s)));
+});
+test('kentBul: 502 / 503 yaniti da kutuyu bolmeyi tetikler', async () => {
+  let n = 0; const sorgula = async () => { n++; throw new Error('overpass yanit vermedi (502)'); };
+  const r = await kentBul('AU', [METRO_EK.AU[0]], { sorgula, bekleMs: 0, hafif: true });
+  assert.equal(n, 5); assert.deepEqual(r.hatalar, ['Perth']);
+});
