@@ -20,6 +20,7 @@ import { restoranHazirla } from '../uyarla/restoran-hazirla.mjs';
 import { sablonSec } from '../uyarla/sablon-sec.mjs';
 import { ULKELER } from '../lead/sektorler.mjs';
 import { osmAdresKur, metroTz } from '../lead/osm.mjs';
+import { suzgecYaz } from './paket-suzgec.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const jsonOku = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
@@ -76,7 +77,9 @@ export async function uretimCalis({ leads, limit = Infinity, sureDk = 300, veri 
           if (kk.status === 'hazir') await hazirla(L.slug, { veri, out });
           return kk;
         })(), sinirMs, L.slug);
-        sonuc.push({ id: l.id, slug: L.slug, sektor: l.sektor, ulke: l.ulke, status: k.status, reasons: k.reasons.slice(0, 3), page: k.page || null, sn: Math.round((Date.now() - t1) / 1000), ...(k.yeniden ? { yeniden: true } : {}) });
+        // 18 Kas 2026: icerik turu pahali (5-6 paket = 190-260k token); paketin on suzgec puani paket/on-suzgec.json'a yazilir (durum degismez), icerik turune yalniz listenin basi gider (hat/paket-suzgec.mjs)
+        const suz = k.status === 'icerik-bekliyor' ? suzgecYaz(path.join(dir, 'paket')) : null;
+        sonuc.push({ id: l.id, slug: L.slug, sektor: l.sektor, ulke: l.ulke, status: k.status, reasons: k.reasons.slice(0, 3), page: k.page || null, sn: Math.round((Date.now() - t1) / 1000), ...(k.yeniden ? { yeniden: true } : {}), ...(suz ? { suzgec: { gecer: suz.gecer, puan: suz.puan } } : {}) });
         log(`${String(n).padStart(3)} ${L.slug.padEnd(44)} ${l.ulke} ${l.sektor.padEnd(10)} ${k.status.padEnd(12)} ${Math.round((Date.now() - t1) / 1000)}s${k.yeniden ? ' (yeniden hazirlik)' : ''}${k.reasons.length ? '  <- ' + k.reasons.slice(0, 2).join(' ; ').slice(0, 140) : ''}`);
       } catch (e) {
         if (butceSiniri && /zaman asimi/.test(String(e.message))) { // turun suresi bitti: isletme elenmez, sonraki turda yeniden
