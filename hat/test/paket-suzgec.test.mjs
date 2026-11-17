@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { yemekAdlari, menuOlc, heroOlc, logoOlc, saatGirdileri, saatCoz, saatCop, zincirOlc, uretilmisKare, kardesler, puanla, suzgec, MIN_PUAN } from '../paket-suzgec.mjs';
+import { yemekAdlari, menuOlc, heroOlc, logoOlc, saatGirdileri, saatCoz, saatCop, zincirOlc, uretilmisKare, kardesler, puanla, suzgec, kararVerilmis, slugDosyasi, paketSuz, paketleriBul, MIN_PUAN } from '../paket-suzgec.mjs';
 
 const gecici = fs.mkdtempSync(path.join(os.tmpdir(), 'paket-suzgec-'));
 test.after(() => fs.rmSync(gecici, { recursive: true, force: true }));
@@ -158,4 +158,18 @@ test('suzgec(): ilk N kisa listeyi puan sirasiyla verir, elenenleri nedenle ayir
   assert.ok(r.elenenler.every((e) => e.sert.length > 0 && !e.gecer));
   assert.deepEqual(r.elenenler.map((e) => e.slug).sort(), ['c-au3', 'd-au4', 'd2-au5']);
   assert.equal(r.hepsi.length, 5);
+});
+
+test('CLI yardimcilari: karar verilmis paketler, slug dosyasi ve zaman suzgeci paketleri atlar', () => {
+  const kok = path.join(gecici, 'cli'); const veri = path.join(kok, 'veri');
+  for (const s of ['a-au1', 'b-au2', 'c-au3']) { const pk = path.join(veri, s, 'paket'); fs.mkdirSync(pk, { recursive: true }); fs.writeFileSync(path.join(pk, 'bilgi.json'), '{}'); fs.writeFileSync(path.join(veri, s, 'kapi.json'), JSON.stringify({ status: 'icerik-bekliyor' })); }
+  fs.mkdirSync(path.join(kok, 'u1', 'karar', 'w2a'), { recursive: true }); fs.writeFileSync(path.join(kok, 'u1', 'karar', 'w2a', 'a-au1.json'), '{}');
+  fs.writeFileSync(path.join(kok, 'haric.txt'), '# on bakista elenenler\nb-au2\n');
+  assert.deepEqual([...kararVerilmis(kok)], ['a-au1']); assert.deepEqual([...kararVerilmis(path.join(kok, 'yok'))], []);
+  assert.deepEqual([...slugDosyasi(path.join(kok, 'haric.txt'))], ['b-au2']);
+  const dirs = paketleriBul(veri, { durum: 'icerik-bekliyor' }); assert.equal(dirs.length, 3);
+  const kalan = paketSuz(dirs, { haric: new Set([...kararVerilmis(kok), ...slugDosyasi(path.join(kok, 'haric.txt'))]) });
+  assert.deepEqual(kalan.map((d) => path.basename(path.dirname(d))), ['c-au3']);
+  assert.equal(paketSuz(dirs, { yeniSonra: Date.now() + 60000 }).length, 0, 'gelecek zamandan eski hepsi atlanir');
+  assert.equal(paketSuz(dirs, { yeniSonra: Date.now() - 600000 }).length, 3);
 });
