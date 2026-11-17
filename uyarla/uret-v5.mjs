@@ -61,6 +61,16 @@ export function zaman(m, h12) {
 }
 // "11:30am–9:30pm": aralik cizgisi bitisik (premium-web-style: bosluklu tire yok)
 export const aralik = (w, h12) => `${zaman(w[0], h12)}–${zaman(w[1], h12)}`;
+// ANA DUGME ETIKETI (TR 11 Kas 2026; EN siparis 17 Kas 2026): etiket eylemin turunden gelir.  Yalniz siparis veren isletme (gercek siparis sayfasi, masa yok) EN sayfada da
+// "Book a table" gormez: "Order online" (kisa "Order").  Karar eylem.etiket yazdiysa o etiket her dilde kullanilir.  null = sablonun varsayilani (Book a table / Masa ayirtin).
+export function etiketV5({ lang, resv, ct = {}, pl = null }) {
+  if (!resv) return null;
+  if (ct.label) return { label: ct.label, short: ct.short || ct.label, short2: ct.label, ...(lang !== 'tr' && ct.tur === 'siparis' ? { ikon: 'bag' } : {}) };
+  if (lang !== 'tr') return ct.tur === 'siparis' ? { label: 'Order online', short: 'Order', short2: 'Order online', ikon: 'bag' } : null;
+  if (pl === 'WhatsApp') return /sipari/i.test(`${ct.tur || ''} ${ct.metin || ''}`) ? { label: 'WhatsApp\'tan sipariş ver', short: 'Sipariş', short2: 'Sipariş ver', ikon: 'chat' } : { label: 'WhatsApp\'tan yazın', short: 'WhatsApp', short2: 'WhatsApp\'tan yazın', ikon: 'chat' };
+  return (ct.tur === 'siparis' || (pl && ct.tur !== 'rezervasyon')) ? { label: 'Sipariş ver', short: 'Sipariş', short2: 'Sipariş ver', ikon: 'bag' } : null;
+}
+
 export function saatOzetV5(hrs, lang, h12) {
   if (!hrs) return [];
   const L = T[lang]; const D = DAYS[lang]; const S = SHORT[lang] || SHORT.en;
@@ -300,10 +310,7 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   const resv = telKarar ? null : (e.cta && e.cta.url) || (R.reservation && R.reservation.external ? R.reservation.url : null);
   // TR (11 Kas 2026): eylemin turu gercek baglantidan; siparis platformu -> "Sipariş ver", WhatsApp hatti -> "WhatsApp'tan yazın"/"sipariş ver", rezervasyon -> "Masa ayırtın"
   const ct = e.cta || {}; const pl = resv ? platformOf(resv) : null;
-  const trEtiket = lang !== 'tr' || !resv ? null
-    : ct.label ? { label: ct.label, short: ct.short || ct.label, short2: ct.label }
-      : pl === 'WhatsApp' ? (/sipari/i.test(`${ct.tur || ''} ${ct.metin || ''}`) ? { label: 'WhatsApp\'tan sipariş ver', short: 'Sipariş', short2: 'Sipariş ver', ikon: 'chat' } : { label: 'WhatsApp\'tan yazın', short: 'WhatsApp', short2: 'WhatsApp\'tan yazın', ikon: 'chat' })
-        : (ct.tur === 'siparis' || (pl && ct.tur !== 'rezervasyon')) ? { label: 'Sipariş ver', short: 'Sipariş', short2: 'Sipariş ver', ikon: 'bag' } : null;
+  const trEtiket = etiketV5({ lang, resv, ct, pl });
   const main = resv ? { href: resv, label: L.book, short: L.bookShort, short2: L.book, ...(trEtiket || {}), ext: true }
     : tel ? { href: `tel:${tel}`, label: telKarar && ct.label ? ct.label : `${L.call} ${phone}`, short: telKarar && ct.short ? ct.short : L.call, short2: telKarar && ct.label ? ct.label : lang === 'tr' ? 'Arayın' : 'Call us', tel: true }
       : { href: maps, label: L.directions, short: L.directionsShort, ext: true };
