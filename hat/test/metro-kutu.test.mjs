@@ -47,7 +47,7 @@ test('metroTz: AU kent kutusu saat dilimi, kutu disi ve GB null; uretimLead tz t
   assert.equal(metroTz({ ulke: 'AU', lat: -33.87, lon: 151.21 }), 'Australia/Sydney');
   assert.equal(metroTz({ ulke: 'AU', lat: -37.81, lon: 144.96 }), 'Australia/Melbourne');
   assert.equal(metroTz({ ulke: 'AU', lat: -27.47, lon: 153.03 }), 'Australia/Brisbane');
-  assert.equal(metroTz({ ulke: 'AU', lat: -31.95, lon: 115.86 }), null, 'Perth kutu disi');
+  assert.equal(metroTz({ ulke: 'AU', lat: -23.7, lon: 133.88 }), null, 'Alice Springs kutu disi'); assert.equal(metroTz({ ulke: 'AU', lat: -31.95, lon: 115.86 }), 'Australia/Perth', 'Perth ek kent (METRO_EK)');
   assert.equal(metroTz({ ulke: 'GB', lat: 51.5, lon: -0.12 }), null, 'GB saat dilimi bolgeden');
   assert.equal(metroOf('GB', 51.5, -0.12).ad, 'London');
   assert.equal(metroTz({ ulke: 'AU', lat: null, lon: null }), null);
