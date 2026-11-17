@@ -187,10 +187,48 @@ export const METRO = {
     { ad: 'Brighton', kutu: [50.81, -0.25, 50.87, -0.05] },
   ],
 };
+// EK KENTLER (18 Kas 2026, yeni lead kaynaklari): METRO ve METRO_PLAN DEGISMEZ (bulParcali ilerleme dosyasi 'metro-1' korunur, bulut dongusu yeniden taramaz).  Ek kentler yalniz
+// metroOf (saat dilimi: AU lead'i kutu disinda tz alamaz, siki kapi duser) ve lead/kent.mjs taramasinda kullanilir.  Kutu: [guney, bati, kuzey, dogu].
+export const METRO_EK = {
+  AU: [
+    { ad: 'Perth', tz: 'Australia/Perth', kutu: [-32.05, 115.75, -31.85, 115.95] },
+    { ad: 'Adelaide', tz: 'Australia/Adelaide', kutu: [-34.98, 138.55, -34.85, 138.7] },
+    { ad: 'Canberra', tz: 'Australia/Sydney', kutu: [-35.36, 149.05, -35.2, 149.2] },
+    { ad: 'Gold Coast', tz: 'Australia/Brisbane', kutu: [-28.1, 153.35, -27.9, 153.5] },
+    { ad: 'Newcastle', tz: 'Australia/Sydney', kutu: [-32.96, 151.7, -32.88, 151.8] },
+    { ad: 'Hobart', tz: 'Australia/Hobart', kutu: [-42.92, 147.28, -42.84, 147.36] },
+    { ad: 'Geelong', tz: 'Australia/Melbourne', kutu: [-38.18, 144.33, -38.1, 144.4] },
+    { ad: 'Wollongong', tz: 'Australia/Sydney', kutu: [-34.45, 150.85, -34.38, 150.92] },
+    { ad: 'Sunshine Coast', tz: 'Australia/Brisbane', kutu: [-26.7, 153.05, -26.62, 153.15] },
+    { ad: 'Cairns', tz: 'Australia/Brisbane', kutu: [-16.95, 145.72, -16.88, 145.8] },
+  ],
+  GB: [
+    { ad: 'Cambridge', kutu: [52.17, 0.07, 52.24, 0.2] },
+    { ad: 'Oxford', kutu: [51.72, -1.32, 51.79, -1.2] },
+    { ad: 'Bath', kutu: [51.36, -2.42, 51.41, -2.32] },
+    { ad: 'York', kutu: [53.93, -1.13, 53.99, -1.04] },
+    { ad: 'Leicester', kutu: [52.6, -1.18, 52.66, -1.08] },
+    { ad: 'Southampton', kutu: [50.88, -1.46, 50.94, -1.36] },
+    { ad: 'Portsmouth', kutu: [50.77, -1.12, 50.83, -1.03] },
+    { ad: 'Norwich', kutu: [52.6, 1.26, 52.66, 1.34] },
+    { ad: 'Exeter', kutu: [50.7, -3.55, 50.74, -3.49] },
+    { ad: 'Plymouth', kutu: [50.35, -4.19, 50.4, -4.1] },
+    { ad: 'Reading', kutu: [51.43, -1.02, 51.47, -0.93] },
+    { ad: 'Belfast', kutu: [54.57, -6.0, 54.63, -5.88] },
+    { ad: 'Aberdeen', kutu: [57.12, -2.16, 57.17, -2.06] },
+    { ad: 'Swansea', kutu: [51.6, -3.98, 51.64, -3.91] },
+    { ad: 'Coventry', kutu: [52.38, -1.55, 52.43, -1.47] },
+    { ad: 'Cheltenham', kutu: [51.88, -2.11, 51.92, -2.05] },
+    { ad: 'Canterbury', kutu: [51.26, 1.05, 51.3, 1.11] },
+    { ad: 'Chester', kutu: [53.17, -2.93, 53.22, -2.86] },
+    { ad: 'Durham', kutu: [54.76, -1.6, 54.8, -1.54] },
+    { ad: 'Derby', kutu: [52.9, -1.51, 52.94, -1.44] },
+  ],
+};
 const kutuIcinde = ([s, w, n, e], lat, lon) => lat >= s && lat <= n && lon >= w && lon <= e;
-// lead koordinati -> metro kaydi ({ ad, tz? }) ya da null
+// lead koordinati -> metro kaydi ({ ad, tz? }) ya da null (once METRO, sonra METRO_EK)
 export function metroOf(ulke, lat, lon) {
-  const L = METRO[ulke]; if (!L || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return null;
+  const L = [...(METRO[ulke] || []), ...(METRO_EK[ulke] || [])]; if (!L.length || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return null;
   return L.find((m) => kutuIcinde(m.kutu, Number(lat), Number(lon))) || null;
 }
 // AU metro lead'inin saat dilimi (uretimLead -> cikarici lead.tz -> v5 ve kategori sablonu "simdi acik"); baska ulke ya da kutu disi: null (eski kural: sehir adi)
