@@ -69,6 +69,17 @@ test('fiyatsizMenuMetni: menu sayfasinin ozgun satirlari (gezinti ve ana sayfa s
   } finally { fs.rmSync(d, { recursive: true, force: true }); }
 });
 
+test('fiyatsizMenuMetni: menusu gezintide (her sayfada) duran ve ayni adresi birden cok kez okunmus site de menu sayfasi sayilir', () => {
+  const d = tmp('fz2-');
+  try {
+    const nav = 'ANASAYFA\nKURUMSAL\nMenümüz\nBamya Çorbası\nYoğurt Çorbası\nYaprak Sarması\nSu Böreği\nÇoban Salata\nFırın Kebabı\nDüğün Pilavı\nSaç Kavurma\nİrmik Helvası\nİLETİŞİM';
+    fs.writeFileSync(path.join(d, '_sayfalar.txt'), `## https://ornek.example/tr/menumuz-13/kahvalti-72.html\n${nav}\n## https://ornek.example/tr/menumuz-13/kahvalti-72.html\n${nav}\n## https://ornek.example/tr/hakkimizda.html\n${nav}\nKuruluş hikayemiz\n`);
+    const r = fiyatsizMenuMetni(d); assert.ok(r, 'gezintideki menu bulundu'); assert.deepEqual(r.urls, ['https://ornek.example/tr/menumuz-13/kahvalti-72.html'], 'ayni adres bir kez');
+    assert.match(r.metin, /Bamya Çorbası/); assert.match(r.metin, /Saç Kavurma/); assert.doesNotMatch(r.metin, /ANASAYFA|İLETİŞİM|KURUMSAL|Menümüz/);
+    assert.equal(r.metin.split('Bamya Çorbası').length - 1, 1, 'satir tekrarlanmaz');
+  } finally { fs.rmSync(d, { recursive: true, force: true }); }
+});
+
 test('yenidenHazirlik: yalniz "kaynak bulunamadi" nedeniyle eski surumde elenmis restoran bir kez yeniden hazirliktan gecer; baska neden, yasak ve yeni surum gecmez', () => {
   const k = (reasons, extra = {}) => ({ status: 'elendi', sektor: 'restoran', onKapiSurum: 2, reasons, ...extra });
   const MENU = 'fiyatlı menü kaynağı yok ya da robots.txt izin vermiyor (kaynak bulunamadı)';

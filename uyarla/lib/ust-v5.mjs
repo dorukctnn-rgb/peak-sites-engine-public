@@ -79,6 +79,13 @@ export async function ustHazirla({ dir, imgDir, R, e = {}, lang, items = [], fiy
           for (const w of ws) { const r = await webp(buf, path.join(imgDir, `mx-${k}-${w}.webp`), w); got.push({ w: r.w, h: r.h, file: `img/mx-${k}-${r.w}.webp` }); }
           const big = got[got.length - 1]; Object.assign(b, { src: big.file, w: big.w, h: big.h, mobil: got[0].file, ...(got.length > 1 ? { srcset: got.map((g) => `${g.file} ${g.w}w`).join(', ') } : {}) });
         }
+        // yazilan dosya da netlik kapisindan gecmeli: webp yeniden sikistirma sinirdaki kareyi esigin altina indirebilir ve kapi yazilan dosyayi olcer (17 Kas 2026, Incredible India Dal Makhani p90 137 < 140)
+        const yz = await fotoDenetle(fs.readFileSync(path.join(imgDir, path.basename(b.src))), 'panel');
+        if (!yz.ok) {
+          for (const x of fs.readdirSync(imgDir)) if (x.startsWith(`mx-${k}-`)) fs.rmSync(path.join(imgDir, x), { force: true });
+          uyari.push(`menü fotoğrafı ${id} kullanılmadı: yazılan dosya ${yz.neden.join('; ')}`); rapor.elenen.push({ id, yuva: 'menü', neden: `yazılan dosya: ${yz.neden.join('; ')}`, olcu: yz.olcu });
+          onbellek.set(id, null); return null;
+        }
         const s = Math.round(Math.min(W, H0) * 0.8);
         try {
           const L = Math.max(0, Math.min(W - s, Math.round(fo.x * W - s / 2))); const T = Math.max(0, Math.min(H0 - s, Math.round(fo.y * H0 - s / 2)));

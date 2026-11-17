@@ -99,20 +99,21 @@ export function gozlemAdaylari({ bulgular = [], R, homeText = '' }) {
 
 // FIYATSIZ MENU KAYNAGI (17 Kas 2026, koordinator karari: isletme fiyat yayimlamiyorsa menu fiyatsiz gosterilebilir; fiyat uydurulmaz).  Hicbir fiyatli kaynak (sayfa satirlari, PDF,
 // menu gorseli, siparis sitesi) yokken sitenin menu sayfalarinin metni yemek adlari icin kaynak olur.  _sayfalar.txt bloklari "## <adres>" ile baslar; menu benzeri adresli ve en az 8 kisa
-// satirli bloklar alinir.  Tum bloklarda ya da ana sayfada gecen satirlar (gezinti, alt bilgi) atilir.  Cikti metni HTML varliklarindan arinmistir.
+// satirli bloklar alinir (ayni adres bir kez).  Gezinti ve alt bilgi sozcukleri atilir; menusu gezintide (her sayfada) duran sitelerin yemek satirlari kalir.  Cikti metni HTML varliklarindan arinmistir.
 const MENU_ADRES = /menu|men[uü]|yemek|carta|food|dishes|dining|lunch|dinner|brunch|breakfast|kahvalt|lokanta|i[cç]ecek|drinks/i;
+// gezinti ve alt bilgi sozcukleri (karsilastirma: I/i/ı/İ ayni, aksan atilir): yemek satiri sayilmaz
+const GEZINTI = /^(anasayfa|ana sayfa|home|hakkimizda|hakkimiz|kurumsal|iletisim|contact|contact us|about|about us|menu|menumuz|menus|our menu|galeri|gallery|rezervasyon|reservation|book|siparis|order|english|turkce|tr|en|facebook|instagram|twitter|youtube|tripadvisor|telif|copyright|all rights|designed|tasarim|gizlilik|kvkk|cerez|restorant|restoran|subeler|subelerimiz|sube|basin|kariyer|blog|haberler|duyurular|sss|follow|search|ara)\b/;
+const sadeSatir = (s) => decodeVarlik(s).replace(/[İIı]/g, 'i').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 export function fiyatsizMenuMetni(dir, R = {}) {
   const oku = (f) => { try { return fs.readFileSync(path.join(dir, f), 'utf8'); } catch { return ''; } };
-  const bloklar = []; let cur = null;
-  for (const l of oku('_sayfalar.txt').split('\n')) { const m = /^## (https?:\/\/\S+)/.exec(l); if (m) { cur = { url: m[1], satir: [] }; bloklar.push(cur); } else if (cur) cur.satir.push(decodeVarlik(l).replace(/\s+/g, ' ').trim()); }
-  const ortak = new Map(); const say = (arr) => { for (const s of new Set(arr)) if (s) ortak.set(s, (ortak.get(s) || 0) + 1); };
-  for (const b of bloklar) say(b.satir);
-  const ana = new Set(oku('_home.txt').split('\n').map((l) => decodeVarlik(l).replace(/\s+/g, ' ').trim()).filter(Boolean));
+  const bloklar = new Map(); let cur = null;
+  for (const l of oku('_sayfalar.txt').split('\n')) { const m = /^## (https?:\/\/\S+)/.exec(l); if (m) { cur = bloklar.get(m[1]) || { url: m[1], satir: [] }; bloklar.set(m[1], cur); } else if (cur) cur.satir.push(decodeVarlik(l).replace(/\s+/g, ' ').trim()); }
   const secilen = []; const urls = []; let n = 0;
-  for (const b of bloklar) {
+  for (const b of bloklar.values()) {
     let yol = ''; try { yol = decodeURIComponent(new URL(b.url).pathname); } catch { yol = b.url; }
     if (!MENU_ADRES.test(yol)) continue;
-    const satir = b.satir.filter((s) => s.length >= 3 && s.length <= 90 && /\p{L}{3}/u.test(s) && !(ortak.get(s) > 1) && !ana.has(s) && !FIYAT_SATIR.test(s));
+    const gorulen = new Set();
+    const satir = b.satir.filter((s) => { if (s.length < 3 || s.length > 90 || !/\p{L}{3}/u.test(s) || FIYAT_SATIR.test(s)) return false; const k = sadeSatir(s); if (!k || GEZINTI.test(k) || gorulen.has(k)) return false; gorulen.add(k); return true; });
     if (satir.length < 8) continue;
     secilen.push(`## ${b.url}\n${satir.join('\n')}`); urls.push(b.url); n += satir.length;
   }
