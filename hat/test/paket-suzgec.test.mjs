@@ -173,3 +173,29 @@ test('CLI yardimcilari: karar verilmis paketler, slug dosyasi ve zaman suzgeci p
   assert.equal(paketSuz(dirs, { yeniSonra: Date.now() + 60000 }).length, 0, 'gelecek zamandan eski hepsi atlanir');
   assert.equal(paketSuz(dirs, { yeniSonra: Date.now() - 600000 }).length, 3);
 });
+
+test('menu: yalniz icecek sekmesi / icecek menusu alinmis paket 6 yemek saymaz (kanit partisi: yemek sekmeleri pakette yok)', () => {
+  const pk = path.join(gecici, 'icecek', 'paket'); fs.mkdirSync(path.join(pk, 'menu-kaynak'), { recursive: true });
+  fs.writeFileSync(path.join(pk, 'menu-kaynak', 'sayfa.txt'), [['Iced Latte', 6], ['Cold Brew Coffee', 6.5], ['Fresh Orange Juice', 7], ['Mango Smoothie', 8.5], ['Chocolate Milkshake', 9], ['Lemon Lime Soda', 5], ['Sparkling Water', 4], ['Ginger Beer', 6]].map(([a, f]) => `[Cold Beverages] ${a}: $${f}`).join('\n'));
+  const m = menuOlc(pk, { menu_kaynaklari: [] });
+  assert.equal(m.kind, 'icecek'); assert.ok(m.icecek >= 6 && m.yemek < 6);
+  assert.equal(puanla({ ...temel(), menu: m }).sert[0].k, 'menu');
+  // yemek + icecek karisik menu gecer; "Tea Cake" gibi tek eslesme yemek sayisini dusurmez
+  const pk2 = path.join(gecici, 'karisik', 'paket'); fs.mkdirSync(path.join(pk2, 'menu-kaynak'), { recursive: true });
+  fs.writeFileSync(path.join(pk2, 'menu-kaynak', 'sayfa.txt'), [['Chicken Burger', 15], ['Beef Burger', 16], ['Caesar Salad', 14], ['Fish and Chips', 18], ['Margherita Pizza', 17], ['Tea Cake', 6], ['Banana Bread', 7], ['Flat White', 4.5], ['Latte', 4.5]].map(([a, f]) => `[Menu] ${a}: $${f}`).join('\n'));
+  assert.equal(menuOlc(pk2, { menu_kaynaklari: [] }).kind, 'metin');
+});
+test('saat: ayni gunun kapanisi 1 saat farkli iki sayfa (8:30-16:00 / 8:30-15:00) celiski', () => {
+  const c = saatCoz(saatGirdileri('Monday - Friday 8:30am - 4pm\nMonday - Friday 8:30am - 3pm'));
+  assert.ok(c.celiski.length >= 1, JSON.stringify(c.celiski));
+});
+test('ana fotograf: yalniz tur uyumu (pakette stok kare yok) -> sert kurali gecer ama stok yamasi bekler; listede stok kare varsa hazir', () => {
+  const f = (w, h, k = 'kendi') => ({ w, h, kaynak: k, uyum: 'uygun' });
+  const bekleyen = puanla({ ...temel(), hero: heroOlc({ fotograflar: [f(1500, 1001)], sablon: 'v5', mutfak: 'malaysian', ad: 'Ornek' }) });
+  assert.equal(bekleyen.gecer, true); assert.deepEqual(bekleyen.bekleyen, ['stok-yama']);
+  const hazir = puanla({ ...temel(), hero: heroOlc({ fotograflar: [f(1500, 1001), f(1600, 1000, 'stok')], sablon: 'v5', mutfak: 'malaysian', ad: 'Ornek' }) });
+  assert.deepEqual(hazir.bekleyen, []);
+  const a = temel('a-au1', 'Alfa'); const b = { ...temel('b-au2', 'Beta'), hero: heroOlc({ fotograflar: [f(1500, 1001)], sablon: 'v5', mutfak: 'thai', ad: 'Beta' }) };
+  const r = suzgec([a, b], { ilk: 5 });
+  assert.deepEqual(r.liste.map((x) => x.slug), ['a-au1']); assert.deepEqual(r.stokBekleyen.map((x) => x.slug), ['b-au2']); assert.equal(r.gecenler.length, 2);
+});

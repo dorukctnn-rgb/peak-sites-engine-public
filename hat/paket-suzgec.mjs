@@ -103,7 +103,9 @@ export function pdfMetniOku(dosya) {
     return r.stdout || null;
   } catch { return null; }
 }
-const MENU_GORSEL_IPUCU = /menu|men[uü]|carta|food|price|fiyat|drinks?|lunch|dinner|breakfast/i;
+// icecek adi: kahve, cay, meyve suyu, alkol ... (yemek adinda gecen "tea cake" gibi tek tuk eslesme icin menuOlc en az 3 icecek ve 6'dan az yemek ister)
+const ICECEK_RE = /(?<![a-z])(?:coffees?|espresso|latte|cappuccino|macchiato|flat white|mocha|americano|long black|cortado|chai|teas?|matcha|juices?|smoothies?|milkshakes?|shakes?|soda|cola|lemonade|beers?|ales?|lagers?|stout|cider|wines?|prosecco|champagne|cocktails?|margarita|mojito|spritz|gin|vodka|whisk(?:e)?y|rum|tequila|bourbon|sparkling|kombucha|iced|frappe|hot chocolate|water|drinks?|beverages?|alcohol(?:ic)?|draught|mylk|milk|shots?|brews?|cocoa|tonic|nitro)(?![a-z])/i;
+const MENU_GORSEL_IPUCU =/menu|men[uü]|carta|food|price|fiyat|drinks?|lunch|dinner|breakfast/i;
 
 // paket -> menu bulgusu.  kind: 'metin' (>= 6 adli yemek dogrulandi) | 'pdf-resim' (PDF var, metin yok: dogrulanamaz) | 'gorsel' (adi menu diyen buyuk gorsel) | 'yok'
 export function menuOlc(paketDir, bilgi, { pdfMetin = pdfMetniOku } = {}) {
@@ -116,8 +118,10 @@ export function menuOlc(paketDir, bilgi, { pdfMetin = pdfMetniOku } = {}) {
     const t = pdfMetin(path.join(mk, f));
     if (t && t.replace(/\s+/g, '').length >= 200) { pdfMetinli++; const y = yemekAdlari(t); for (const a of y.adlar) adlar.set(a, f); kesin += y.kesin; } else pdfResim++;
   }
-  const hepsi = { adet: adlar.size, pdfMetinli, pdfResim, notlar: [] };
-  if (kesin >= MENU_EN_AZ || adlar.size >= MENU_EN_AZ + 4) return { kind: 'metin', ...hepsi };
+  const icecek = [...adlar.keys()].filter((a) => ICECEK_RE.test(a)).length;
+  const hepsi = { adet: adlar.size, yemek: adlar.size - icecek, icecek, pdfMetinli, pdfResim, notlar: [] };
+  // 18 Kas kanit partisi: yalniz icecek sekmesi / icecek menusu alinmis paketler 6 yemek saymaz (bskt, king-of-the-castle: yemek sekmeleri pakette yok)
+  if (kesin >= MENU_EN_AZ || adlar.size >= MENU_EN_AZ + 4) return hepsi.yemek < MENU_EN_AZ && icecek >= 3 ? { kind: 'icecek', ...hepsi, notlar: [`${icecek} icecek, ${hepsi.yemek} yemek: yemek sekmeleri pakette yok`] } : { kind: 'metin', ...hepsi };
   // paket kopyasinda menu dosyasi yoksa bilgi.json'daki FIYATLI kalem sayisi (fiyatsiz kaynakta sayi basliklari da sayar: guvenilmez)
   const fiyatliKalem = kaynak.filter((x) => !x.fiyatsiz && (x.tur === 'sayfa' || x.tur === 'siparis-sitesi')).reduce((s, x) => s + (x.kalem || 0), 0);
   if (!dosyalar.length && fiyatliKalem >= MENU_EN_AZ + 2) return { kind: 'metin', ...hepsi, adet: fiyatliKalem, notlar: ['dosya yok: bilgi.json kalem sayisi'] };
@@ -234,7 +238,8 @@ export function saatCoz(girdiler) {
       for (let i = 0; i < ac.length; i++) for (let j = i + 1; j < ac.length; j++) {
         const x = ac[i].araliklar[0]; const y = ac[j].araliklar[0];
         if (!(x[0] < y[1] && y[0] < x[1])) continue; // ayrik araliklar (ogle + aksam) celiski degil
-        if (Math.abs(x[0] - y[0]) >= 60 || Math.abs(x[1] - y[1]) >= 120) celiski.push(`gun ${d}: ${x.join('-')} ile ${y.join('-')} celisiyor`);
+        // 18 Kas kanit partisi: kapanis saati 1 saat farkli iki sayfa (8:30-16:00 / 8:30-15:00) icerik turunde celiski sayildi
+        if (Math.abs(x[0] - y[0]) >= 60 || Math.abs(x[1] - y[1]) >= 60) celiski.push(`gun ${d}: ${x.join('-')} ile ${y.join('-')} celisiyor`);
         else if (Math.abs(x[0] - y[0]) >= 30 || Math.abs(x[1] - y[1]) >= 30) kucukFark = true;
       }
     }
@@ -319,18 +324,19 @@ export function paketOzellik(paketDir, { pdfMetin = pdfMetniOku } = {}) {
 }
 // ozellik -> { gecer, puan, sert:[{k,neden}], yumusak:[{k,p,neden}], bilesenler }.  puan 0..~100 (yalniz siralama icin); sert kural varsa gecer=false.
 export function puanla(o) {
-  const sert = []; const yumusak = []; const bil = {}; const S = (k, neden) => sert.push({ k, neden }); const Y = (k, p, neden) => yumusak.push({ k, p, neden });
+  const sert = []; const yumusak = []; const bekleyen = []; const bil = {}; const S = (k, neden) => sert.push({ k, neden }); const Y = (k, p, neden) => yumusak.push({ k, p, neden });
   // menu (0..25)
   const m = o.menu;
   if (m.kind === 'metin') bil.menu = Math.min(25, 18 + (m.adet - MENU_EN_AZ) * 0.75);
   else if (m.kind === 'pdf-resim' || m.kind === 'gorsel') { bil.menu = 14; Y('menu-dogrulanamadi', 0, m.kind === 'gorsel' ? 'menu gorsel olarak, yemek adlari okunamiyor' : 'menu PDF, metni okunamadi'); }
+  else if (m.kind === 'icecek') { bil.menu = 0; S('menu', `menu yalniz icecek (${m.notlar.join('; ')})`); }
   else { bil.menu = 0; S('menu', `menude ${MENU_EN_AZ} adli yemek yok (${m.adet} bulundu; ${(m.notlar || []).join('; ') || 'yalniz baslik / gezinti metni'})`); }
   // ana fotograf (0..25 + aday puani)
   const h = o.hero;
   if (h.yatay > 0) bil.hero = h.enGenis >= 3000 ? 25 : 22;
   else if (h.buyuk > 0) bil.hero = 15;
   else if (h.stokVar) bil.hero = 12;
-  else if (h.stokTur) bil.hero = 9;
+  else if (h.stokTur) { bil.hero = 9; bekleyen.push('stok-yama'); Y('stok-yama-gerek', 0, 'kendi 2400 px+ kare yok; pakette stok kare listelenmeden icerik turu hero.stok kullanamaz (ROUTINE 1b): once stok yamasi (arac10/paket-yama.mjs), sonra inceleme'); }
   else { bil.hero = 0; S('hero', `kendi ${HERO_EN_AZ} px+ kare yok (en genis ${h.enGenis} px) ve yemegi acikca uyan stok turu degil (${h.tur})`); }
   bil.heroAday = h.enIyiBuyukAday ? Math.max(-2, Math.min(3, (h.enIyiBuyukAday - 60) / 10)) : 0;
   bil.foto = Math.min(10, o.fotoSayisi);
@@ -350,7 +356,7 @@ export function puanla(o) {
   if (s.celiski.length) S('saat', `celisen saat satirlari (${s.celiski[0]})`);
   if (s.cop.length) S('saat', `anlamsiz saat kaydi (${s.cop[0]})`);
   if (s.tutarsiz) Y('saat-tutarsiz', 12, 'ayni saat iki farkli gun kumesiyle yaziyor');
-  if (s.kucukFark) Y('saat-kucuk-fark', 4, 'ayni gunun saatleri 30-120 dk farkli yaziyor');
+  if (s.kucukFark) Y('saat-kucuk-fark', 4, 'ayni gunun saatleri 30-60 dk farkli yaziyor');
   bil.saat = Math.max(0, 15 - s.bilinmeyen * 2);
   // zincir
   for (const x of o.zincir.sert) S('zincir', x);
@@ -361,7 +367,7 @@ export function puanla(o) {
   const guc = o.guc.toplam * 1.5; if (guc > 0) Y('site-guclu', guc, o.guc.agirliklar.map((x) => x.k).join(', '));
   if (!o.eylemUrl && !o.telefonVar) S('eylem', 'ne siparis/rezervasyon baglantisi ne telefon var');
   const toplam = Object.values(bil).reduce((a, b) => a + b, 0) - yumusak.reduce((a, b) => a + b.p, 0);
-  return { gecer: sert.length === 0, puan: +toplam.toFixed(1), sert, yumusak, bilesenler: bil };
+  return { gecer: sert.length === 0, puan: +toplam.toFixed(1), sert, yumusak, bekleyen, bilesenler: bil };
 }
 
 // ayni adli kardes paketler (al-arez / al-arez-2 / al-arez-express): ayni ilk iki sozcuk ya da tek uzun sozcuk
@@ -379,7 +385,9 @@ export function suzgec(ozellikler, { ilk = ILK_VARSAYILAN, min = MIN_PUAN } = {}
   const kd = kardesler(ozellikler);
   const hepsi = ozellikler.map((o) => { const r = puanla(o); if (kd.has(o.slug)) { r.sert.push({ k: 'zincir', neden: kd.get(o.slug) }); r.gecer = false; } return { slug: o.slug, ad: o.ad, bolge: o.bolge, sablon: o.sablon, ...r }; });
   const gecenler = hepsi.filter((r) => r.gecer && r.puan >= min).sort((a, b) => b.puan - a.puan);
-  return { liste: gecenler.slice(0, ilk), gecenler, elenenler: hepsi.filter((r) => !r.gecer).sort((a, b) => b.puan - a.puan), dusukPuan: hepsi.filter((r) => r.gecer && r.puan < min), hepsi };
+  // icerik turune HAZIR olanlar (stok yamasi beklemeyenler); stok hero gerektirenler ayri liste: yamadan sonra incelemeye
+  const hazir = gecenler.filter((r) => !r.bekleyen.length); const stokBekleyen = gecenler.filter((r) => r.bekleyen.length);
+  return { liste: hazir.slice(0, ilk), hazir, stokBekleyen, gecenler, elenenler: hepsi.filter((r) => !r.gecer).sort((a, b) => b.puan - a.puan), dusukPuan: hepsi.filter((r) => r.gecer && r.puan < min), hepsi };
 }
 
 // <veri>/<slug>/paket klasorlerini topla (durum filtresi: kapi.json status)
@@ -415,7 +423,7 @@ export function paketSuz(dirs, { haric = new Set(), yeniSonra = 0 } = {}) {
 }
 // uretim.mjs'ten: tek paketin puani paket/on-suzgec.json'a (durum degismez, kalici eleme degil)
 export function suzgecYaz(paketDir, opts) {
-  try { const o = paketOzellik(paketDir, opts); const r = puanla(o); fs.writeFileSync(path.join(paketDir, 'on-suzgec.json'), JSON.stringify({ surum: SURUM, at: new Date().toISOString(), gecer: r.gecer, puan: r.puan, sert: r.sert, yumusak: r.yumusak, bilesenler: r.bilesenler }, null, 1)); return r; } catch { return null; }
+  try { const o = paketOzellik(paketDir, opts); const r = puanla(o); fs.writeFileSync(path.join(paketDir, 'on-suzgec.json'), JSON.stringify({ surum: SURUM, at: new Date().toISOString(), gecer: r.gecer, puan: r.puan, sert: r.sert, yumusak: r.yumusak, bekleyen: r.bekleyen, bilesenler: r.bilesenler }, null, 1)); return r; } catch { return null; }
 }
 
 // ---- CLI ----
@@ -436,5 +444,6 @@ if (isMain) {
   console.log('ret nedenleri (bir paket birden cok nedene girebilir):', JSON.stringify(nedenSay));
   console.log(`\nKISA LISTE (icerik turune gidecek, ilk ${ilk}):`);
   r.liste.forEach((x, i) => console.log(`${String(i + 1).padStart(2)}. ${x.puan.toFixed(1).padStart(5)}  ${x.slug}  [${x.bolge} ${x.sablon}]${x.yumusak.length ? '  uyari: ' + x.yumusak.map((y) => y.k).join(', ') : ''}`));
-  if (bayrak('--hepsi')) { console.log('\nGECENLER (liste disi):'); r.gecenler.slice(ilk).forEach((x) => console.log(`    ${x.puan.toFixed(1).padStart(5)}  ${x.slug}`)); console.log('\nELENENLER:'); r.elenenler.forEach((x) => console.log(`    ${x.slug}: ${x.sert.map((s) => s.k).join(',')}`)); }
+  if (r.stokBekleyen.length) { console.log(`\nSTOK YAMASI BEKLEYEN (${r.stokBekleyen.length}; sert kurallari gecti ama kendi 2400 px+ kare yok: once arac10/paket-yama.mjs ile stok kare, sonra icerik turu):`); r.stokBekleyen.forEach((x) => console.log(`    ${x.puan.toFixed(1).padStart(5)}  ${x.slug}  [${x.bolge} ${x.sablon}]`)); }
+  if (bayrak('--hepsi')) { console.log('\nHAZIR ama liste disi:'); r.hazir.slice(ilk).forEach((x) => console.log(`    ${x.puan.toFixed(1).padStart(5)}  ${x.slug}`)); console.log('\nELENENLER:'); r.elenenler.forEach((x) => console.log(`    ${x.slug}: ${x.sert.map((s) => s.k).join(',')}`)); }
 }
