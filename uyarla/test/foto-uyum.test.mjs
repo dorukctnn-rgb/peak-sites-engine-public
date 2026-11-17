@@ -156,6 +156,12 @@ test('icerik karari: her yuvadaki kare kapidan gecmeli; logo, harita ve kucuk ka
   assert.doesNotMatch(HK, /slider\.foto\[Classic\]/, 'urun kartinda 700x560 kare yeter');
   assert.match(HK, /ana fotograf \(07\) stok kare; isletmenin kendi karesi olmali/);
   assert.equal(yuvaDenetle({ ...kat, hero: { id: '01' }, icerik: { kareler: { ziyaret: ['07'] } } }, u).length, 0, 'ture uyan stok bolum yuvasinda kullanilabilir');
+  // 17 Kas 2026: kendi kareleri ana fotograf icin yetmiyorsa yalniz ana fotograf icin acik izinli, ture uyan stok kare (hero.stok + hero.stokNeden)
+  const heroStok = (hero) => yuvaDenetle({ ...kat, hero, icerik: { kareler: { ziyaret: ['01'] } } }, u).join(' | ');
+  assert.equal(heroStok({ id: '07', stok: true, stokNeden: 'kendi karelerinin hepsi 1920 px altinda ya da yumusak' }), '', 'izinli stok ana fotograf gecer');
+  assert.match(heroStok({ id: '07', stok: true, stokNeden: 'kucuk' }), /hero\.stokNeden/, 'neden yazilmadan olmaz');
+  assert.match(heroStok({ id: '07' }), /isletmenin kendi karesi olmali/, 'bayraksiz stok ana fotograf eskisi gibi hata');
+  assert.match(heroStok({ id: '01', stok: true, stokNeden: 'kendi karelerinin hepsi 1920 px altinda ya da yumusak' }), /stok kare degil/, 'bayrak yalniz stok kareye');
   assert.deepEqual(yuvaDenetle(v5, null), []);
 });
 
