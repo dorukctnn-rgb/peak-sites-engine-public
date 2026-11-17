@@ -392,6 +392,27 @@ export function paketleriBul(veri, { durum = 'icerik-bekliyor' } = {}) {
   }
   return out;
 }
+// icerik karari verilmis slug'lar: <kok>/<klasor>/karar/w2a/<slug>.json (icerik turunun her partisi ayri klasor); yeniden incelenmez (biten olcum tekrarlanmaz)
+export function kararVerilmis(kok) {
+  const out = new Set();
+  let ust = []; try { ust = fs.readdirSync(kok, { withFileTypes: true }); } catch { return out; }
+  for (const e of ust) {
+    if (!e.isDirectory()) continue; const d = path.join(kok, e.name, 'karar', 'w2a');
+    let f = []; try { f = fs.readdirSync(d); } catch { continue; }
+    for (const x of f) if (/\.json$/i.test(x)) out.add(x.slice(0, -5));
+  }
+  return out;
+}
+// slug listesi dosyasi (satir satir; # yorum)
+export const slugDosyasi = (f) => new Set(oku(f).split(/\r?\n/).map((s) => s.trim()).filter((s) => s && !s.startsWith('#')));
+// paket klasorleri -> yalniz haric listesinde olmayan ve (varsa) kapi.json'u verilen zamandan yeni olanlar
+export function paketSuz(dirs, { haric = new Set(), yeniSonra = 0 } = {}) {
+  return dirs.filter((d) => {
+    const slug = path.basename(path.dirname(d)); if (haric.has(slug)) return false;
+    if (yeniSonra) { try { if (fs.statSync(path.join(path.dirname(d), 'kapi.json')).mtimeMs < yeniSonra) return false; } catch { return false; } }
+    return true;
+  });
+}
 // uretim.mjs'ten: tek paketin puani paket/on-suzgec.json'a (durum degismez, kalici eleme degil)
 export function suzgecYaz(paketDir, opts) {
   try { const o = paketOzellik(paketDir, opts); const r = puanla(o); fs.writeFileSync(path.join(paketDir, 'on-suzgec.json'), JSON.stringify({ surum: SURUM, at: new Date().toISOString(), gecer: r.gecer, puan: r.puan, sert: r.sert, yumusak: r.yumusak, bilesenler: r.bilesenler }, null, 1)); return r; } catch { return null; }
@@ -402,8 +423,10 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPat
 if (isMain) {
   const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
   const bayrak = (k) => process.argv.includes(k);
-  const veri = arg('--veri', ''); if (!veri) { console.error('kullanim: node hat/paket-suzgec.mjs --veri <veri klasoru> [--durum icerik-bekliyor|hepsi] [--ilk 6] [--min 60] [--yaz] [--json dosya] [--hepsi]'); process.exit(2); }
-  const durum = arg('--durum', 'icerik-bekliyor'); const dirs = paketleriBul(veri, { durum: durum === 'hepsi' ? null : durum });
+  const veri = arg('--veri', ''); if (!veri) { console.error('kullanim: node hat/paket-suzgec.mjs --veri <veri klasoru> [--durum icerik-bekliyor|hepsi] [--ilk 6] [--min 60] [--yaz] [--json dosya] [--hepsi] [--karar-kok <klasor>] [--haric <slug dosyasi>] [--yeni-sonra <ISO zaman>]'); process.exit(2); }
+  // --karar-kok: icerik karari verilmis paketleri atla (<kok>/*/karar/w2a/<slug>.json); --haric: slug dosyasi (on bakista elenenler); --yeni-sonra: yalniz kapi.json'u bu zamandan yeni olanlar
+  const haric = new Set([...(arg('--karar-kok') ? kararVerilmis(arg('--karar-kok')) : []), ...(arg('--haric') ? slugDosyasi(arg('--haric')) : [])]);
+  const durum = arg('--durum', 'icerik-bekliyor'); const dirs = paketSuz(paketleriBul(veri, { durum: durum === 'hepsi' ? null : durum }), { haric, yeniSonra: arg('--yeni-sonra') ? Date.parse(arg('--yeni-sonra')) : 0 });
   const ilk = Number(arg('--ilk', ILK_VARSAYILAN)); const min = Number(arg('--min', MIN_PUAN));
   const oz = dirs.map((d) => paketOzellik(d)); const r = suzgec(oz, { ilk, min });
   if (bayrak('--yaz')) for (const d of dirs) suzgecYaz(d);
