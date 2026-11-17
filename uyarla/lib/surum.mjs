@@ -13,10 +13,14 @@ export function tekrarGerek(k) {
 // RESTORAN ON KAPI SURUMU (12 Kas 2026, kapi verimi; uyarla/restoran-hazirla.mjs ON_KAPI_SURUM): saat artik OSM opening_hours'tan, adres OSM addr + koordinattan
 // tamamlanir ve yalniz telefon butun ulkelerde eylemdir.  Daha eski surumde YALNIZ bu nedenlerle elenmis restoran bir kez yeniden hazirliktan gecer; cikarici verisi
 // saklandigi icin siteye yeniden gidilmez (hat/uretim.mjs).  Baska bir neden de varsa (zincir, fotograf, logo, menu, telefon yok) karar nihaidir.
-export const RESTORAN_ON_KAPI_SURUM = 2;
+export const RESTORAN_ON_KAPI_SURUM = 3; // 3 (17 Kas 2026): fiyatsiz menu kaynagi; yalniz "fiyatli menu kaynagi yok (kaynak bulunamadi)" ile elenmis restoran bir kez yeniden hazirliktan gecer
 const YENI_KURAL = /^(çalışma saati yok \(sitenin hiçbir sayfasında\)|adres yok|gerçek sipariş ya da rezervasyon bağlantısı yok \(yalnız telefon\))$/;
+const MENU_KAYNAK_YOK = /^fiyatlı menü kaynağı yok ya da robots\.txt izin vermiyor \(kaynak bulunamadı\)$/;
 export function yenidenHazirlik(k) {
-  return !!k && k.status === 'elendi' && k.sektor === 'restoran' && (k.onKapiSurum || 1) < RESTORAN_ON_KAPI_SURUM && Array.isArray(k.reasons) && k.reasons.length > 0 && k.reasons.every((r) => YENI_KURAL.test(String(r).trim()));
+  if (!k || k.status !== 'elendi' || k.sektor !== 'restoran' || !Array.isArray(k.reasons) || !k.reasons.length) return false;
+  const s = k.onKapiSurum || 1;
+  if (s < 2 && k.reasons.every((r) => YENI_KURAL.test(String(r).trim()))) return true;
+  return s < 3 && k.reasons.every((r) => MENU_KAYNAK_YOK.test(String(r).trim()));
 }
 
 // bu isletmenin kapi sonucu NIHAI mi (yeniden uretime girmez)?  kapi.json yoksa false

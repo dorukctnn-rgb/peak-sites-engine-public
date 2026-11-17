@@ -17,6 +17,7 @@ import { yasakVar } from './lib/sozluk.mjs';
 import { yuvaDenetle, sade as sadeAd } from './lib/foto-uyum.mjs';
 import { telEylemEtiket } from './lib/metin.mjs';
 import { kesimGecerli } from './lib/kesme-v5.mjs';
+import { varlikCoz } from './lib/varlik.mjs';
 
 const ID = /^\d{2}$/;
 const FIYAT = /^(?:from\s+)?[£€$]\s?\d{1,4}(?:[.,]\d{2})?(?:\s?(?:\/|or|–|-)\s?[£€$]?\s?\d{1,4}(?:[.,]\d{2})?)?$/i;
@@ -64,6 +65,8 @@ export function metinler(o, yol = '') {
 }
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ');
+// yemek adi karsilastirmasi (fiyatsiz menu): HTML varliklari cozulur, Turkce I/i/ı/İ ayni sayilir, aksan ve noktalama atilir; iki taraf da ayni islemden gecer
+const normAd = (s) => varlikCoz(String(s || '')).replace(/[İIı]/g, 'i').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 
 // icerik.ust: { sahne: { foto, yemek, alt, fx, fy }, menuFoto: { "<kalem adi>": "09" }, sekmeFoto: { "<bolum adi>": "06" }, galeri: { foto: [...], kicker, h2, p }, iz: { kesimler: [{ ad, foto, kutu, elips }] } }
 export function ustDenetle(u, ctx = {}, kalemler = []) {
@@ -104,9 +107,19 @@ export function denetle(k, ctx = {}) {
   // 12 Kas UST KATMAN (lib/ust-v5.mjs; yalniz v5): isteye bagli icerik.ust blogu.  Kimlikler paketteki fotograflarda olmali, kesim kutulari 0..1; gecmeyen ogeyi uretici sessizce atlamaz, burada hata olur.
   if (k.sablon === 'v5' && k.icerik && k.icerik.ust != null) H.push(...ustDenetle(k.icerik.ust, ctx, (k.menu && k.menu.kalemler) || []));
   // menu: en az 6 fiyatli kalem, kaynak kayitli ve robots izinli
+  // FIYATSIZ MENU (17 Kas 2026, koordinator karari): isletme fiyat yayimlamiyorsa menu yemekleri fiyatsiz gosterilir; fiyat ASLA uydurulmaz.  Yalniz v5; menu.fiyatsiz true iken
+  // her kalemin p alani bos, yemek adlari metin kaynaginda aynen gecer ve paketteki metin kaynaginda fiyat bulunmaz (fiyat varsa fiyatli menu yazilir).
   const m = k.menu || {}; const kal = Array.isArray(m.kalemler) ? m.kalemler : [];
-  if (kal.length < 6) H.push(`fiyatli menu en az 6 kalem olmali (${kal.length})`);
-  for (const [i, x] of kal.entries()) { if (!x || !String(x.n || '').trim()) H.push(`menu.kalemler[${i}] adi yok`); else if (!FIYAT.test(String(x.p || '').trim()) && !FIYAT_TR.test(String(x.p || '').trim())) H.push(`menu.kalemler[${i}] fiyat bicimi: "${x.p}"`); }
+  const fiyatsiz = m.fiyatsiz === true;
+  if (m.fiyatsiz != null && typeof m.fiyatsiz !== 'boolean') H.push('menu.fiyatsiz true ya da yok olmali');
+  if (fiyatsiz && k.sablon !== 'v5') H.push('fiyatsiz menu yalniz v5 sablonunda (kategori sablonlari fiyat ister)');
+  if (kal.length < 6) H.push(`${fiyatsiz ? 'menu' : 'fiyatli menu'} en az 6 kalem olmali (${kal.length})`);
+  for (const [i, x] of kal.entries()) {
+    if (!x || !String(x.n || '').trim()) H.push(`menu.kalemler[${i}] adi yok`);
+    else if (fiyatsiz) { if (String(x.p || '').trim()) H.push(`menu.kalemler[${i}] fiyatsiz menude fiyat yazilmaz ("${x.p}")`); }
+    else if (!FIYAT.test(String(x.p || '').trim()) && !FIYAT_TR.test(String(x.p || '').trim())) H.push(`menu.kalemler[${i}] fiyat bicimi: "${x.p}"`);
+  }
+  if (fiyatsiz && ctx.kaynaklar && ctx.kaynaklar.some((x) => x.dosya && ['sayfa', 'siparis-sitesi'].includes(x.tur) && !x.fiyatsiz)) H.push('paketin menu kaynaginda fiyatli satirlar var: fiyatsiz menu yazilmaz, fiyatli menu yazilir');
   const kay = m.kaynak || {};
   if (!KAYNAK_TUR.includes(kay.tur)) H.push(`menu.kaynak.tur ${KAYNAK_TUR.join('|')} olmali`);
   if (!kay.url && !kay.dosya) H.push('menu.kaynak adres ya da dosya gostermeli');
@@ -121,6 +134,8 @@ export function denetle(k, ctx = {}) {
   if (ctx.kaynakDosya && ((kay.dosya && /\.txt$/.test(kay.dosya)) || metinKaynak)) {
     const src = kay.dosya && /\.txt$/.test(kay.dosya) ? ctx.kaynakDosya(kay.dosya) || '' : [ctx.metin || '', ...((ctx.kaynaklar || []).filter((x) => x.dosya && /\.txt$/.test(x.dosya)).map((x) => ctx.kaynakDosya(x.dosya) || ''))].join('\n');
     for (const x of kal) { const p = String(x.p || '').replace(/^from\s+/i, '').split(/\s?(?:\/|or|–|-)\s?/)[0].trim(); if (p && !src.includes(p.replace(/\s/g, '')) && !src.includes(p)) H.push(`fiyat kaynakta yok: ${x.n} ${x.p}`); }
+    // fiyatsiz menude yemek adi kaynakta aynen gecmeli (uydurma yemek olmaz); kaynak resim ya da PDF ise bu denetim gozle yapilir
+    if (fiyatsiz) { const sn = normAd(src); for (const x of kal) { const a = normAd(x && x.n); if (a && !sn.includes(a)) H.push(`yemek adi kaynakta yok: ${x.n}`); } }
   }
   // eylem: gercek siparis ya da rezervasyon baglantisi
   const e = k.eylem || {};
@@ -171,6 +186,7 @@ export function denetle(k, ctx = {}) {
   const trMi = k.dil === 'tr' || (ctx.bilgi && ctx.bilgi.bolge === 'TR');
   for (const [yol, t] of [...metinler(ic, 'icerik'), ['gozlem.metin', g.metin || '']]) {
     if (trMi) for (const neden of trYapay(t)) H.push(`${yol}: düşük Türkçe, ${neden}: ${t.slice(0, 60)}`);
+    if (fiyatsiz && /(?<!\p{L})(fiyat\p{L}*|prices?|pricing|priced)(?!\p{L})/iu.test(t)) H.push(`${yol}: fiyatsiz menude fiyat sozu gecmez: ${t.slice(0, 50)}`);
     if (yasakVar('kisaltma', t)) H.push(`${yol}: yasak kisaltma gecemez`);
     if (YASAK_KARAKTER.test(t)) H.push(`${yol}: yasak isaret (uzun tire, ok, unlem, emoji): ${t.slice(0, 50)}`);
     // bizim konumumuz yazilmaz; TR isletmesinin kendi adresi/sehri (Kaleici, Antalya) onun bilgisidir, serbest: yalniz yurt disi sayfalarda yasak
@@ -187,11 +203,11 @@ export function denetle(k, ctx = {}) {
 // karar -> sablonun kayit bicimi (uret-v5 elle kaydi ya da uret-kategori kaydi)
 export function kayitKur(k) {
   const ic = JSON.parse(JSON.stringify(k.icerik || {}));
-  const kal = (k.menu.kalemler || []).map((x) => ({ n: String(x.n).trim(), d: String(x.d || '').trim(), p: String(x.p).trim(), cat: x.cat ? String(x.cat).trim() : undefined }));
+  const kal = (k.menu.kalemler || []).map((x) => ({ n: String(x.n).trim(), d: String(x.d || '').trim(), p: x.p == null ? '' : String(x.p).trim(), cat: x.cat ? String(x.cat).trim() : undefined }));
   const kaynakYazi = `${k.menu.kaynak.tur}: ${k.menu.kaynak.url || k.menu.kaynak.dosya}${k.menu.kaynak.sayfa ? ` (sayfa ${k.menu.kaynak.sayfa})` : ''}; aktaran ${k.inceleyen}`;
   if (k.sablon === 'v5') {
     ic.foto = { ...(ic.foto || {}), hero: String(k.hero.id) };
-    ic.menu = { ...(ic.menu || {}), items: kal.map(({ n, d, p, cat }) => ({ n, d, p, ...(cat ? { cat } : {}) })), kaynak: kaynakYazi };
+    ic.menu = { ...(ic.menu || {}), items: kal.map(({ n, d, p, cat }) => ({ n, d, p, ...(cat ? { cat } : {}) })), kaynak: kaynakYazi, ...(k.menu.fiyatsiz === true ? { fiyatsiz: true } : {}) };
     // telefon eylemi: etiket karardan (bilgi.json eylem.etiket/kisa), yoksa dile gore lib/metin.mjs telEylemEtiket (EN genel: etiket yok, sablon "Call <numara>" yazar)
     const te = telEylemEtiket(k.dil === 'tr' ? 'tr' : 'en', { rezervasyon: !!k.eylem.rezervasyonSozu });
     ic.cta = k.eylem.tur === 'telefon'

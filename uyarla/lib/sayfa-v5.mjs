@@ -215,7 +215,7 @@ ${body}
 
 <footer class="foot">
   <div class="foot-grid">
-    <div><a class="brand" href="#top" aria-label="${esc(m.name)}">${brand}</a><p>${esc(L.draft(m.name))}</p></div>
+    <div><a class="brand" href="#top" aria-label="${esc(m.name)}">${brand}</a><p>${esc(m.menu && m.menu.fiyatsiz ? L.draftFiyatsiz(m.name) : L.draft(m.name))}</p></div>
     <div><h4>${esc(x.visit)}</h4><ul>${m.address ? `<li><a href="${esc(m.mapsUrl)}" rel="noopener">${esc(m.address)}</a></li>` : ''}${m.phone ? `<li><a href="tel:${esc(m.tel)}">${esc(m.phone)}</a></li>` : ''}${(m.also || []).map((a) => `<li><span>${esc(x.also)}</span>${esc(a)}</li>`).join('')}</ul></div>
     <div><h4>${esc(L.hours)}</h4><ul>${m.hoursSummary.length ? m.hoursSummary.map((r) => `<li>${esc(r.daysLong)}<span>${esc(r.t)}</span></li>`).join('') : `<li>${esc(L.callUs)}</li>`}</ul></div>
     <div><h4>${esc(x.links)}</h4><ul><li><a href="${esc(main.href)}"${ext(main)}>${esc(main.label)}</a></li>${m.menu && m.menu.link ? `<li><a href="${esc(m.menu.link)}" rel="noopener">${esc(L.fullMenu)}</a></li>` : ''}${social}${m.site ? `<li><a href="${esc(m.site)}" rel="noopener nofollow">${esc(L.currentSite)}</a></li>` : ''}</ul></div>

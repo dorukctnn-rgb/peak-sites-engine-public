@@ -14,7 +14,7 @@ export const T = {
     demoNote: 'Demo: istek hiçbir yere gitmez.', thanks: (n) => `Teşekkürler${n ? ', ' + n : ''}.`, replyLine: 'Sizi telefonla ararız.', realLine: (x) => `Gerçek sitede bu istek ${x} ile bağlanır.`, realLineGeneric: 'Gerçek sitede bu istek restoranın telefonuna ve e-postasına düşer.',
     visitH: ['Bizi', 'bulun'], today: 'Bugün', tomorrow: 'Yarın', tonight: 'Bu akşam', guests: (n) => `${n} kişi`, rating: 'Google puanı', reviews: 'Google yorumu', daysOpen: 'gün açık', openDays: (n) => (n === 7 ? 'Her gün' : `${n} gün`),
     open: (c) => `Şimdi açık · kapanış ${c}`, shut: (w) => `Şu an kapalı · açılış ${w}`, whenTomorrow: (t) => `yarın ${t}`, whenToday: (t) => `bugün ${t}`, whenDay: (d, t) => `${d} ${t}`,
-    draft: (n) => `${n} için hazırlanmış web sitesi taslağı. Metinler, fiyatlar ve fotoğraflar işletmenin mevcut sitesinden alınmıştır; yayında değildir.`, draftBy: 'Peak Apps Studio', currentSite: 'Mevcut siteniz', follow: 'Takip edin', map: 'Konum', openMaps: 'Haritada aç', hoursCap: 'Çalışma saatleri', bookExt: 'Mevcut rezervasyon sayfanız',
+    draft: (n) => `${n} için hazırlanmış web sitesi taslağı. Metinler, fiyatlar ve fotoğraflar işletmenin mevcut sitesinden alınmıştır; yayında değildir.`, draftFiyatsiz: (n) => `${n} için hazırlanmış web sitesi taslağı. Metinler ve fotoğraflar işletmenin mevcut sitesinden alınmıştır; yayında değildir.`, draftBy: 'Peak Apps Studio', currentSite: 'Mevcut siteniz', follow: 'Takip edin', map: 'Konum', openMaps: 'Haritada aç', hoursCap: 'Çalışma saatleri', bookExt: 'Mevcut rezervasyon sayfanız',
     nav: 'Bölümler', quick: 'Hızlı işlemler', lang: 'tr', locale: 'tr-TR', numLocale: 'tr-TR', other: 'Diğer',
   },
   en: {
@@ -25,7 +25,7 @@ export const T = {
     demoNote: 'Demo: the request goes nowhere.', thanks: (n) => `Thank you${n ? ', ' + n : ''}.`, replyLine: 'We will call you back.', realLine: (x) => `On the live site this request connects to ${x}.`, realLineGeneric: 'On the live site this request reaches the venue by phone and e-mail.',
     visitH: ['Find', 'us'], today: 'Today', tomorrow: 'Tomorrow', tonight: 'Tonight', guests: (n) => `${n} ${n === 1 ? 'guest' : 'guests'}`, rating: 'Google rating', reviews: 'Google reviews', daysOpen: 'days open', openDays: (n) => (n === 7 ? 'Every day' : `${n} days`),
     open: (c) => `Open now · closes ${c}`, shut: (w) => `Closed · opens ${w}`, whenTomorrow: (t) => `tomorrow ${t}`, whenToday: (t) => `today ${t}`, whenDay: (d, t) => `${d} ${t}`,
-    draft: (n) => `A website draft prepared for ${n}. Text, prices and photos come from the venue’s current site; nothing here is live.`, draftBy: 'Peak Apps Studio', currentSite: 'Your current site', follow: 'Follow', map: 'Location', openMaps: 'Open in Maps', hoursCap: 'Opening hours', bookExt: 'Your current booking page',
+    draft: (n) => `A website draft prepared for ${n}. Text, prices and photos come from the venue’s current site; nothing here is live.`, draftFiyatsiz: (n) => `A website draft prepared for ${n}. Text and photos come from the venue’s current site; nothing here is live.`, draftBy: 'Peak Apps Studio', currentSite: 'Your current site', follow: 'Follow', map: 'Location', openMaps: 'Open in Maps', hoursCap: 'Opening hours', bookExt: 'Your current booking page',
     nav: 'Sections', quick: 'Quick actions', lang: 'en', locale: 'en-GB', numLocale: 'en-US', other: 'Other',
   },
 };

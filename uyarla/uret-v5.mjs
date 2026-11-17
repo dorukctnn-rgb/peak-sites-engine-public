@@ -319,8 +319,10 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   const parts = (s) => sloganParcalari(String(s || ''));
   const mE = e.menu; let menu = null; let menuItems = 0;
   if (mE && Array.isArray(mE.items) && mE.items.length) {
-    menu = { pic: P(F.menu), kicker: mE.kicker || L.menu, h2: parts(mE.h2 || L.menu), p: mE.p || '', items: mE.items.map((it) => ({ n: clean(it.n), d: clean(it.d), p: clean(it.p), ...(clean(it.cat) ? { cat: clean(it.cat) } : {}) })), legend: mE.legend || '', link: mE.link || (R.menu && R.menu.pageUrl) || null };
-    menuItems = menu.items.filter((x) => x.p).length;
+    // FIYATSIZ MENU (17 Kas 2026): isletme fiyat yayimlamiyorsa yemekler fiyatsiz gosterilir (fiyat yazilmaz, uydurulmaz); kalem sayisi adli kalemlerdir
+    const fsz = mE.fiyatsiz === true;
+    menu = { pic: P(F.menu), kicker: mE.kicker || L.menu, h2: parts(mE.h2 || L.menu), p: mE.p || '', fiyatsiz: fsz, items: mE.items.map((it) => ({ n: clean(it.n), d: clean(it.d), p: fsz ? '' : clean(it.p), ...(clean(it.cat) ? { cat: clean(it.cat) } : {}) })), legend: mE.legend || '', link: mE.link || (R.menu && R.menu.pageUrl) || null };
+    menuItems = fsz ? menu.items.filter((x) => x.n).length : menu.items.filter((x) => x.p).length;
     if (!menu.pic) { warn.push('menu fotografi yok'); if (!USTVAR) { menu = null; menuItems = 0; } }
   }
   const second = menu ? { href: '#menu', label: L.seeMenu } : null;
@@ -370,7 +372,7 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
   let ust = null;
   if (USTVAR && menu) {
     const ayrik = new Set([F.menu, F.quiet, F.story, F.contact, ...(F.cards || [])].filter(Boolean).map(String));
-    ust = await ustHazirla({ dir, imgDir, R, e, lang, items: menu.items, heroId: sec.id, uyum, ayrik, log });
+    ust = await ustHazirla({ dir, imgDir, R, e, lang, items: menu.items, fiyatsiz: !!menu.fiyatsiz, heroId: sec.id, uyum, ayrik, log });
     // tam ekran kahraman (xl) + telefon icin ayni fotografin dik kesiti (dik ekran yatay fotografi buyutmeden dolduramaz; kesit kendi pikseliyle, kucuk dosya)
     ust.spec.hero = null;
     if (variant === 'tam' && biggest.w >= 1920 && heroNetSonuc.ok) ust.spec.hero = { xl: { src: `img/${biggest.file}`, w: biggest.w, h: biggest.h }, m: await heroTelefon({ buf: fs.readFileSync(path.join(imgDir, biggest.file)), focus: hero.focus, imgDir }) };
@@ -394,7 +396,7 @@ export async function uretV5(slug, { veri = VERI, out = DEMO, elle: E0 = null, l
     fonts: { display: { id: fe.display.id, family: fe.display.family, via: fe.display.via, orig: fe.display.orig, weight: fe.display.weight, license: fe.display.license }, text: { id: fe.text.id, family: fe.text.family, via: fe.text.via, orig: fe.text.orig, license: fe.text.license }, script: fe.script ? { id: fe.script.id, family: fe.script.family, orig: fe.script.orig } : null },
     palette: { accent: t.accent, accentInk: t.accentInk, bg: t.bg, bg2: t.bg2, ink: t.ink, deep: t.deep, shade: t.shade, panel: panel.bg, card: card.bg, accentVia: pal.source.accent && pal.source.accent.via, ok: paletteOk(pal.checks), checks: pal.checks, marka: pal.marka, sadakat },
     hero: { id: hero.id, served: `${hero.w}x${hero.h}`, orig: hero.orig, files: Object.values(files).map((f) => `${f.file} ${f.w}x${f.h} ${f.kb}KB`), kaynak: hero.kaynak, neden: sec.neden, gozle: sec.gozle || null, adaylar: (HS.adaylar || []).slice(0, 5).map((a) => ({ id: a.id, px: `${a.w}x${a.h}`, puan: a.puan, neden: a.neden })), duzen: variant },
-    heroContrast, shadeA, shadeM, photos: Object.keys(pics).length + 1, menuItems, menuLink: !!(menu && menu.link), menuKaynak: mE ? mE.kaynak || null : null,
+    heroContrast, shadeA, shadeM, photos: Object.keys(pics).length + 1, menuItems, fiyatsiz: !!(menu && menu.fiyatsiz), menuLink: !!(menu && menu.link), menuKaynak: mE ? mE.kaynak || null : null,
     hoursOk, hoursIssue: sd.issue, statusOk, tz, sections: model.order.filter((k) => model[k]), notes, warn, size: size.h1,
     fotoUyum: { tur: uyum.tur, ozet: uyum.ozet, sira: uyum.sira }, fotoUyari, heroUyumsuz,
     // NETLIK ve UST KATMAN (kapi okur): kahraman netligi, sahne, sekmeli menu, galeri, iz; kayan yazi seridi yok

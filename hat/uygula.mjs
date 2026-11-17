@@ -42,7 +42,7 @@ export function fiyatVarMi(ur) {
   if (!ur) return false;
   if (ur.sektor === 'konaklama') return !!(ur.kon && ur.kon.fromP);
   if (ur.sektor === 'guzellik') return (ur.menuItems || 0) >= 4;
-  return !!(ur.menuItems);
+  return !!(ur.menuItems) && !ur.fiyatsiz;
 }
 
 // mail onizlemesi: sayfanin 1440 ilk ekrani, 640 px genis JPEG (<= 300 KB, gercek JPEG)

@@ -174,9 +174,9 @@ test('on hazirlik: kisa liste ulkeler arasi dengeli; OSM ek ve ana sayfa sinyali
   const r = await onHazirla({ liste, depo, adet: 10, polite, osmEk, bitis: Date.now() + 60000 });
   assert.deepEqual(r.liste.map((x) => x.id).slice(-1), ['IE-k'], 'diger sektorler aynen sonda');
   const restoran = r.liste.filter((x) => x.sektor === 'restoran').map((x) => x.id);
-  assert.ok(!restoran.includes('NZ-n1') && !restoran.includes('NZ-n2') && !restoran.includes('IE-n5'), 'zincir, menusuz ve menu sayfasi fiyatsiz atlandi');
-  assert.deepEqual(restoran, ['NZ-n3', 'IE-n4'], 'fiyatli menulu ve saatli aday once');
-  assert.equal(r.sayac.zincir, 1); assert.equal(r.sayac.menuYok, 1); assert.equal(r.sayac.fiyatYok, 1); assert.equal(get, 5 + 3, '5 ana sayfa + 3 menu sayfasi'); assert.equal(osmCagri, 1);
+  assert.ok(!restoran.includes('NZ-n1') && !restoran.includes('NZ-n2'), 'zincir ve menusuz atlandi');
+  assert.deepEqual(restoran, ['NZ-n3', 'IE-n4', 'IE-n5'], 'fiyatli menulu ve saatli aday once; menu sayfasi fiyatsiz aday atlanmaz (17 Kas fiyatsiz menu), en sonda');
+  assert.equal(r.sayac.zincir, 1); assert.equal(r.sayac.menuYok, 1); assert.equal(r.sayac.fiyatYok || 0, 0, 'menu sayfasinda fiyat yok artik atlama nedeni degil'); assert.equal(get, 5 + 3, '5 ana sayfa + 3 menu sayfasi'); assert.equal(osmCagri, 1);
   assert.equal(r.liste.find((x) => x.id === 'IE-n4').saat, 'Mo-Su 09:00-22:00', 'OSM saati lead\'e islendi');
   const ob = JSON.parse(fs.readFileSync(path.join(depo, 'lead', ON_DOSYA), 'utf8')); assert.ok(ob['NZ-n3'].on && ob['IE-n4'].osm && ob['NZ-n3'].menuSayfa.fiyat >= 4 && ob['IE-n4'].menuSayfa.hata);
   // ikinci tur: onbellekten (ag yok; okunamayan menu sayfasi da her tur yeniden istenmez)
