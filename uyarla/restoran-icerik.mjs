@@ -107,12 +107,11 @@ export function denetle(k, ctx = {}) {
   // 12 Kas UST KATMAN (lib/ust-v5.mjs; yalniz v5): isteye bagli icerik.ust blogu.  Kimlikler paketteki fotograflarda olmali, kesim kutulari 0..1; gecmeyen ogeyi uretici sessizce atlamaz, burada hata olur.
   if (k.sablon === 'v5' && k.icerik && k.icerik.ust != null) H.push(...ustDenetle(k.icerik.ust, ctx, (k.menu && k.menu.kalemler) || []));
   // menu: en az 6 fiyatli kalem, kaynak kayitli ve robots izinli
-  // FIYATSIZ MENU (17 Kas 2026, koordinator karari): isletme fiyat yayimlamiyorsa menu yemekleri fiyatsiz gosterilir; fiyat ASLA uydurulmaz.  Yalniz v5; menu.fiyatsiz true iken
+  // FIYATSIZ MENU (17 Kas 2026, koordinator karari): isletme fiyat yayimlamiyorsa menu yemekleri fiyatsiz gosterilir; fiyat ASLA uydurulmaz.  Her sablonda (v5, burger, pizza, burrito, pastane, sokak; kategori sablonlari 17 Kas 2026 sonra); menu.fiyatsiz true iken
   // her kalemin p alani bos, yemek adlari metin kaynaginda aynen gecer ve paketteki metin kaynaginda fiyat bulunmaz (fiyat varsa fiyatli menu yazilir).
   const m = k.menu || {}; const kal = Array.isArray(m.kalemler) ? m.kalemler : [];
   const fiyatsiz = m.fiyatsiz === true;
   if (m.fiyatsiz != null && typeof m.fiyatsiz !== 'boolean') H.push('menu.fiyatsiz true ya da yok olmali');
-  if (fiyatsiz && k.sablon !== 'v5') H.push('fiyatsiz menu yalniz v5 sablonunda (kategori sablonlari fiyat ister)');
   if (kal.length < 6) H.push(`${fiyatsiz ? 'menu' : 'fiyatli menu'} en az 6 kalem olmali (${kal.length})`);
   for (const [i, x] of kal.entries()) {
     if (!x || !String(x.n || '').trim()) H.push(`menu.kalemler[${i}] adi yok`);
@@ -217,13 +216,14 @@ export function kayitKur(k) {
     ic.heroGerekce = k.hero.gerekce;
     return { v5: ic, sablon: 'v5' };
   }
+  const fz = k.menu.fiyatsiz === true ? { menuFiyatsiz: true } : {}; // fiyatsiz menu (17 Kas 2026): kategori sablonlari da fiyat dugumu cizmez
   ic.kategori = k.sablon; ic.hero = [String(k.hero.id)]; ic.heroNeden = k.hero.gerekce; ic.menuKaynak = kaynakYazi;
   if (k.eylem.tur === 'telefon') { // siparis baglantisi yok (butun ulkeler); sablon kendi telefon eylemini (D.tel, "Call <numara>" / "Arayın: <numara>") kullanir
-    ic.kategoriEk = { ...(ic.kategoriEk || {}), menu: kal.map((x) => ({ n: x.n, d: x.d, p: x.p, cat: x.cat || 'Menu' })), eylemTur: 'telefon' };
+    ic.kategoriEk = { ...(ic.kategoriEk || {}), menu: kal.map((x) => ({ n: x.n, d: x.d, p: x.p, cat: x.cat || 'Menu' })), ...fz, eylemTur: 'telefon' };
     if (k.saat && k.saat.satirlar) ic.kategoriEk.saatSatirlar = k.saat.satirlar.map(String);
     return { kategori: ic, sablon: k.sablon };
   }
-  ic.kategoriEk = { ...(ic.kategoriEk || {}), menu: kal.map((x) => ({ n: x.n, d: x.d, p: x.p, cat: x.cat || 'Menu' })), siparis: { url: k.eylem.url, platform: k.eylem.platform || '', text: ic.eylem || (k.dil === 'tr' ? (k.eylem.tur === 'rezervasyon' ? 'Masa ayırtın' : k.eylem.metin || 'Sipariş ver') : k.eylem.tur === 'rezervasyon' ? 'Book a table' : 'Order online'), tur: k.eylem.tur, external: true } };
+  ic.kategoriEk = { ...(ic.kategoriEk || {}), menu: kal.map((x) => ({ n: x.n, d: x.d, p: x.p, cat: x.cat || 'Menu' })), ...fz, siparis: { url: k.eylem.url, platform: k.eylem.platform || '', text: ic.eylem || (k.dil === 'tr' ? (k.eylem.tur === 'rezervasyon' ? 'Masa ayırtın' : k.eylem.metin || 'Sipariş ver') : k.eylem.tur === 'rezervasyon' ? 'Book a table' : 'Order online'), tur: k.eylem.tur, external: true } };
   if (k.saat && k.saat.satirlar) ic.kategoriEk.saatSatirlar = k.saat.satirlar.map(String);
   return { kategori: ic, sablon: k.sablon };
 }

@@ -246,7 +246,10 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   // kaynak kaydi (12 Kas 2026): saat ya da adres sitede yoksa OSM'den gelir; son goz ve inceleme bunu gorur
   rapor.kaynaklar = { saat: R.hours ? R.hours.via || (R.hours.source === 'json-ld' ? 'sitenin schema.org kaydi' : 'sitenin metni') : null, adres: R.address ? R.address.via || 'site' : null };
   // dil: isletmenin dili (TR 11 Kas 2026: Turkce arayuz, 24 saat, Turkce gun adlari, Turkiye saati)
-  const dil = R.lead.lang === 'tr' || bolge === 'TR' ? 'tr' : 'en'; const t = kmOf(dil);
+  const dil = R.lead.lang === 'tr' || bolge === 'TR' ? 'tr' : 'en';
+  // FIYATSIZ MENU (17 Kas 2026, koordinator karari; kategori sablonlari icin ayni gun): isletme fiyat yayimlamiyorsa menu yemekleri fiyatsiz gosterilir, fiyat uydurulmaz; taslak notu "fiyat" demez
+  const fiyatsiz = !!(R.menu && R.menu.fiyatsiz === true); rapor.fiyatsiz = fiyatsiz;
+  const km0 = kmOf(dil); const t = fiyatsiz ? { ...km0, draft: km0.draftFiyatsiz, draftOrder: km0.draftOrderFiyatsiz } : km0;
   const saatler = week ? [1, 2, 3, 4, 5, 6, 0].map((d) => ({ d, gun: t.days[d], t: week[d] ? (dil === 'tr' ? `${hhmm24(week[d][0])}–${hhmm24(week[d][1])}` : `${hhmm12(week[d][0])} to ${hhmm12(week[d][1])}`) : t.closed })) : [];
   const telRaw = String(R.phone || '').replace(/[^\d+]/g, ''); const tel = telRaw ? (telRaw.startsWith('+') ? telRaw : (CC[bolge] || '') + telRaw.replace(/^0/, '')) : '';
   const adres = (R.address && R.address.text) || '';
@@ -265,7 +268,7 @@ export async function uretKategori(slug, { veri = VERI_K, out = DEMO_K, log = co
   for (const [k, v] of Object.entries(rapor.kontrast)) if (v < 4.5) rapor.uyarilar.push(`kontrast dusuk: ${k} ${v}`);
 
   const D = {
-    slug, kat, ad, sehir, bolge, ulke: ULKE[bolge] || '', site: R.lead.site, dil, t, koyu, logo, hero, P, KF, KS, E, R, tema, AYAR, slogan, atlas, surum, isaret, iz, font: fontBilgi,
+    slug, kat, ad, sehir, bolge, ulke: ULKE[bolge] || '', site: R.lead.site, dil, t, fiyatsiz, koyu, logo, hero, P, KF, KS, E, R, tema, AYAR, slogan, atlas, surum, isaret, iz, font: fontBilgi,
     ustYazi: E.ustYazi || R.tagline || '', lede: E.lede || '', saatler, week,
     tel: tel ? { href: `tel:${tel}`, text: R.phone } : null,
     // adres OSM'den geldiyse (address.konum) harita ve yol tarifi koordinata gider (12 Kas 2026)
