@@ -32,3 +32,12 @@ test('kentBul: agir kutu dorde bolunur, hala basarisizsa kent hata listesine gir
 test('kentler(): plan ek / metro / hepsi', () => {
   assert.equal(kentler('GB', 'ek').length, METRO_EK.GB.length); assert.equal(kentler('GB', 'metro').length, 13); assert.equal(kentler('GB', 'hepsi').length, 13 + METRO_EK.GB.length); assert.equal(kentler('IE', 'ek').length, 0);
 });
+
+test('kentBul: ilk denenecek ayna ve zaman siniri sorguya iletilir, her kent bitince kentBitti cagrilir', async () => {
+  const secenekler = []; const biten = [];
+  const sorgula = async (q, o) => { secenekler.push(o); return { elements: [el(1, 'Alfa Cafe', `https://a${secenekler.length}.test/`, 52.2, 0.1)] }; };
+  const r = await kentBul('GB', kentler('GB', 'ek').slice(0, 2), { sorgula, bekleMs: 0, kentBitti: (k, ls) => biten.push([k, ls.length]) });
+  assert.ok(secenekler.every((o) => o.ilk === 1 && o.zamanMs === 90000 && o.tries === 3), JSON.stringify(secenekler[0]));
+  assert.deepEqual(biten, [['Cambridge', 1], ['Oxford', 1]]); assert.equal(r.leads.length, 2);
+  await kentBul('GB', kentler('GB', 'ek').slice(0, 1), { sorgula, bekleMs: 0, ilk: 0 }); assert.equal(secenekler.at(-1).ilk, 0);
+});
