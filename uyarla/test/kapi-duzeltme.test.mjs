@@ -19,3 +19,25 @@ test('eyebrowNotr: etiket yazi rengine cekilir, ikinci cagri bir sey eklemez', (
     assert.equal(fs.readFileSync(f, 'utf8'), css);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+import { golgeArtir } from '../kapi.mjs';
+
+test('golgeArtir: alt gradyan artar ve sayfaya ozel orta bant eklenir, her cagri bandi bir basamak koyulastirir (en cok .62)', () => {
+  const dir = gecici('kapi-');
+  try {
+    const f = path.join(dir, 'theme.css');
+    fs.writeFileSync(f, ':root{--shade-m:0.720;--shade-a:0.940;}\n');
+    golgeArtir(f);
+    let css = fs.readFileSync(f, 'utf8');
+    assert.match(css, /--shade-m:0\.810;/);
+    assert.match(css, /bant-u:0\.26\*\/\.hero-shade::after/);
+    golgeArtir(f);
+    css = fs.readFileSync(f, 'utf8');
+    assert.match(css, /bant-u:0\.38/);
+    assert.equal((css.match(/bant-u:/g) || []).length, 1, 'tek bant kurali kalir');
+    for (let i = 0; i < 6; i++) golgeArtir(f);
+    css = fs.readFileSync(f, 'utf8');
+    assert.match(css, /bant-u:0\.62/);
+    assert.equal((css.match(/bant-u:/g) || []).length, 1);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
