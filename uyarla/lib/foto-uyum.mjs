@@ -206,7 +206,13 @@ export function yuvaDenetle(k, uyum) {
   const H = [];
   for (const y of kararYuvalari(k)) { const r = yuvaUygun(uyum, y.id, { kart: y.kart }); if (!r.ok) H.push(`foto uyumu: ${y.yuva} karesi ${y.id} kullanilamaz (${r.neden}); uyan kare yoksa yuva bos birakilir, sablon daraltir`); }
   const hero = k.hero && k.hero.id ? (uyum.uygun || []).find((x) => x.id === String(k.hero.id)) : null;
-  if (hero && hero.kaynak === 'stok' && (uyum.uygun || []).some((x) => x.kaynak === 'kendi' && !x.yalnizKart)) H.push(`foto uyumu: ana fotograf (${hero.id}) stok kare; isletmenin kendi karesi olmali`);
+  // STOK ANA FOTOGRAF (17 Kas 2026, koordinator karari): isletmenin kendi kareleri keskin bir ana fotograf icin cok kucuk ya da yumusaksa, ana fotograf YALNIZ icin isletmenin
+  // gercek yemegine ya da mekan turune acikca uyan yuksek kaliteli stok kare olabilir (kararda hero.stok true + hero.stokNeden).  Her diger yuva isletmenin kendi karesidir; stok kare
+  // yine stokUyumu kapisindan gecmis (uygun listesinde) olmali.  Bayrak yoksa kural eskisi gibi: uygun kendi karesi varken stok ana fotograf olmaz.
+  const stokIzni = !!(k.hero && k.hero.stok === true && String(k.hero.stokNeden || '').trim().length >= 25);
+  if (k.hero && k.hero.stok === true && !stokIzni) H.push('foto uyumu: hero.stok true ise hero.stokNeden (kendi karelerinin neden yetmedigi, en az 25 karakter) yazilmali');
+  if (hero && hero.kaynak === 'stok' && !stokIzni && (uyum.uygun || []).some((x) => x.kaynak === 'kendi' && !x.yalnizKart)) H.push(`foto uyumu: ana fotograf (${hero.id}) stok kare; isletmenin kendi karesi olmali`);
+  if (k.hero && k.hero.stok === true && hero && hero.kaynak !== 'stok') H.push(`foto uyumu: hero.stok true ama kare ${hero.id} stok kare degil`);
   return H;
 }
 
